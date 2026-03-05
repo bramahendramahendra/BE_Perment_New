@@ -1,13 +1,13 @@
 {
-    "IDPengajuan": "PS100012026TW2260304040242",
-    "Divisi": "PS10001-Direktorat Manajemen Aktiva Tetap & Peng",
-    "Tahun": "2026",
+    // "IDPengajuan": "PS100012026TW2260304040242",
+    "Divisi": "PS10001-Direktorat Manajemen Aktiva Tetap & Peng", 
+    "Tahun": "2026", 
     "Triwulan": "TW2",
-    "Kostl": "PS10001",
-    "KostlTx": "Direktorat Manajemen Aktiva Tetap & Peng",
-    "EntryUser": "00130596",
-    "EntryName": "Erlina Nurmahasasi",
-    "EntryTime": "2026-03-04 16:02:42",
+    "Kostl": "PS10001", 
+    "KostlTx": "Direktorat Manajemen Aktiva Tetap & Peng", 
+    "EntryUser": "00130596", // token
+    "EntryName": "Erlina Nurmahasasi", // token 
+    "EntryTime": "2026-03-04 16:02:42", //token
     "ApprovalPosisi": "00071965",
     "ApprovalList": "[{"userid":"00071965","nama":"Bayu Hidayat","status":"","keterangan":"","posisi":"SIGNER","level":"","fungsi":"PENYUSUNAN KPI","waktu":""}]",
     "SaveAsDraft": "1",

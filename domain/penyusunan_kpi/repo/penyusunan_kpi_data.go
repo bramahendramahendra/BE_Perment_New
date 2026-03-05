@@ -69,6 +69,12 @@ const (
 //  2. Ambil orgeh & orgeh_tx dari tabel user
 //  3. Build semua query batch insert
 //  4. Eksekusi dalam 1 transaksi → commit jika semua sukses, rollback jika ada yang gagal
+//
+// Catatan:
+//   - id_detail              : dari kpiItem.Id yang dikirim frontend
+//   - id_keterangan_project  : backend otomatis isi "-"
+//   - id_pengajuan challenge/method : dari req.IDPengajuan (parent)
+//   - tahun & triwulan challenge/method : dari item masing-masing (dikirim frontend)
 func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	req *dto.InsertPenyusunanKpiRequest,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
@@ -89,7 +95,7 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	r.db.Raw(queryGetOrgeh, req.Kostl).Row().Scan(&orgeh, &orgehTx)
 
 	// --- 3. Tentukan status berdasarkan SaveAsDraft ---
-	// Status 70 = draft, NULL = normal (insert tanpa kolom status)
+	// Status 70 = draft, NULL = normal
 	var statusKpi interface{}
 	if req.SaveAsDraft == "1" {
 		statusKpi = 70
@@ -98,44 +104,42 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	}
 
 	// --- 4. Build batch INSERT data_kpi_detail ---
+	// id_detail             : dari kpiItem.Id (dikirim frontend, contoh: "PS100012026TW2260304040242P001")
+	// id_keterangan_project : backend otomatis isi "-"
 	kpiDetailPlaceholders := []string{}
 	kpiDetailArgs := []interface{}{}
 
-	for i, kpiItem := range req.Kpi {
-		inc := fmt.Sprintf("000%d", i)
-		idDetail := req.IDPengajuan + inc[len(inc)-3:]
-
+	for _, kpiItem := range req.Kpi {
 		kpiDetailPlaceholders = append(kpiDetailPlaceholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
 		kpiDetailArgs = append(kpiDetailArgs,
 			req.IDPengajuan,
-			idDetail,
+			kpiItem.Id, // id_detail dari frontend
 			req.Tahun,
 			req.Triwulan,
 			kpiItem.IdKpi,
 			kpiItem.Kpi,
 			kpiItem.Rumus,
 			kpiItem.Persfektif,
-			kpiItem.KeteranganProject,
+			"-", // id_keterangan_project: backend otomatis isi "-"
 		)
-
 	}
 
 	// --- 5. Build batch INSERT data_kpi_subdetail (dari hasil parse Excel) ---
+	// id_sub_detail         : generate dari kpiItem.Id + index sub (contoh: "PS100012026TW2260304040242P001001")
+	// id_keterangan_project : backend otomatis isi "-"
 	subDetailPlaceholders := []string{}
 	subDetailArgs := []interface{}{}
 
 	for i, kpiItem := range req.Kpi {
-		inc := fmt.Sprintf("000%d", i)
-		idDetail := req.IDPengajuan + inc[len(inc)-3:]
-
 		rows, ok := kpiSubDetails[i]
 		if !ok {
 			continue
 		}
 
 		for j, subRow := range rows {
+			// Generate id_sub_detail dari id KPI + index sub (3 digit)
 			subInc := fmt.Sprintf("000%d", j)
-			idSubDetail := idDetail + subInc[len(subInc)-3:]
+			idSubDetail := kpiItem.Id + subInc[len(subInc)-3:]
 
 			itemQualifier := ""
 			deskripsiQualifier := ""
@@ -150,14 +154,14 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 				"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 			subDetailArgs = append(subDetailArgs,
 				req.IDPengajuan,
-				idDetail,
+				kpiItem.Id, // id_detail dari frontend
 				idSubDetail,
 				req.Tahun,
 				req.Triwulan,
 				kpiItem.IdKpi,
 				subRow.SubKPI,
-				subRow.Polarisasi, // rumus diisi polarisasi sesuai mapping lama
-				"0",               // otomatis default "0"
+				subRow.Polarisasi,
+				"0", // otomatis default "0"
 				subRow.Bobot,
 				subRow.Capping,
 				subRow.TargetTriwulan,
@@ -168,20 +172,22 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 				itemQualifier,
 				deskripsiQualifier,
 				targetQualifier,
-				kpiItem.KeteranganProject,
+				"-", // id_keterangan_project: backend otomatis isi "-"
 				subRow.TerdapatQualifier,
 			)
 		}
 	}
 
 	// --- 6. Build batch INSERT data_challenge_detail ---
+	// id_pengajuan : dari req.IDPengajuan (parent)
+	// tahun & triwulan : dari item (dikirim frontend, bisa "-" jika tidak ada data)
 	challengePlaceholders := []string{}
 	challengeArgs := []interface{}{}
 
 	for _, ch := range req.ChallengeList {
 		challengePlaceholders = append(challengePlaceholders, "(?, ?, ?, ?, ?, ?)")
 		challengeArgs = append(challengeArgs,
-			ch.IdPengajuan,
+			req.IDPengajuan, // id_pengajuan dari parent
 			ch.IdDetailChallenge,
 			ch.Tahun,
 			ch.Triwulan,
@@ -191,13 +197,15 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	}
 
 	// --- 7. Build batch INSERT data_method_detail ---
+	// id_pengajuan : dari req.IDPengajuan (parent)
+	// tahun & triwulan : dari item (dikirim frontend, bisa "-" jika tidak ada data)
 	methodPlaceholders := []string{}
 	methodArgs := []interface{}{}
 
 	for _, mt := range req.MethodList {
 		methodPlaceholders = append(methodPlaceholders, "(?, ?, ?, ?, ?, ?)")
 		methodArgs = append(methodArgs,
-			mt.IdPengajuan,
+			req.IDPengajuan, // id_pengajuan dari parent
 			mt.IdDetailMethod,
 			mt.Tahun,
 			mt.Triwulan,

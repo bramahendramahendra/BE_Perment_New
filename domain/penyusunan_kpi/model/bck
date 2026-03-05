@@ -1,0 +1,14 @@
+type (
+	ParentSubKPI struct {
+		Identefier string
+		Data       []DataChallengeDetail
+	}
+
+	ParentKPI struct {
+		JenisKPI      string
+		Perspektif    string
+		DataParentSub []ParentSubKPI
+	}
+)
+
+var Input []ParentKPI
