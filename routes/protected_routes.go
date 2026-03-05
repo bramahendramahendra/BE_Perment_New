@@ -2,12 +2,18 @@ package routes
 
 import (
 	auth_middleware "permen_api/middleware/auth"
+	"permen_api/routes/segment"
 
 	"github.com/gin-gonic/gin"
 )
 
 func protectedRoutes(r *gin.RouterGroup) {
 	r.Use(auth_middleware.BearerAuthMiddleware())
+
+	// =============================================
+	// DOMAIN: PENYUSUNAN KPI
+	// =============================================
+	segment.PenyusunanKpiRoutes(r)
 
 	// =============================================
 	// ENDPOINT TESTING — hapus setelah verified ✅
