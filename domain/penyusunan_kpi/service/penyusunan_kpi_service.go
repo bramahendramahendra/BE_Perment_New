@@ -44,14 +44,21 @@ func (s *penyusunanKpiService) InsertPenyusunanKpi(
 		return "", fmt.Errorf("tidak ada file Excel yang dikirim")
 	}
 
-	// --- 2. Parse & validasi semua file Excel sebelum insert DB ---
+	// --- 2. Tentukan batas baris Excel ---
+	// Jika MaxRowsExcel tidak dikirim atau 0, gunakan default (ExcelMaxDataRows = 20)
+	maxRows := 13
+	if maxRows <= 0 {
+		maxRows = ExcelMaxDataRows
+	}
+
+	// --- 3. Parse & validasi semua file Excel sebelum insert DB ---
 	// Semua file harus valid dulu — jika ada yang gagal, tidak ada yang masuk DB
 	kpiSubDetails := make(map[int][]dto.PenyusunanKpiSubDetailRow)
 
 	for i, file := range files {
 		kpiName := req.Kpi[i].Kpi
 
-		rows, err := ParseAndValidateExcel(file)
+		rows, err := ParseAndValidateExcelWithLimit(file, maxRows)
 		if err != nil {
 			return "", fmt.Errorf(
 				"validasi gagal pada file Excel KPI ke-%d ('%s' — KPI: '%s'): %w",
@@ -62,19 +69,19 @@ func (s *penyusunanKpiService) InsertPenyusunanKpi(
 		kpiSubDetails[i] = rows
 	}
 
-	// --- 3. [TESTING] Simulasi generate ID & log data per tabel ---
+	// --- 4. [TESTING] Simulasi generate ID & log data per tabel ---
 	// TODO: Hapus blok log ini setelah testing selesai,
 	//       lalu uncomment pemanggilan repo di bagian bawah
 	logPreviewInsert(req, kpiSubDetails)
 
-	// --- 4. INSERT KE DB (DINONAKTIFKAN SEMENTARA UNTUK TESTING) ---
+	// --- 5. INSERT KE DB (DINONAKTIFKAN SEMENTARA UNTUK TESTING) ---
 	// idPengajuan, err := s.repo.InsertPenyusunanKpi(req, kpiSubDetails)
 	// if err != nil {
 	// 	return "", fmt.Errorf("gagal menyimpan data KPI: %w", err)
 	// }
 	// return idPengajuan, nil
 
-	// Sementara return dummy idPengajuan dari simulasi
+	// --- 6. Sementara return dummy idPengajuan dari simulasi ---
 	idPengajuan := simulateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
 	return idPengajuan, nil
 }

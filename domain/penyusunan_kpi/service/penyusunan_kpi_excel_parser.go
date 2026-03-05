@@ -60,15 +60,15 @@ func ParseAndValidateExcel(file *multipart.FileHeader) ([]dto.PenyusunanKpiSubDe
 //   - Col A  : angka
 //   - Col B  : free text, tidak boleh blank
 //   - Col C  : free text, tidak boleh blank
-//   - Col D  : enum Maximize / Minimize
-//   - Col E  : enum 100% / 110%
+//   - Col D  : enum Maximize / Minimize, tidak boleh blank
+//   - Col E  : enum 100% / 110%, tidak boleh blank
 //   - Col F  : angka 2 desimal, total semua baris harus = 100%
 //   - Col G  : free text, tidak boleh blank
 //   - Col H  : free text, tidak boleh blank
 //   - Col I  : angka 2 desimal
 //   - Col J  : free text, tidak boleh blank
 //   - Col K  : angka 2 desimal
-//   - Col L  : enum Ya / Tidak
+//   - Col L  : enum Ya / Tidak, tidak boleh blank
 //   - Col M  : wajib diisi jika Col L = "Ya"
 //   - Col N  : wajib diisi jika Col L = "Ya"
 //   - Col O  : wajib diisi jika Col L = "Ya"
@@ -174,12 +174,12 @@ func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]
 				displayRow, colA)
 		}
 
-		// --- Validasi Col B: KPI ---
+		// --- Validasi Col B: KPI (free text, tidak boleh blank) ---
 		if colB == "" {
 			return nil, fmt.Errorf("baris %d, Kolom B (KPI): tidak boleh kosong", displayRow)
 		}
 
-		// --- Validasi Col C: Sub KPI ---
+		// --- Validasi Col C: Sub KPI (free text, tidak boleh blank) ---
 		if colC == "" {
 			return nil, fmt.Errorf("baris %d, Kolom C (Sub KPI): tidak boleh kosong", displayRow)
 		}
@@ -267,22 +267,32 @@ func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]
 			}
 		}
 
-		// --- Validasi Col P-U ---
+		// --- Validasi Col P: Result ---
 		if colP == "" {
 			return nil, fmt.Errorf("baris %d, Kolom P (Result): tidak boleh kosong", displayRow)
 		}
+
+		// --- Validasi Col Q: Deskripsi Result ---
 		if colQ == "" {
 			return nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Result): tidak boleh kosong", displayRow)
 		}
+
+		// --- Validasi Col R: Process ---
 		if colR == "" {
 			return nil, fmt.Errorf("baris %d, Kolom R (Process): tidak boleh kosong", displayRow)
 		}
+
+		// --- Validasi Col S: Deskripsi Process ---
 		if colS == "" {
 			return nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Process): tidak boleh kosong", displayRow)
 		}
+
+		// --- Validasi Col T: Context ---
 		if colT == "" {
 			return nil, fmt.Errorf("baris %d, Kolom T (Context): tidak boleh kosong", displayRow)
 		}
+
+		// --- Validasi Col U: Deskripsi Context ---
 		if colU == "" {
 			return nil, fmt.Errorf("baris %d, Kolom U (Deskripsi Context): tidak boleh kosong", displayRow)
 		}
@@ -341,11 +351,13 @@ func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]
 // =============================================
 
 // parseFloat2Decimal mem-parse string menjadi float64 dengan 2 angka di belakang koma.
+// Mengembalikan error jika string bukan angka valid.
 func parseFloat2Decimal(s string) (float64, error) {
 	if s == "" {
 		return 0, nil
 	}
 
+	// Hapus simbol % jika ada (misal jika user salah format)
 	cleaned := strings.ReplaceAll(s, "%", "")
 	cleaned = strings.TrimSpace(cleaned)
 
@@ -354,6 +366,7 @@ func parseFloat2Decimal(s string) (float64, error) {
 		return 0, fmt.Errorf("'%s' bukan angka valid", s)
 	}
 
+	// Bulatkan ke 2 desimal
 	rounded := math.Round(val*100) / 100
 	return rounded, nil
 }
