@@ -36,13 +36,19 @@ func NewPenyusunanKpiHandler(service service.PenyusunanKpiServiceInterface) *Pen
 //   - Field "files[]" : satu atau lebih file Excel (.xlsx)
 //     urutan file harus sesuai urutan array Kpi di REQUEST
 //
+// IDPengajuan dan id_detail KPI tidak perlu dikirim dari frontend —
+// semua di-generate otomatis di backend mengikuti pola:
+//
+//	IDPengajuan = Kostl + Tahun + Triwulan + timestamp(ymdhis)
+//	id_detail   = IDPengajuan + "P" + index 3 digit (P001, P002, ...)
+//
 // Contoh request:
 //
 //	POST /api/penyusunan-kpi/insert
 //	Content-Type: multipart/form-data
 //	Authorization: Bearer <token>
 //
-//	REQUEST = '{"IDPengajuan":"...","Tahun":"2025",...,"Kpi":[...],...}'
+//	REQUEST = '{"Tahun":"2026","Triwulan":"TW2","Kostl":"PS10001",...,"Kpi":[...],...}'
 //	files[]  = [excel_kpi_1.xlsx, excel_kpi_2.xlsx]
 func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 	// --- 1. Ambil field REQUEST (JSON string) dari multipart form ---
@@ -91,7 +97,9 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 	}
 
 	// --- 6. Panggil service ---
-	if err := h.service.InsertPenyusunanKpi(&req, files); err != nil {
+	// idPengajuan di-generate di backend dan dikembalikan untuk response
+	idPengajuan, err := h.service.InsertPenyusunanKpi(&req, files)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -102,8 +110,8 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 		Status:  true,
 		Message: "Data KPI berhasil disimpan",
 		Data: dto.InsertPenyusunanKpiResponse{
-			// IDPengajuan: req.IDPengajuan,
-			Message: "Insert KPI berhasil",
+			IDPengajuan: idPengajuan,
+			Message:     "Insert KPI berhasil",
 		},
 	})
 }

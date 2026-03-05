@@ -19,12 +19,17 @@ type (
 		//   - data_challenge_detail
 		//   - data_method_detail
 		//
-		// Parameter kpiSubDetails adalah map dengan key = index KPI (sesuai urutan req.Kpi),
-		// value = slice baris hasil parse Excel untuk KPI tersebut.
+		// ID di-generate di backend mengikuti pola frontend lama:
+		//   - IDPengajuan  = Kostl + Tahun + Triwulan + timestamp(ymdhis)
+		//   - id_detail    = IDPengajuan + "P" + index KPI 3 digit (P001, P002, ...)
+		//   - id_sub_detail = IDPengajuan + "C" + index SubKPI 3 digit (C001, C002, ...)
+		//                     ⚠️ index reset setiap KPI baru
+		//
+		// Return: idPengajuan yang di-generate, error
 		InsertPenyusunanKpi(
 			req *dto.InsertPenyusunanKpiRequest,
 			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-		) error
+		) (string, error)
 
 		// GetDB mengembalikan instance *gorm.DB untuk keperluan lain (logging, dsb)
 		GetDB() *gorm.DB
