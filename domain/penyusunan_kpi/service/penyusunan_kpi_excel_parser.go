@@ -113,6 +113,32 @@ func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]
 			file.Filename, excelDataStartRow)
 	}
 
+	// --- [DEBUG] Log SEMUA baris Excel untuk inspeksi struktur ---
+	// TODO: Hapus blok debug ini setelah struktur Excel dikonfirmasi
+	fmt.Printf("[DEBUG] File: '%s' | Total baris terbaca: %d | Sheet: '%s'\n",
+		file.Filename, len(allRows), sheetName)
+	for i, row := range allRows {
+		// Cek apakah baris kosong
+		isEmpty := true
+		for _, cell := range row {
+			if strings.TrimSpace(cell) != "" {
+				isEmpty = false
+				break
+			}
+		}
+		if isEmpty {
+			fmt.Printf("[DEBUG]   Baris %d: (kosong)\n", i+1)
+			continue
+		}
+		// Tampilkan maksimal 5 kolom pertama per baris yang tidak kosong
+		preview := row
+		if len(preview) > 5 {
+			preview = preview[:5]
+		}
+		fmt.Printf("[DEBUG]   Baris %d [%d kolom]: %v\n", i+1, len(row), preview)
+	}
+	// --- [END DEBUG] ---
+
 	// Tentukan batas baris yang akan dibaca
 	// allRows index 0-based: data mulai index (excelDataStartRow - 1)
 	dataStartIdx := excelDataStartRow - 1
