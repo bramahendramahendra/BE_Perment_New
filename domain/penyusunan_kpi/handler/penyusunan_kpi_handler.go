@@ -102,8 +102,8 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 		Status:  true,
 		Message: "Data KPI berhasil disimpan",
 		Data: dto.InsertPenyusunanKpiResponse{
-			IDPengajuan: req.IDPengajuan,
-			Message:     "Insert KPI berhasil",
+			// IDPengajuan: req.IDPengajuan,
+			Message: "Insert KPI berhasil",
 		},
 	})
 }

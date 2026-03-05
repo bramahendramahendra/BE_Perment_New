@@ -5,8 +5,13 @@ package dto
 // =============================================
 
 // InsertPenyusunanKpiRequest adalah request utama yang dikirim via multipart form field "REQUEST"
+//
+// Catatan generate ID (dilakukan di backend, tidak perlu dikirim frontend):
+//   - IDPengajuan = Kostl + Tahun + Triwulan + timestamp (ymdhis)
+//                   contoh: "PS100012026TW2260304040242"
+//   - Id per KPI  = IDPengajuan + "P" + index 3 digit
+//                   contoh: "PS100012026TW2260304040242P001"
 type InsertPenyusunanKpiRequest struct {
-	IDPengajuan    string                    `json:"IDPengajuan"    validate:"required"`
 	Divisi         string                    `json:"Divisi"         validate:"required"`
 	Tahun          string                    `json:"Tahun"          validate:"required"`
 	Triwulan       string                    `json:"Triwulan"       validate:"required"`
@@ -28,19 +33,20 @@ type InsertPenyusunanKpiRequest struct {
 // dengan urutan file Excel sesuai urutan array Kpi ini.
 //
 // Catatan:
-//   - Id               : ID unik per baris KPI, contoh: "PS100012026TW2260304040242P001"
-//   - KeteranganProject : tidak perlu dikirim — backend otomatis mengisi dengan "-"
+//   - Id dan IDPengajuan tidak perlu dikirim — di-generate otomatis oleh backend
+//   - KeteranganProject tidak perlu dikirim — backend otomatis mengisi dengan "-"
 type PenyusunanKpiDetailItem struct {
-	Id         string `json:"id"          validate:"required"`
-	IdKpi      string `json:"idKpi"       validate:"required"`
-	Kpi        string `json:"kpi"         validate:"required"`
-	Rumus      string `json:"rumus"       validate:"required"`
-	Persfektif string `json:"persfektif"  validate:"required"`
+	IdKpi      string `json:"idKpi"      validate:"required"`
+	Kpi        string `json:"kpi"        validate:"required"`
+	Rumus      string `json:"rumus"      validate:"required"`
+	Persfektif string `json:"persfektif" validate:"required"`
 }
 
 // PenyusunanChallengeItem adalah satu baris data challenge pada tabel data_challenge_detail.
-// Semua field dikirim dari frontend termasuk tahun dan triwulan.
-// Jika tidak ada data challenge, frontend mengirim nilai "-" pada semua field.
+// Jika tidak ada data challenge (non-TW4), frontend mengirim nilai "-" pada semua field.
+//
+// Catatan:
+//   - IdPengajuan tidak perlu dikirim — diambil dari IDPengajuan yang di-generate backend
 type PenyusunanChallengeItem struct {
 	IdDetailChallenge  string `json:"idDetailChallenge"  validate:"required"`
 	Tahun              string `json:"tahun"              validate:"required"`
@@ -50,8 +56,10 @@ type PenyusunanChallengeItem struct {
 }
 
 // PenyusunanMethodItem adalah satu baris data method pada tabel data_method_detail.
-// Semua field dikirim dari frontend termasuk tahun dan triwulan.
-// Jika tidak ada data method, frontend mengirim nilai "-" pada semua field.
+// Jika tidak ada data method (non-TW4), frontend mengirim nilai "-" pada semua field.
+//
+// Catatan:
+//   - IdPengajuan tidak perlu dikirim — diambil dari IDPengajuan yang di-generate backend
 type PenyusunanMethodItem struct {
 	IdDetailMethod  string `json:"idDetailMethod"  validate:"required"`
 	Tahun           string `json:"tahun"           validate:"required"`

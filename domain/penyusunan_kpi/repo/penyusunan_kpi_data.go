@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
 )
@@ -60,41 +61,91 @@ const (
 )
 
 // =============================================
+// HELPER — GENERATE ID
+// =============================================
+
+// generateIDPengajuan membuat IDPengajuan mengikuti pola frontend lama:
+//
+//	IDPengajuan = Kostl + Tahun + Triwulan + timestamp(ymdhis)
+//	Contoh: "PS10001" + "2026" + "TW2" + "260304040242"
+//	      = "PS100012026TW2260304040242"
+func generateIDPengajuan(kostl, tahun, triwulan string) string {
+	t := time.Now()
+	// Format: ymd his → "260304" + "040242"
+	timestamp := fmt.Sprintf("%02d%02d%02d%02d%02d%02d",
+		t.Year()%100, // 2 digit tahun
+		int(t.Month()),
+		t.Day(),
+		t.Hour(),
+		t.Minute(),
+		t.Second(),
+	)
+	return kostl + tahun + triwulan + timestamp
+}
+
+// generateIDDetail membuat ID untuk setiap baris KPI (id_detail) mengikuti pola frontend lama:
+//
+//	Id = IDPengajuan + "P" + index 3 digit (mulai dari 001)
+//	Contoh: "PS100012026TW2260304040242" + "P" + "001"
+//	      = "PS100012026TW2260304040242P001"
+func generateIDDetail(idPengajuan string, index int) string {
+	return fmt.Sprintf("%sP%03d", idPengajuan, index+1)
+}
+
+// generateIDSubDetail membuat ID untuk setiap baris Sub KPI (id_sub_detail).
+//
+// Format: IDPengajuan + "C" + counter global 3 digit (counter TIDAK reset antar KPI).
+//
+// Counter global memastikan id_sub_detail unik tanpa perlu prefix id_detail:
+//
+//	KPI ke-1 (P001): IDPengajuanC001, IDPengajuanC002, IDPengajuanC003
+//	KPI ke-2 (P002): IDPengajuanC004, IDPengajuanC005  ← lanjut dari C003
+func generateIDSubDetail(idPengajuan string, globalIndex int) string {
+	return fmt.Sprintf("%sC%03d", idPengajuan, globalIndex)
+}
+
+// =============================================
 // IMPLEMENTATION
 // =============================================
 
 // InsertPenyusunanKpi melakukan insert semua data KPI dalam satu transaksi DB.
 // Flow:
-//  1. Cek apakah data sudah ada (tahun + triwulan + kostl)
-//  2. Ambil orgeh & orgeh_tx dari tabel user
-//  3. Build semua query batch insert
-//  4. Eksekusi dalam 1 transaksi → commit jika semua sukses, rollback jika ada yang gagal
+//  1. Generate IDPengajuan dan semua ID turunannya di backend
+//  2. Cek apakah data sudah ada (tahun + triwulan + kostl)
+//  3. Ambil orgeh & orgeh_tx dari tabel user
+//  4. Build semua query batch insert
+//  5. Eksekusi dalam 1 transaksi → commit jika semua sukses, rollback jika ada yang gagal
 //
-// Catatan:
-//   - id_detail              : dari kpiItem.Id yang dikirim frontend
-//   - id_keterangan_project  : backend otomatis isi "-"
-//   - id_pengajuan challenge/method : dari req.IDPengajuan (parent)
-//   - tahun & triwulan challenge/method : dari item masing-masing (dikirim frontend)
+// Catatan generate ID (mengikuti pola frontend lama):
+//   - IDPengajuan  = Kostl + Tahun + Triwulan + timestamp(ymdhis)
+//   - id_detail    = IDPengajuan + "P" + index KPI 3 digit (P001, P002, ...)
+//   - id_sub_detail = IDPengajuan + "C" + counter global (tidak reset antar KPI)
+//     contoh: C001, C002, C003 (KPI P001) → C004, C005 (KPI P002)
+//   - id_keterangan_project = "-" (backend otomatis)
+//   - id_pengajuan challenge/method = IDPengajuan yang di-generate
 func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	req *dto.InsertPenyusunanKpiRequest,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) error {
-	// --- 1. Cek data sudah exist ---
+) (string, error) {
+	// --- 1. Generate IDPengajuan di backend ---
+	idPengajuan := generateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
+
+	// --- 2. Cek data sudah exist ---
 	var countExist int
 	if err := r.db.Raw(queryCheckExistKpi, req.Tahun, req.Triwulan, req.Kostl).
 		Scan(&countExist).Error; err != nil {
-		return fmt.Errorf("gagal mengecek data KPI: %w", err)
+		return "", fmt.Errorf("gagal mengecek data KPI: %w", err)
 	}
 	if countExist > 0 {
-		return fmt.Errorf("data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
+		return "", fmt.Errorf("data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
 			req.Tahun, req.Triwulan, req.Kostl)
 	}
 
-	// --- 2. Ambil orgeh & orgeh_tx ---
+	// --- 3. Ambil orgeh & orgeh_tx ---
 	var orgeh, orgehTx string
 	r.db.Raw(queryGetOrgeh, req.Kostl).Row().Scan(&orgeh, &orgehTx)
 
-	// --- 3. Tentukan status berdasarkan SaveAsDraft ---
+	// --- 4. Tentukan status berdasarkan SaveAsDraft ---
 	// Status 70 = draft, NULL = normal
 	var statusKpi interface{}
 	if req.SaveAsDraft == "1" {
@@ -103,17 +154,23 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 		statusKpi = nil
 	}
 
-	// --- 4. Build batch INSERT data_kpi_detail ---
-	// id_detail             : dari kpiItem.Id (dikirim frontend, contoh: "PS100012026TW2260304040242P001")
-	// id_keterangan_project : backend otomatis isi "-"
+	// --- 5. Build batch INSERT data_kpi_detail ---
+	// id_detail             = IDPengajuan + "P" + index 3 digit  → P001, P002, ...
+	// id_keterangan_project = "-" (backend otomatis)
 	kpiDetailPlaceholders := []string{}
 	kpiDetailArgs := []interface{}{}
 
-	for _, kpiItem := range req.Kpi {
+	// Simpan idDetail per index KPI agar bisa dipakai saat build sub detail
+	idDetailMap := make(map[int]string)
+
+	for i, kpiItem := range req.Kpi {
+		idDetail := generateIDDetail(idPengajuan, i)
+		idDetailMap[i] = idDetail
+
 		kpiDetailPlaceholders = append(kpiDetailPlaceholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
 		kpiDetailArgs = append(kpiDetailArgs,
-			req.IDPengajuan,
-			kpiItem.Id, // id_detail dari frontend
+			idPengajuan,
+			idDetail,
 			req.Tahun,
 			req.Triwulan,
 			kpiItem.IdKpi,
@@ -124,11 +181,14 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 		)
 	}
 
-	// --- 5. Build batch INSERT data_kpi_subdetail (dari hasil parse Excel) ---
-	// id_sub_detail         : generate dari kpiItem.Id + index sub (contoh: "PS100012026TW2260304040242P001001")
-	// id_keterangan_project : backend otomatis isi "-"
+	// --- 6. Build batch INSERT data_kpi_subdetail (dari hasil parse Excel) ---
+	// id_sub_detail = IDPengajuan + "C" + counter global (lanjut antar KPI, tidak reset)
+	//   contoh: KPI P001 → C001, C002, C003 | KPI P002 → C004, C005, C006
+	// id_keterangan_project = "-" (backend otomatis)
 	subDetailPlaceholders := []string{}
 	subDetailArgs := []interface{}{}
+
+	subCounter := 1 // counter global sub detail, tidak reset antar KPI
 
 	for i, kpiItem := range req.Kpi {
 		rows, ok := kpiSubDetails[i]
@@ -136,10 +196,11 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 			continue
 		}
 
-		for j, subRow := range rows {
-			// Generate id_sub_detail dari id KPI + index sub (3 digit)
-			subInc := fmt.Sprintf("000%d", j)
-			idSubDetail := kpiItem.Id + subInc[len(subInc)-3:]
+		idDetail := idDetailMap[i]
+
+		for _, subRow := range rows {
+			idSubDetail := generateIDSubDetail(idPengajuan, subCounter) // counter global, lanjut antar KPI
+			subCounter++
 
 			itemQualifier := ""
 			deskripsiQualifier := ""
@@ -153,8 +214,8 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 			subDetailPlaceholders = append(subDetailPlaceholders,
 				"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 			subDetailArgs = append(subDetailArgs,
-				req.IDPengajuan,
-				kpiItem.Id, // id_detail dari frontend
+				idPengajuan,
+				idDetail,
 				idSubDetail,
 				req.Tahun,
 				req.Triwulan,
@@ -178,16 +239,16 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 		}
 	}
 
-	// --- 6. Build batch INSERT data_challenge_detail ---
-	// id_pengajuan : dari req.IDPengajuan (parent)
-	// tahun & triwulan : dari item (dikirim frontend, bisa "-" jika tidak ada data)
+	// --- 7. Build batch INSERT data_challenge_detail ---
+	// id_pengajuan : dari IDPengajuan yang di-generate backend
+	// tahun & triwulan : dari item (bisa "-" jika non-TW4)
 	challengePlaceholders := []string{}
 	challengeArgs := []interface{}{}
 
 	for _, ch := range req.ChallengeList {
 		challengePlaceholders = append(challengePlaceholders, "(?, ?, ?, ?, ?, ?)")
 		challengeArgs = append(challengeArgs,
-			req.IDPengajuan, // id_pengajuan dari parent
+			idPengajuan, // dari backend, bukan dari frontend
 			ch.IdDetailChallenge,
 			ch.Tahun,
 			ch.Triwulan,
@@ -196,16 +257,16 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 		)
 	}
 
-	// --- 7. Build batch INSERT data_method_detail ---
-	// id_pengajuan : dari req.IDPengajuan (parent)
-	// tahun & triwulan : dari item (dikirim frontend, bisa "-" jika tidak ada data)
+	// --- 8. Build batch INSERT data_method_detail ---
+	// id_pengajuan : dari IDPengajuan yang di-generate backend
+	// tahun & triwulan : dari item (bisa "-" jika non-TW4)
 	methodPlaceholders := []string{}
 	methodArgs := []interface{}{}
 
 	for _, mt := range req.MethodList {
 		methodPlaceholders = append(methodPlaceholders, "(?, ?, ?, ?, ?, ?)")
 		methodArgs = append(methodArgs,
-			req.IDPengajuan, // id_pengajuan dari parent
+			idPengajuan, // dari backend, bukan dari frontend
 			mt.IdDetailMethod,
 			mt.Tahun,
 			mt.Triwulan,
@@ -214,7 +275,7 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 		)
 	}
 
-	// --- 8. Finalisasi query dengan format batch values ---
+	// --- 9. Finalisasi query dengan format batch values ---
 	finalQueryKpiDetail := fmt.Sprintf(queryInsertKpiDetail,
 		strings.Join(kpiDetailPlaceholders, ","))
 
@@ -227,15 +288,15 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	finalQueryMethod := fmt.Sprintf(queryInsertMethodDetail,
 		strings.Join(methodPlaceholders, ","))
 
-	// --- 9. Eksekusi dalam 1 transaksi DB ---
+	// --- 10. Eksekusi dalam 1 transaksi DB ---
 	tx := r.db.Begin()
 	if tx.Error != nil {
-		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+		return "", fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
 	}
 
 	// Insert data_kpi (header)
 	if err := tx.Exec(queryInsertKpi,
-		req.IDPengajuan,
+		idPengajuan,
 		req.Tahun,
 		req.Triwulan,
 		req.Kostl,
@@ -250,14 +311,14 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 		statusKpi,
 	).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("gagal insert data_kpi: %w", err)
+		return "", fmt.Errorf("gagal insert data_kpi: %w", err)
 	}
 
 	// Insert data_kpi_detail
 	if len(kpiDetailPlaceholders) > 0 {
 		if err := tx.Exec(finalQueryKpiDetail, kpiDetailArgs...).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal insert data_kpi_detail: %w", err)
+			return "", fmt.Errorf("gagal insert data_kpi_detail: %w", err)
 		}
 	}
 
@@ -265,7 +326,7 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	if len(subDetailPlaceholders) > 0 {
 		if err := tx.Exec(finalQuerySubDetail, subDetailArgs...).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal insert data_kpi_subdetail: %w", err)
+			return "", fmt.Errorf("gagal insert data_kpi_subdetail: %w", err)
 		}
 	}
 
@@ -273,7 +334,7 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	if len(challengePlaceholders) > 0 {
 		if err := tx.Exec(finalQueryChallenge, challengeArgs...).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal insert data_challenge_detail: %w", err)
+			return "", fmt.Errorf("gagal insert data_challenge_detail: %w", err)
 		}
 	}
 
@@ -281,15 +342,15 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	if len(methodPlaceholders) > 0 {
 		if err := tx.Exec(finalQueryMethod, methodArgs...).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal insert data_method_detail: %w", err)
+			return "", fmt.Errorf("gagal insert data_method_detail: %w", err)
 		}
 	}
 
 	// Commit jika semua berhasil
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("gagal commit transaksi: %w", err)
+		return "", fmt.Errorf("gagal commit transaksi: %w", err)
 	}
 
-	return nil
+	return idPengajuan, nil
 }
