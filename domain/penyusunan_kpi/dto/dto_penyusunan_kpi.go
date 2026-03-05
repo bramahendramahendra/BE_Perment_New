@@ -12,20 +12,24 @@ package dto
 //   - Id per KPI  = IDPengajuan + "P" + index 3 digit
 //                   contoh: "PS100012026TW2260304040242P001"
 type InsertPenyusunanKpiRequest struct {
-	Divisi         string                    `json:"Divisi"         validate:"required"`
-	Tahun          string                    `json:"Tahun"          validate:"required"`
-	Triwulan       string                    `json:"Triwulan"       validate:"required"`
-	Kostl          string                    `json:"Kostl"          validate:"required"`
-	KostlTx        string                    `json:"KostlTx"        validate:"required"`
-	EntryUser      string                    `json:"EntryUser"      validate:"required"`
-	EntryName      string                    `json:"EntryName"      validate:"required"`
-	EntryTime      string                    `json:"EntryTime"      validate:"required"`
-	ApprovalPosisi string                    `json:"ApprovalPosisi" validate:"required"`
-	ApprovalList   string                    `json:"ApprovalList"   validate:"required"`
-	SaveAsDraft    string                    `json:"SaveAsDraft"    validate:"required"`
-	Kpi            []PenyusunanKpiDetailItem `json:"Kpi"            validate:"required,min=1,dive"`
-	ChallengeList  []PenyusunanChallengeItem `json:"ChallengeList"  validate:"required,min=1,dive"`
-	MethodList     []PenyusunanMethodItem    `json:"MethodList"     validate:"required,min=1,dive"`
+	Divisi         string `json:"Divisi"         validate:"required"`
+	Tahun          string `json:"Tahun"          validate:"required"`
+	Triwulan       string `json:"Triwulan"       validate:"required"`
+	Kostl          string `json:"Kostl"          validate:"required"`
+	KostlTx        string `json:"KostlTx"        validate:"required"`
+	EntryUser      string `json:"EntryUser"      validate:"required"`
+	EntryName      string `json:"EntryName"      validate:"required"`
+	EntryTime      string `json:"EntryTime"      validate:"required"`
+	ApprovalPosisi string `json:"ApprovalPosisi" validate:"required"`
+	ApprovalList   string `json:"ApprovalList"   validate:"required"`
+	SaveAsDraft    string `json:"SaveAsDraft"    validate:"required"`
+	// MaxRowsExcel menentukan batas maksimal baris data yang dibaca dari setiap file Excel.
+	// Jika tidak dikirim atau bernilai 0, backend menggunakan nilai default (ExcelMaxDataRows = 20).
+	// Contoh: MaxRowsExcel = 50 → setiap Excel hanya dibaca maksimal 50 baris data
+	MaxRowsExcel  int                       `json:"MaxRowsExcel"`
+	Kpi           []PenyusunanKpiDetailItem `json:"Kpi"            validate:"required,min=1,dive"`
+	ChallengeList []PenyusunanChallengeItem `json:"ChallengeList"  validate:"required,min=1,dive"`
+	MethodList    []PenyusunanMethodItem    `json:"MethodList"     validate:"required,min=1,dive"`
 }
 
 // PenyusunanKpiDetailItem adalah metadata satu KPI pada tabel data_kpi_detail.

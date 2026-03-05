@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
+	"strings"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
 	service "permen_api/domain/penyusunan_kpi/service"
@@ -36,20 +37,12 @@ func NewPenyusunanKpiHandler(service service.PenyusunanKpiServiceInterface) *Pen
 //   - Field "files[]" : satu atau lebih file Excel (.xlsx)
 //     urutan file harus sesuai urutan array Kpi di REQUEST
 //
-// IDPengajuan dan id_detail KPI tidak perlu dikirim dari frontend —
-// semua di-generate otomatis di backend mengikuti pola:
+// Catatan khusus ApprovalList:
 //
-//	IDPengajuan = Kostl + Tahun + Triwulan + timestamp(ymdhis)
-//	id_detail   = IDPengajuan + "P" + index 3 digit (P001, P002, ...)
-//
-// Contoh request:
-//
-//	POST /api/penyusunan-kpi/insert
-//	Content-Type: multipart/form-data
-//	Authorization: Bearer <token>
-//
-//	REQUEST = '{"Tahun":"2026","Triwulan":"TW2","Kostl":"PS10001",...,"Kpi":[...],...}'
-//	files[]  = [excel_kpi_1.xlsx, excel_kpi_2.xlsx]
+//	Frontend mengirim ApprovalList sebagai JSON string tanpa escape inner quotes:
+//	"ApprovalList": "[{"userid":"xxx",...}]"
+//	Handler melakukan sanitize otomatis — extract ApprovalList terlebih dahulu,
+//	replace dengan placeholder, parse JSON, lalu set nilai aslinya kembali.
 func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 	// --- 1. Ambil field REQUEST (JSON string) dari multipart form ---
 	requestStr := c.PostForm("REQUEST")
@@ -58,22 +51,38 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 		return
 	}
 
-	// --- 2. Parse JSON string ke struct ---
-	var req dto.InsertPenyusunanKpiRequest
-	if err := json.Unmarshal([]byte(requestStr), &req); err != nil {
+	// --- 2. Extract & sanitize ApprovalList sebelum parse JSON ---
+	// Frontend mengirim ApprovalList dengan inner quotes tanpa escape,
+	// sehingga JSON menjadi invalid. Kita extract nilainya terlebih dahulu,
+	// ganti dengan placeholder, baru parse JSON sisanya.
+	sanitizedStr, approvalListRaw, err := extractApprovalList(requestStr)
+	if err != nil {
 		c.Error(&errors.BadRequestError{
-			Message: "format 'REQUEST' tidak valid, pastikan berupa JSON yang benar: " + err.Error(),
+			Message: "format field 'ApprovalList' tidak valid: " + err.Error(),
 		})
 		return
 	}
 
-	// --- 3. Validasi struct menggunakan validator ---
+	// --- 3. Parse JSON string ke struct ---
+	var req dto.InsertPenyusunanKpiRequest
+	if err := json.Unmarshal([]byte(sanitizedStr), &req); err != nil {
+		c.Error(&errors.BadRequestError{
+			Message: "format 'REQUEST' tidak valid: " + err.Error(),
+		})
+		return
+	}
+
+	// --- 4. Set ApprovalList dengan nilai asli yang sudah diextract ---
+	// Nilai ini disimpan persis seperti yang dikirim frontend (tanpa escape)
+	req.ApprovalList = approvalListRaw
+
+	// --- 5. Validasi struct menggunakan validator ---
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	// --- 4. Ambil semua file Excel dari field "files[]" ---
+	// --- 6. Ambil semua file Excel dari field "files[]" ---
 	form, err := c.MultipartForm()
 	if err != nil {
 		c.Error(&errors.BadRequestError{
@@ -90,21 +99,20 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 		return
 	}
 
-	// --- 5. Validasi ekstensi file harus .xlsx ---
+	// --- 7. Validasi ekstensi file harus .xlsx ---
 	if err := validateExcelFiles(files); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	// --- 6. Panggil service ---
-	// idPengajuan di-generate di backend dan dikembalikan untuk response
+	// --- 8. Panggil service ---
 	idPengajuan, err := h.service.InsertPenyusunanKpi(&req, files)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	// --- 7. Return response sukses ---
+	// --- 9. Return response sukses ---
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
 		Status:  true,
@@ -119,6 +127,84 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 // =============================================
 // HELPER FUNCTIONS
 // =============================================
+
+// extractApprovalList mengekstrak nilai ApprovalList dari raw REQUEST string
+// dan menggantikannya dengan placeholder yang valid secara JSON.
+//
+// Masalah yang diselesaikan:
+//
+//	Frontend mengirim ApprovalList TANPA escape inner quotes:
+//	  "ApprovalList": "[{"userid":"xxx","nama":"yyy",...}]"
+//	Ini membuat seluruh JSON REQUEST menjadi invalid.
+//
+// Cara kerja:
+//  1. Cari marker: `"ApprovalList":` lalu cari tanda `"[` sebagai awal value
+//  2. Scan karakter satu per satu dari `[` sampai menemukan `]"` sebagai penutup
+//  3. Ekstrak raw value (isi array JSON asli)
+//  4. Ganti di requestStr dengan placeholder `"__APPROVAL_PLACEHOLDER__"`
+//  5. Return: sanitizedStr (JSON valid), approvalListRaw (nilai asli), error
+//
+// Setelah json.Unmarshal pada sanitizedStr berhasil,
+// req.ApprovalList di-set manual dengan approvalListRaw.
+func extractApprovalList(requestStr string) (sanitizedStr, approvalListRaw string, err error) {
+	// Cari posisi key "ApprovalList"
+	key := `"ApprovalList"`
+	keyIdx := strings.Index(requestStr, key)
+	if keyIdx == -1 {
+		// ApprovalList tidak ada di request — kembalikan as-is, biarkan validator handle
+		return requestStr, "", nil
+	}
+
+	// Cari tanda "[ setelah key (value ApprovalList selalu berupa array JSON string)
+	afterKey := requestStr[keyIdx+len(key):]
+
+	// Lewati spasi dan ":"
+	colonIdx := strings.Index(afterKey, `"[`)
+	if colonIdx == -1 {
+		return requestStr, "", fmt.Errorf("format ApprovalList tidak ditemukan, pastikan berupa array JSON string")
+	}
+
+	// Posisi awal "[" (tanpa tanda kutip pembuka)
+	valueStart := keyIdx + len(key) + colonIdx + 1 // +1 untuk skip karakter "
+
+	// Scan dari "[" sampai ketemu "]" yang diikuti tanda kutip penutup `"`
+	// Ini untuk handle kasus inner quotes tanpa escape
+	scanStr := requestStr[valueStart:]
+	bracketDepth := 0
+	endIdx := -1
+
+	for i, ch := range scanStr {
+		switch ch {
+		case '[':
+			bracketDepth++
+		case ']':
+			bracketDepth--
+			if bracketDepth == 0 {
+				// Cek apakah karakter berikutnya adalah " (penutup string JSON)
+				if i+1 < len(scanStr) && scanStr[i+1] == '"' {
+					endIdx = i
+				}
+			}
+		}
+		if endIdx != -1 {
+			break
+		}
+	}
+
+	if endIdx == -1 {
+		return requestStr, "", fmt.Errorf("penutup ApprovalList tidak ditemukan, pastikan diakhiri dengan ]\"")
+	}
+
+	// Ekstrak raw value: dari "[" sampai "]" (inclusive)
+	approvalListRaw = scanStr[:endIdx+1]
+
+	// Ganti seluruh block "ApprovalList": "..." dengan placeholder yang valid JSON
+	fullOriginal := requestStr[keyIdx : valueStart+endIdx+2] // +2 untuk include " penutup
+	placeholder := `"ApprovalList": "__APPROVAL_PLACEHOLDER__"`
+	sanitizedStr = strings.Replace(requestStr, fullOriginal, placeholder, 1)
+
+	return sanitizedStr, approvalListRaw, nil
+}
 
 // validateExcelFiles memastikan semua file yang di-upload berekstensi .xlsx
 func validateExcelFiles(files []*multipart.FileHeader) error {

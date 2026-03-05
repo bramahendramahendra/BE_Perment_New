@@ -1,0 +1,45 @@
+{
+    "Divisi": "PS10001-Direktorat Manajemen Aktiva Tetap & Peng",
+    "Tahun": "2026",
+    "Triwulan": "TW2",
+    "Kostl": "PS10001",
+    "KostlTx": "Direktorat Manajemen Aktiva Tetap & Peng",
+    "EntryUser": "00130596",
+    "EntryName": "Erlina Nurmahasasi",
+    "EntryTime": "2026-03-04 16:02:42",
+    "ApprovalPosisi": "00071965",
+    "ApprovalList": "[{"userid":"00071965","nama":"Bayu Hidayat","status":"","keterangan":"","posisi":"SIGNER","level":"","fungsi":"PENYUSUNAN KPI","waktu":""}]",
+    "SaveAsDraft": "1",
+    "Kpi": [
+        {
+            "idKpi": "2",
+            "kpi": "OS Briguna Ritel",
+            "rumus": "1",
+            "persfektif": "2"
+        },
+        {
+            "idKpi": "9",
+            "kpi": "%NPL KPR",
+            "rumus": "0",
+            "persfektif": "4"
+        }
+    ],
+    "ChallengeList": [
+        {
+            "idDetailChallenge": "-",
+            "tahun": "-",
+            "triwulan": "-",
+            "namaChallenge": "-",
+            "deskripsiChallenge": "-"
+        }
+    ],
+    "MethodList": [
+        {
+            "idDetailMethod": "-",
+            "tahun": "-",
+            "triwulan": "-",
+            "namaMethod": "-",
+            "deskripsiMethod": "-"
+        }
+    ]
+}

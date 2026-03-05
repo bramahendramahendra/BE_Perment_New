@@ -19,6 +19,12 @@ import (
 const (
 	excelDataStartRow = 3 // Baris 2 = header, data mulai baris 3
 
+	// ExcelMaxDataRows adalah batas maksimal baris data yang dibaca dari Excel.
+	// Baris di luar batas ini akan diabaikan meskipun berisi data.
+	// Nilai default: 20 baris data.
+	// Untuk mengubah batas, gunakan ParseAndValidateExcelWithLimit(file, limit).
+	ExcelMaxDataRows = 20
+
 	polarisasiMaximize = "Maximize"
 	polarisasiMinimize = "Minimize"
 
@@ -36,23 +42,33 @@ const (
 // MAIN PARSER FUNCTION
 // =============================================
 
-// ParseAndValidateExcel membaca file Excel dari multipart.FileHeader,
-// memvalidasi setiap baris mulai dari baris ke-3 (baris ke-2 = header),
-// dan mengembalikan slice PenyusunanKpiSubDetailRow beserta error jika ada.
+// ParseAndValidateExcel membaca file Excel dengan batas baris default (ExcelMaxDataRows = 20).
+// Merupakan wrapper dari ParseAndValidateExcelWithLimit.
+func ParseAndValidateExcel(file *multipart.FileHeader) ([]dto.PenyusunanKpiSubDetailRow, error) {
+	return ParseAndValidateExcelWithLimit(file, ExcelMaxDataRows)
+}
+
+// ParseAndValidateExcelWithLimit membaca file Excel dengan batas baris custom.
+//
+// Parameter:
+//   - file     : file Excel (.xlsx) dari multipart form
+//   - maxRows  : jumlah maksimal baris data yang dibaca (mulai baris ke-3)
+//     contoh: maxRows=20 → hanya baca baris 3 s/d 22
+//     maxRows=50 → hanya baca baris 3 s/d 52
 //
 // Aturan validasi per kolom:
 //   - Col A  : angka
 //   - Col B  : free text, tidak boleh blank
 //   - Col C  : free text, tidak boleh blank
-//   - Col D  : enum Maximize / Minimize, tidak boleh blank
-//   - Col E  : enum 100% / 110%, tidak boleh blank
+//   - Col D  : enum Maximize / Minimize
+//   - Col E  : enum 100% / 110%
 //   - Col F  : angka 2 desimal, total semua baris harus = 100%
 //   - Col G  : free text, tidak boleh blank
 //   - Col H  : free text, tidak boleh blank
 //   - Col I  : angka 2 desimal
 //   - Col J  : free text, tidak boleh blank
 //   - Col K  : angka 2 desimal
-//   - Col L  : enum Ya / Tidak, tidak boleh blank
+//   - Col L  : enum Ya / Tidak
 //   - Col M  : wajib diisi jika Col L = "Ya"
 //   - Col N  : wajib diisi jika Col L = "Ya"
 //   - Col O  : wajib diisi jika Col L = "Ya"
@@ -62,7 +78,11 @@ const (
 //   - Col S  : free text, tidak boleh blank
 //   - Col T  : free text, tidak boleh blank
 //   - Col U  : free text, tidak boleh blank
-func ParseAndValidateExcel(file *multipart.FileHeader) ([]dto.PenyusunanKpiSubDetailRow, error) {
+func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]dto.PenyusunanKpiSubDetailRow, error) {
+	if maxRows <= 0 {
+		return nil, fmt.Errorf("maxRows harus lebih dari 0, nilai saat ini: %d", maxRows)
+	}
+
 	// --- Buka file dari memory ---
 	src, err := file.Open()
 	if err != nil {
@@ -82,27 +102,39 @@ func ParseAndValidateExcel(file *multipart.FileHeader) ([]dto.PenyusunanKpiSubDe
 		return nil, fmt.Errorf("file Excel '%s' tidak memiliki sheet", file.Filename)
 	}
 
-	rows, err := xlsx.GetRows(sheetName)
+	allRows, err := xlsx.GetRows(sheetName)
 	if err != nil {
 		return nil, fmt.Errorf("gagal membaca baris sheet '%s': %w", sheetName, err)
 	}
 
 	// Pastikan ada data mulai baris ke-3 (index 2)
-	if len(rows) < excelDataStartRow {
+	if len(allRows) < excelDataStartRow {
 		return nil, fmt.Errorf("file Excel '%s' tidak memiliki data (data dimulai dari baris %d)",
 			file.Filename, excelDataStartRow)
 	}
 
-	// --- Loop setiap baris data ---
+	// Tentukan batas baris yang akan dibaca
+	// allRows index 0-based: data mulai index (excelDataStartRow - 1)
+	dataStartIdx := excelDataStartRow - 1
+	dataEndIdx := dataStartIdx + maxRows // exclusive
+	if dataEndIdx > len(allRows) {
+		dataEndIdx = len(allRows)
+	}
+
+	totalAvailableRows := len(allRows) - dataStartIdx
+	limitedRows := allRows[dataStartIdx:dataEndIdx]
+
+	// Info jika ada baris yang dipotong
+	skippedRows := totalAvailableRows - len(limitedRows)
+
+	// --- Loop setiap baris data dalam batas ---
 	var result []dto.PenyusunanKpiSubDetailRow
 	var totalBobot float64
 
-	for rowIdx := excelDataStartRow - 1; rowIdx < len(rows); rowIdx++ {
-		row := rows[rowIdx]
-		displayRow := rowIdx + 1 // nomor baris yang tampil ke user (1-based)
+	for rowIdx, row := range limitedRows {
+		displayRow := dataStartIdx + rowIdx + 1 // nomor baris 1-based untuk pesan error
 
-		// Pastikan baris memiliki cukup kolom (minimal 21 kolom A-U)
-		// Padding jika kolom kurang
+		// Padding jika kolom kurang dari 21
 		for len(row) < 21 {
 			row = append(row, "")
 		}
@@ -142,12 +174,12 @@ func ParseAndValidateExcel(file *multipart.FileHeader) ([]dto.PenyusunanKpiSubDe
 				displayRow, colA)
 		}
 
-		// --- Validasi Col B: KPI (free text, tidak boleh blank) ---
+		// --- Validasi Col B: KPI ---
 		if colB == "" {
 			return nil, fmt.Errorf("baris %d, Kolom B (KPI): tidak boleh kosong", displayRow)
 		}
 
-		// --- Validasi Col C: Sub KPI (free text, tidak boleh blank) ---
+		// --- Validasi Col C: Sub KPI ---
 		if colC == "" {
 			return nil, fmt.Errorf("baris %d, Kolom C (Sub KPI): tidak boleh kosong", displayRow)
 		}
@@ -235,37 +267,27 @@ func ParseAndValidateExcel(file *multipart.FileHeader) ([]dto.PenyusunanKpiSubDe
 			}
 		}
 
-		// --- Validasi Col P: Result ---
+		// --- Validasi Col P-U ---
 		if colP == "" {
 			return nil, fmt.Errorf("baris %d, Kolom P (Result): tidak boleh kosong", displayRow)
 		}
-
-		// --- Validasi Col Q: Deskripsi Result ---
 		if colQ == "" {
 			return nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Result): tidak boleh kosong", displayRow)
 		}
-
-		// --- Validasi Col R: Process ---
 		if colR == "" {
 			return nil, fmt.Errorf("baris %d, Kolom R (Process): tidak boleh kosong", displayRow)
 		}
-
-		// --- Validasi Col S: Deskripsi Process ---
 		if colS == "" {
 			return nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Process): tidak boleh kosong", displayRow)
 		}
-
-		// --- Validasi Col T: Context ---
 		if colT == "" {
 			return nil, fmt.Errorf("baris %d, Kolom T (Context): tidak boleh kosong", displayRow)
 		}
-
-		// --- Validasi Col U: Deskripsi Context ---
 		if colU == "" {
 			return nil, fmt.Errorf("baris %d, Kolom U (Deskripsi Context): tidak boleh kosong", displayRow)
 		}
 
-		// --- Semua validasi per baris lolos, tambahkan ke result ---
+		// --- Semua validasi lolos, tambahkan ke result ---
 		result = append(result, dto.PenyusunanKpiSubDetailRow{
 			No:                        no,
 			KPI:                       colB,
@@ -291,11 +313,18 @@ func ParseAndValidateExcel(file *multipart.FileHeader) ([]dto.PenyusunanKpiSubDe
 		})
 	}
 
-	// --- Validasi total bobot setelah semua baris diproses ---
+	// --- Validasi result tidak kosong ---
 	if len(result) == 0 {
 		return nil, fmt.Errorf("file Excel '%s' tidak memiliki data yang valid", file.Filename)
 	}
 
+	// --- Peringatan jika ada baris yang dipotong karena melebihi limit ---
+	if skippedRows > 0 {
+		fmt.Printf("[WARN] file '%s': %d baris melebihi batas maksimal (%d baris), baris tersebut diabaikan\n",
+			file.Filename, skippedRows, maxRows)
+	}
+
+	// --- Validasi total bobot setelah semua baris diproses ---
 	totalBobotRounded := math.Round(totalBobot*100) / 100
 	if math.Abs(totalBobotRounded-totalBobotExpected) > bobotTolerance {
 		return nil, fmt.Errorf(
@@ -312,13 +341,11 @@ func ParseAndValidateExcel(file *multipart.FileHeader) ([]dto.PenyusunanKpiSubDe
 // =============================================
 
 // parseFloat2Decimal mem-parse string menjadi float64 dengan 2 angka di belakang koma.
-// Mengembalikan error jika string bukan angka valid.
 func parseFloat2Decimal(s string) (float64, error) {
 	if s == "" {
 		return 0, nil
 	}
 
-	// Hapus simbol % jika ada (misal jika user salah format)
 	cleaned := strings.ReplaceAll(s, "%", "")
 	cleaned = strings.TrimSpace(cleaned)
 
@@ -327,7 +354,6 @@ func parseFloat2Decimal(s string) (float64, error) {
 		return 0, fmt.Errorf("'%s' bukan angka valid", s)
 	}
 
-	// Bulatkan ke 2 desimal
 	rounded := math.Round(val*100) / 100
 	return rounded, nil
 }
