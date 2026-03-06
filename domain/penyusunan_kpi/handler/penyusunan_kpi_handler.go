@@ -91,10 +91,10 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 		return
 	}
 
-	files, ok := form.File["files[]"]
+	files, ok := form.File["files"]
 	if !ok || len(files) == 0 {
 		c.Error(&errors.BadRequestError{
-			Message: "file Excel tidak ditemukan, pastikan mengirim file via field 'files[]'",
+			Message: "file Excel tidak ditemukan, pastikan mengirim file via field 'files'",
 		})
 		return
 	}
