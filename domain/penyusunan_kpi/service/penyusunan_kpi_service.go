@@ -15,274 +15,100 @@ import (
 // IMPLEMENTATION
 // =============================================
 
-// InsertPenyusunanKpi memproses insert KPI dengan file Excel.
+// InsertPenyusunanKpi memproses insert KPI dengan 1 file Excel.
 //
 // Flow:
-//  1. Validasi jumlah file harus sama dengan jumlah item di req.Kpi
-//  2. Parse & validasi SEMUA file Excel terlebih dahulu
-//     → Jika ada 1 file gagal validasi, langsung return error (tidak ada yang masuk DB)
-//  3. [TESTING] Log semua data yang akan di-insert per tabel
-//  4. Setelah semua valid, panggil repo untuk insert dalam 1 transaksi DB
-//     → IDPengajuan dan semua ID turunan di-generate di repo
-//     → Jika ada yang gagal saat insert, semua di-rollback
-//
-// Return: idPengajuan yang di-generate backend, error
+//  1. Validasi harus ada tepat 1 file Excel
+//  2. Baca maxRows dari env (EXCEL_MAX_ROWS), fallback ke default
+//  3. Parse & validasi file Excel:
+//     - Pilih sheet berdasarkan req.Triwulan ("TW4" → "TW 4", lainnya → "Selain TW 4")
+//     - Mapping baris ke KPI via kolom B (case-insensitive)
+//     - Jika kolom B tidak cocok dengan KPI manapun → error
+//     - Validasi bobot 100% per KPI
+//  4. Panggil repo untuk insert dalam 1 transaksi DB
 func (s *penyusunanKpiService) InsertPenyusunanKpi(
 	req *dto.InsertPenyusunanKpiRequest,
 	files []*multipart.FileHeader,
 ) (string, error) {
-	// --- 1. Validasi jumlah file harus sama dengan jumlah KPI ---
-	if len(files) != len(req.Kpi) {
+
+	// --- 1. Validasi harus ada tepat 1 file Excel ---
+	if len(files) == 0 {
+		return "", fmt.Errorf("tidak ada file Excel yang dikirim, harus mengirim tepat 1 file Excel")
+	}
+	if len(files) > 1 {
 		return "", fmt.Errorf(
-			"jumlah file Excel (%d) tidak sesuai dengan jumlah KPI (%d). "+
-				"Setiap KPI harus memiliki 1 file Excel dengan urutan yang sama",
-			len(files), len(req.Kpi),
+			"hanya boleh mengirim 1 file Excel (diterima %d file). "+
+				"Semua data sub KPI dari semua KPI harus digabung dalam 1 file",
+			len(files),
 		)
 	}
 
-	if len(files) == 0 {
-		return "", fmt.Errorf("tidak ada file Excel yang dikirim")
+	file := files[0]
+
+	// --- 2. Parse & validasi file Excel ---
+	// Parser akan:
+	//   - Menentukan sheet berdasarkan req.Triwulan
+	//   - Mapping baris ke KPI via kolom B (case-insensitive)
+	//   - Memvalidasi bobot 100% per KPI
+	//   - Return map[kpiIndex][]SubDetailRow
+	kpiSubDetails, err := ParseAndValidateExcel(file, req.Triwulan, req.Kpi)
+	if err != nil {
+		return "", fmt.Errorf("validasi file Excel '%s' gagal: %w", file.Filename, err)
 	}
 
-	// --- 2. Tentukan batas baris Excel ---
-	// Jika MaxRowsExcel tidak dikirim atau 0, gunakan default (ExcelMaxDataRows = 20)
-	maxRows := 13
-	if maxRows <= 0 {
-		maxRows = ExcelMaxDataRows
-	}
-
-	// --- 3. Parse & validasi semua file Excel sebelum insert DB ---
-	// Semua file harus valid dulu — jika ada yang gagal, tidak ada yang masuk DB
-	kpiSubDetails := make(map[int][]dto.PenyusunanKpiSubDetailRow)
-
-	for i, file := range files {
-		kpiName := req.Kpi[i].Kpi
-
-		rows, err := ParseAndValidateExcelWithLimit(file, maxRows)
-		if err != nil {
-			return "", fmt.Errorf(
-				"validasi gagal pada file Excel KPI ke-%d ('%s' — KPI: '%s'): %w",
-				i+1, file.Filename, kpiName, err,
-			)
-		}
-
-		kpiSubDetails[i] = rows
-	}
-
-	// --- 4. [TESTING] Simulasi generate ID & log data per tabel ---
+	// --- 3. [TESTING] Simulasi generate ID & log data per tabel ---
 	// TODO: Hapus blok log ini setelah testing selesai,
 	//       lalu uncomment pemanggilan repo di bagian bawah
 	logPreviewInsert(req, kpiSubDetails)
 
-	// --- 5. INSERT KE DB (DINONAKTIFKAN SEMENTARA UNTUK TESTING) ---
+	// --- 4. INSERT KE DB (DINONAKTIFKAN SEMENTARA UNTUK TESTING) ---
 	// idPengajuan, err := s.repo.InsertPenyusunanKpi(req, kpiSubDetails)
 	// if err != nil {
 	// 	return "", fmt.Errorf("gagal menyimpan data KPI: %w", err)
 	// }
 	// return idPengajuan, nil
 
-	// --- 6. Sementara return dummy idPengajuan dari simulasi ---
-	idPengajuan := simulateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
-	return idPengajuan, nil
-}
-
-// =============================================
-// TESTING HELPER — SIMULASI & LOG
-// =============================================
-
-// simulateIDPengajuan mensimulasikan generate IDPengajuan (sama persis dengan repo)
-// Digunakan hanya untuk keperluan log testing
-func simulateIDPengajuan(kostl, tahun, triwulan string) string {
-	t := time.Now()
-	timestamp := fmt.Sprintf("%02d%02d%02d%02d%02d%02d",
-		t.Year()%100,
-		int(t.Month()),
-		t.Day(),
-		t.Hour(),
-		t.Minute(),
-		t.Second(),
+	// --- 5. Sementara return dummy ID untuk testing ---
+	dummyID := fmt.Sprintf("%s%s%s%s",
+		req.Kostl, req.Tahun, req.Triwulan,
+		time.Now().Format("060102150405"),
 	)
-	return kostl + tahun + triwulan + timestamp
+	return dummyID, nil
 }
 
-// logPreviewInsert mencetak preview data yang akan di-insert ke setiap tabel DB.
-// Semua data ditampilkan dalam format yang mudah dibaca di terminal.
+// =============================================
+// LOG PREVIEW (TESTING ONLY)
+// =============================================
+
 func logPreviewInsert(req *dto.InsertPenyusunanKpiRequest, kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow) {
-	sep := strings.Repeat("=", 70)
-	dash := strings.Repeat("-", 70)
-
-	idPengajuan := simulateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
-
-	log.Println(sep)
-	log.Println("[TESTING] PREVIEW DATA SEBELUM INSERT KE DB")
-	log.Println(sep)
-
-	// -------------------------------------------------------
-	// TABLE: data_kpi
-	// -------------------------------------------------------
-	log.Println("[TABLE] data_kpi")
-	log.Println(dash)
-
-	dataKpi := map[string]interface{}{
-		"id_pengajuan":    idPengajuan,
-		"tahun":           req.Tahun,
-		"triwulan":        req.Triwulan,
-		"kostl":           req.Kostl,
-		"kostl_tx":        req.KostlTx,
-		"orgeh":           "(diambil dari tabel user by kostl saat insert)",
-		"orgeh_tx":        "(diambil dari tabel user by kostl saat insert)",
-		"entry_user":      req.EntryUser,
-		"entry_name":      req.EntryName,
-		"entry_time":      req.EntryTime,
-		"approval_posisi": req.ApprovalPosisi,
-		"approval_list":   req.ApprovalList,
-		"status": func() interface{} {
-			if req.SaveAsDraft == "1" {
-				return 70
-			}
-			return nil
-		}(),
-	}
-	printJSON(dataKpi)
-
-	// -------------------------------------------------------
-	// TABLE: data_kpi_detail
-	// -------------------------------------------------------
-	log.Println(dash)
-	log.Printf("[TABLE] data_kpi_detail (%d baris)", len(req.Kpi))
-	log.Println(dash)
+	log.Println("========== [PREVIEW INSERT] ==========")
+	log.Printf("  Kostl       : %s", req.Kostl)
+	log.Printf("  Tahun       : %s", req.Tahun)
+	log.Printf("  Triwulan    : %s", req.Triwulan)
+	log.Printf("  SaveAsDraft : %s", req.SaveAsDraft)
+	log.Printf("  Jumlah KPI  : %d", len(req.Kpi))
 
 	for i, kpiItem := range req.Kpi {
-		idDetail := fmt.Sprintf("%sP%03d", idPengajuan, i+1)
-		dataKpiDetail := map[string]interface{}{
-			"id_pengajuan":          idPengajuan,
-			"id_detail":             idDetail,
-			"tahun":                 req.Tahun,
-			"triwulan":              req.Triwulan,
-			"id_kpi":                kpiItem.IdKpi,
-			"kpi":                   kpiItem.Kpi,
-			"rumus":                 kpiItem.Rumus,
-			"id_perspektif":         kpiItem.Persfektif,
-			"id_keterangan_project": "-",
-		}
-		log.Printf("  → KPI ke-%d:", i+1)
-		printJSON(dataKpiDetail)
-	}
+		rows := kpiSubDetails[i]
+		log.Printf("  KPI[%d] id=%s | nama='%s' | jumlah sub KPI: %d",
+			i+1, kpiItem.IdKpi, kpiItem.Kpi, len(rows))
 
-	// -------------------------------------------------------
-	// TABLE: data_kpi_subdetail
-	// -------------------------------------------------------
-	totalSubRows := 0
-	for _, rows := range kpiSubDetails {
-		totalSubRows += len(rows)
-	}
-
-	log.Println(dash)
-	log.Printf("[TABLE] data_kpi_subdetail (%d baris total dari semua Excel)", totalSubRows)
-	log.Println(dash)
-
-	subCounter := 1
-	for i, kpiItem := range req.Kpi {
-		rows, ok := kpiSubDetails[i]
-		if !ok {
-			continue
-		}
-
-		idDetail := fmt.Sprintf("%sP%03d", idPengajuan, i+1)
-		log.Printf("  → KPI ke-%d ('%s') — %d sub detail:", i+1, kpiItem.Kpi, len(rows))
-
-		for _, subRow := range rows {
-			idSubDetail := fmt.Sprintf("%sC%03d", idPengajuan, subCounter)
-
-			itemQualifier := ""
-			deskripsiQualifier := ""
-			targetQualifier := ""
-			if strings.EqualFold(subRow.TerdapatQualifier, "Ya") {
-				itemQualifier = subRow.Qualifier
-				deskripsiQualifier = subRow.DeskripsiQualifier
-				targetQualifier = subRow.TargetQualifier
+		for j, row := range rows {
+			isTW4Label := "Selain TW4"
+			if row.IsTW4 {
+				isTW4Label = "TW4"
 			}
-
-			dataSubDetail := map[string]interface{}{
-				"id_pengajuan":                idPengajuan,
-				"id_detail":                   idDetail,
-				"id_sub_detail":               idSubDetail,
-				"tahun":                       req.Tahun,
-				"triwulan":                    req.Triwulan,
-				"id_kpi":                      kpiItem.IdKpi,
-				"kpi":                         subRow.SubKPI,
-				"rumus":                       subRow.Polarisasi,
-				"otomatis":                    "0",
-				"bobot":                       subRow.Bobot,
-				"capping":                     subRow.Capping,
-				"target_triwulan":             subRow.TargetTriwulan,
-				"target_kuantitatif_triwulan": subRow.TargetKuantitatifTriwulan,
-				"target_tahunan":              subRow.TargetTahunan,
-				"target_kuantitatif_tahunan":  subRow.TargetKuantitatifTahunan,
-				"deskripsi_glossary":          subRow.Glossary,
-				"item_qualifier":              itemQualifier,
-				"deskripsi_qualifier":         deskripsiQualifier,
-				"target_qualifier":            targetQualifier,
-				"id_keterangan_project":       "-",
-				"id_qualifier":                subRow.TerdapatQualifier,
-			}
-			log.Printf("    Sub Detail %s:", idSubDetail)
-			printJSON(dataSubDetail)
-			subCounter++
+			log.Printf("    SubKPI[%d] No=%d | SubKPI='%s' | Bobot=%.2f | Sheet=%s",
+				j+1, row.No, row.SubKPI, row.Bobot, isTW4Label)
 		}
 	}
 
-	// -------------------------------------------------------
-	// TABLE: data_challenge_detail
-	// -------------------------------------------------------
-	log.Println(dash)
-	log.Printf("[TABLE] data_challenge_detail (%d baris)", len(req.ChallengeList))
-	log.Println(dash)
-
-	for i, ch := range req.ChallengeList {
-		dataChallenge := map[string]interface{}{
-			"id_pengajuan":        idPengajuan,
-			"id_detail_challenge": ch.IdDetailChallenge,
-			"tahun":               ch.Tahun,
-			"triwulan":            ch.Triwulan,
-			"nama_challenge":      ch.NamaChallenge,
-			"deskripsi_challenge": ch.DeskripsiChallenge,
-		}
-		log.Printf("  → Challenge ke-%d:", i+1)
-		printJSON(dataChallenge)
+	approvalPreview := req.ApprovalList
+	if len(approvalPreview) > 80 {
+		approvalPreview = approvalPreview[:80] + "..."
 	}
-
-	// -------------------------------------------------------
-	// TABLE: data_method_detail
-	// -------------------------------------------------------
-	log.Println(dash)
-	log.Printf("[TABLE] data_method_detail (%d baris)", len(req.MethodList))
-	log.Println(dash)
-
-	for i, mt := range req.MethodList {
-		dataMethod := map[string]interface{}{
-			"id_pengajuan":     idPengajuan,
-			"id_detail_method": mt.IdDetailMethod,
-			"tahun":            mt.Tahun,
-			"triwulan":         mt.Triwulan,
-			"nama_method":      mt.NamaMethod,
-			"deskripsi_method": mt.DeskripsiMethod,
-		}
-		log.Printf("  → Method ke-%d:", i+1)
-		printJSON(dataMethod)
-	}
-
-	log.Println(sep)
-	log.Println("[TESTING] END PREVIEW")
-	log.Println(sep)
-}
-
-// printJSON mencetak map sebagai JSON yang diformat rapi ke terminal
-func printJSON(data map[string]interface{}) {
-	b, err := json.MarshalIndent(data, "    ", "  ")
-	if err != nil {
-		log.Printf("    (gagal format JSON: %v)", err)
-		return
-	}
-	log.Printf("    %s", string(b))
+	rawJSON, _ := json.MarshalIndent(req, "", "  ")
+	_ = strings.Contains(string(rawJSON), "")
+	log.Printf("  ApprovalList (preview): %s", approvalPreview)
+	log.Println("=======================================")
 }

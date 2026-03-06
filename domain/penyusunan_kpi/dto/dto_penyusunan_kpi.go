@@ -12,29 +12,24 @@ package dto
 //   - Id per KPI  = IDPengajuan + "P" + index 3 digit
 //                   contoh: "PS100012026TW2260304040242P001"
 type InsertPenyusunanKpiRequest struct {
-	Divisi         string `json:"Divisi"         validate:"required"`
-	Tahun          string `json:"Tahun"          validate:"required"`
-	Triwulan       string `json:"Triwulan"       validate:"required"`
-	Kostl          string `json:"Kostl"          validate:"required"`
-	KostlTx        string `json:"KostlTx"        validate:"required"`
-	EntryUser      string `json:"EntryUser"      validate:"required"`
-	EntryName      string `json:"EntryName"      validate:"required"`
-	EntryTime      string `json:"EntryTime"      validate:"required"`
-	ApprovalPosisi string `json:"ApprovalPosisi" validate:"required"`
-	ApprovalList   string `json:"ApprovalList"   validate:"required"`
-	SaveAsDraft    string `json:"SaveAsDraft"    validate:"required"`
-	// MaxRowsExcel menentukan batas maksimal baris data yang dibaca dari setiap file Excel.
-	// Jika tidak dikirim atau bernilai 0, backend menggunakan nilai default (ExcelMaxDataRows = 20).
-	// Contoh: MaxRowsExcel = 50 → setiap Excel hanya dibaca maksimal 50 baris data
-	MaxRowsExcel  int                       `json:"MaxRowsExcel"`
-	Kpi           []PenyusunanKpiDetailItem `json:"Kpi"            validate:"required,min=1,dive"`
-	ChallengeList []PenyusunanChallengeItem `json:"ChallengeList"  validate:"required,min=1,dive"`
-	MethodList    []PenyusunanMethodItem    `json:"MethodList"     validate:"required,min=1,dive"`
+	Divisi         string                    `json:"Divisi"         validate:"required"`
+	Tahun          string                    `json:"Tahun"          validate:"required"`
+	Triwulan       string                    `json:"Triwulan"       validate:"required"`
+	Kostl          string                    `json:"Kostl"          validate:"required"`
+	KostlTx        string                    `json:"KostlTx"        validate:"required"`
+	EntryUser      string                    `json:"EntryUser"      validate:"required"`
+	EntryName      string                    `json:"EntryName"      validate:"required"`
+	EntryTime      string                    `json:"EntryTime"      validate:"required"`
+	ApprovalPosisi string                    `json:"ApprovalPosisi" validate:"required"`
+	ApprovalList   string                    `json:"ApprovalList"   validate:"required"`
+	SaveAsDraft    string                    `json:"SaveAsDraft"    validate:"required"`
+	Kpi            []PenyusunanKpiDetailItem `json:"Kpi"           validate:"required,min=1,dive"`
+	ChallengeList  []PenyusunanChallengeItem `json:"ChallengeList" validate:"required,min=1,dive"`
+	MethodList     []PenyusunanMethodItem    `json:"MethodList"    validate:"required,min=1,dive"`
 }
 
 // PenyusunanKpiDetailItem adalah metadata satu KPI pada tabel data_kpi_detail.
-// Data sub detail (data_kpi_subdetail) berasal dari file Excel yang di-upload,
-// dengan urutan file Excel sesuai urutan array Kpi ini.
+// Data sub detail (data_kpi_subdetail) berasal dari file Excel yang di-upload.
 //
 // Catatan:
 //   - Id dan IDPengajuan tidak perlu dikirim — di-generate otomatis oleh backend
@@ -48,9 +43,6 @@ type PenyusunanKpiDetailItem struct {
 
 // PenyusunanChallengeItem adalah satu baris data challenge pada tabel data_challenge_detail.
 // Jika tidak ada data challenge (non-TW4), frontend mengirim nilai "-" pada semua field.
-//
-// Catatan:
-//   - IdPengajuan tidak perlu dikirim — diambil dari IDPengajuan yang di-generate backend
 type PenyusunanChallengeItem struct {
 	IdDetailChallenge  string `json:"idDetailChallenge"  validate:"required"`
 	Tahun              string `json:"tahun"              validate:"required"`
@@ -61,9 +53,6 @@ type PenyusunanChallengeItem struct {
 
 // PenyusunanMethodItem adalah satu baris data method pada tabel data_method_detail.
 // Jika tidak ada data method (non-TW4), frontend mengirim nilai "-" pada semua field.
-//
-// Catatan:
-//   - IdPengajuan tidak perlu dikirim — diambil dari IDPengajuan yang di-generate backend
 type PenyusunanMethodItem struct {
 	IdDetailMethod  string `json:"idDetailMethod"  validate:"required"`
 	Tahun           string `json:"tahun"           validate:"required"`
@@ -73,36 +62,41 @@ type PenyusunanMethodItem struct {
 }
 
 // =============================================
-// EXCEL PARSED ROW
+// EXCEL ROW DTO
 // =============================================
 
-// PenyusunanKpiSubDetailRow adalah representasi satu baris data dari file Excel
-// yang akan di-insert ke tabel data_kpi_subdetail.
-// Header Excel berada di baris 2, data dimulai dari baris 3.
+// PenyusunanKpiSubDetailRow adalah representasi satu baris data sub KPI dari file Excel.
 //
-// Mapping kolom Excel:
+// Sheet & kolom:
+//   Sheet "TW 4"       → kolom A (No.) sampai U (Deskripsi Context)  — 21 kolom
+//   Sheet "Selain TW 4" → kolom A (No.) sampai O (Target Qualifier)   — 15 kolom
 //
-//	Col A  = No                            (angka)
-//	Col B  = KPI                           (free text, tidak boleh blank)
-//	Col C  = Sub KPI                       (free text, tidak boleh blank)
-//	Col D  = Polarisasi                    (enum: Maximize / Minimize)
-//	Col E  = Capping                       (enum: 100% / 110%)
-//	Col F  = Bobot %                       (angka 2 desimal, total semua baris = 100)
-//	Col G  = Glossary                      (free text, tidak boleh blank)
-//	Col H  = Target Triwulanan             (free text, tidak boleh blank)
-//	Col I  = Target Kuantitatif Triwulanan (angka 2 desimal)
-//	Col J  = Target Tahunan                (free text, tidak boleh blank)
-//	Col K  = Target Kuantitatif Tahunan    (angka 2 desimal)
-//	Col L  = Terdapat Qualifier            (enum: Ya / Tidak)
-//	Col M  = Qualifier                     (free text, wajib jika Col L = "Ya")
-//	Col N  = Deskripsi Qualifier           (free text, wajib jika Col L = "Ya")
-//	Col O  = Target Qualifier              (free text, wajib jika Col L = "Ya")
-//	Col P  = Result                        (free text, tidak boleh blank)
-//	Col Q  = Deskripsi Result              (free text, tidak boleh blank)
-//	Col R  = Process                       (free text, tidak boleh blank)
-//	Col S  = Deskripsi Process             (free text, tidak boleh blank)
-//	Col T  = Context                       (free text, tidak boleh blank)
-//	Col U  = Deskripsi Context             (free text, tidak boleh blank)
+// Mapping kolom:
+//   Col A  = No                            (angka)
+//   Col B  = KPI (text)                    (free text, kunci mapping ke req.Kpi)
+//   Col C  = Sub KPI (text)                (free text, tidak boleh blank)
+//   Col D  = Polarisasi                    (enum: Maximize / Minimize)
+//   Col E  = Capping                       (enum: 100% / 110%)
+//   Col F  = Bobot %                       (angka 2 desimal, total per KPI = 100%)
+//   Col G  = Glossary                      (free text, tidak boleh blank)
+//   Col H  = Target Triwulanan             (free text, tidak boleh blank)
+//   Col I  = Target Kuantitatif Triwulanan (angka 2 desimal)
+//   Col J  = Target Tahunan                (free text, tidak boleh blank)
+//   Col K  = Target Kuantitatif Tahunan    (angka 2 desimal)
+//   Col L  = Terdapat Qualifier            (enum: Ya / Tidak)
+//   Col M  = Qualifier                     (free text, wajib jika Col L = "Ya")
+//   Col N  = Deskripsi Qualifier           (free text, wajib jika Col L = "Ya")
+//   Col O  = Target Qualifier              (free text, wajib jika Col L = "Ya")
+//   Col P  = Result                        (free text, hanya sheet "TW 4", NULL jika "Selain TW 4")
+//   Col Q  = Deskripsi Result              (free text, hanya sheet "TW 4", NULL jika "Selain TW 4")
+//   Col R  = Process                       (free text, hanya sheet "TW 4", NULL jika "Selain TW 4")
+//   Col S  = Deskripsi Process             (free text, hanya sheet "TW 4", NULL jika "Selain TW 4")
+//   Col T  = Context                       (free text, hanya sheet "TW 4", NULL jika "Selain TW 4")
+//   Col U  = Deskripsi Context             (free text, hanya sheet "TW 4", NULL jika "Selain TW 4")
+//
+// Catatan: Field Result–DeskripsiContext bertipe *string.
+//   - Jika sheet "TW 4"        → berisi nilai dari Excel
+//   - Jika sheet "Selain TW 4" → nil (disimpan NULL di DB)
 type PenyusunanKpiSubDetailRow struct {
 	No                        int
 	KPI                       string
@@ -119,12 +113,13 @@ type PenyusunanKpiSubDetailRow struct {
 	Qualifier                 string
 	DeskripsiQualifier        string
 	TargetQualifier           string
-	Result                    string
-	DeskripsiResult           string
-	Process                   string
-	DeskripsiProcess          string
-	Context                   string
-	DeskripsiContext          string
+	IsTW4                     bool    // true jika berasal dari sheet "TW 4"
+	Result                    *string // nil jika sheet "Selain TW 4" → NULL di DB
+	DeskripsiResult           *string // nil jika sheet "Selain TW 4" → NULL di DB
+	Process                   *string // nil jika sheet "Selain TW 4" → NULL di DB
+	DeskripsiProcess          *string // nil jika sheet "Selain TW 4" → NULL di DB
+	Context                   *string // nil jika sheet "Selain TW 4" → NULL di DB
+	DeskripsiContext          *string // nil jika sheet "Selain TW 4" → NULL di DB
 }
 
 // =============================================

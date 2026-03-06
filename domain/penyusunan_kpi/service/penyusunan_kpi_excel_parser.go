@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"mime/multipart"
+	"os"
 	"strconv"
 	"strings"
 
@@ -19,11 +20,13 @@ import (
 const (
 	excelDataStartRow = 3 // Baris 2 = header, data mulai baris 3
 
-	// ExcelMaxDataRows adalah batas maksimal baris data yang dibaca dari Excel.
-	// Baris di luar batas ini akan diabaikan meskipun berisi data.
-	// Nilai default: 20 baris data.
-	// Untuk mengubah batas, gunakan ParseAndValidateExcelWithLimit(file, limit).
-	ExcelMaxDataRows = 20
+	// ExcelMaxDataRows adalah nilai default batas baris jika EXCEL_MAX_ROWS tidak di-set di .env
+	ExcelMaxDataRows = 13
+
+	sheetTW4       = "TW 4"
+	sheetSelainTW4 = "Selain TW 4"
+
+	triwulanTW4 = "TW4"
 
 	polarisasiMaximize = "Maximize"
 	polarisasiMinimize = "Minimize"
@@ -35,50 +38,72 @@ const (
 	qualifierTidak = "Tidak"
 
 	totalBobotExpected = 100.0
-	bobotTolerance     = 0.01 // toleransi floating point untuk total bobot
+	bobotTolerance     = 0.01
 )
+
+// =============================================
+// HELPER: BACA maxRows DARI ENV
+// =============================================
+
+// getMaxRowsFromEnv membaca batas baris Excel dari environment variable EXCEL_MAX_ROWS.
+// Jika tidak di-set atau tidak valid, gunakan nilai default ExcelMaxDataRows.
+func getMaxRowsFromEnv() int {
+	val := os.Getenv("EXCEL_MAX_ROWS")
+	if val == "" {
+		return ExcelMaxDataRows
+	}
+	n, err := strconv.Atoi(val)
+	if err != nil || n <= 0 {
+		fmt.Printf("[WARN] EXCEL_MAX_ROWS='%s' tidak valid, menggunakan default %d\n", val, ExcelMaxDataRows)
+		return ExcelMaxDataRows
+	}
+	return n
+}
 
 // =============================================
 // MAIN PARSER FUNCTION
 // =============================================
 
-// ParseAndValidateExcel membaca file Excel dengan batas baris default (ExcelMaxDataRows = 20).
-// Merupakan wrapper dari ParseAndValidateExcelWithLimit.
-func ParseAndValidateExcel(file *multipart.FileHeader) ([]dto.PenyusunanKpiSubDetailRow, error) {
-	return ParseAndValidateExcelWithLimit(file, ExcelMaxDataRows)
-}
-
-// ParseAndValidateExcelWithLimit membaca file Excel dengan batas baris custom.
+// ParseAndValidateExcel membaca 1 file Excel dengan 2 sheet ("TW 4" / "Selain TW 4"),
+// menentukan sheet berdasarkan triwulan, lalu memetakan setiap baris ke KPI
+// berdasarkan nilai kolom B (case-insensitive).
 //
 // Parameter:
-//   - file     : file Excel (.xlsx) dari multipart form
-//   - maxRows  : jumlah maksimal baris data yang dibaca (mulai baris ke-3)
-//     contoh: maxRows=20 → hanya baca baris 3 s/d 22
-//     maxRows=50 → hanya baca baris 3 s/d 52
+//   - file      : file Excel (.xlsx) dari multipart form
+//   - triwulan  : nilai Triwulan dari REQUEST (misal "TW4", "TW1", "TW2", "TW3")
+//   - kpiList   : daftar KPI dari req.Kpi, digunakan untuk mapping kolom B
 //
-// Aturan validasi per kolom:
-//   - Col A  : angka
-//   - Col B  : free text, tidak boleh blank
-//   - Col C  : free text, tidak boleh blank
-//   - Col D  : enum Maximize / Minimize, tidak boleh blank
-//   - Col E  : enum 100% / 110%, tidak boleh blank
-//   - Col F  : angka 2 desimal, total semua baris harus = 100%
-//   - Col G  : free text, tidak boleh blank
-//   - Col H  : free text, tidak boleh blank
-//   - Col I  : angka 2 desimal
-//   - Col J  : free text, tidak boleh blank
-//   - Col K  : angka 2 desimal
-//   - Col L  : enum Ya / Tidak, tidak boleh blank
-//   - Col M  : wajib diisi jika Col L = "Ya"
-//   - Col N  : wajib diisi jika Col L = "Ya"
-//   - Col O  : wajib diisi jika Col L = "Ya"
-//   - Col P  : free text, tidak boleh blank
-//   - Col Q  : free text, tidak boleh blank
-//   - Col R  : free text, tidak boleh blank
-//   - Col S  : free text, tidak boleh blank
-//   - Col T  : free text, tidak boleh blank
-//   - Col U  : free text, tidak boleh blank
-func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]dto.PenyusunanKpiSubDetailRow, error) {
+// Return:
+//   - map[int][]dto.PenyusunanKpiSubDetailRow : key = index KPI di kpiList, value = baris sub KPI
+//   - error
+//
+// Aturan sheet:
+//   - Triwulan == "TW4" → gunakan sheet "TW 4"    (kolom A–U, 21 kolom)
+//   - Selain itu        → gunakan sheet "Selain TW 4" (kolom A–O, 15 kolom)
+//
+// Aturan mapping KPI:
+//   - Kolom B berisi nama KPI (free text)
+//   - Dicocokkan case-insensitive ke kpiList[i].Kpi
+//   - Jika kolom B tidak cocok dengan KPI manapun → return error
+//
+// Aturan bobot:
+//   - Total bobot (kolom F) dihitung PER KPI, masing-masing harus = 100%
+func ParseAndValidateExcel(
+	file *multipart.FileHeader,
+	triwulan string,
+	kpiList []dto.PenyusunanKpiDetailItem,
+) (map[int][]dto.PenyusunanKpiSubDetailRow, error) {
+	maxRows := getMaxRowsFromEnv()
+	return parseAndValidateExcelInternal(file, triwulan, kpiList, maxRows)
+}
+
+// parseAndValidateExcelInternal adalah implementasi utama parser Excel.
+func parseAndValidateExcelInternal(
+	file *multipart.FileHeader,
+	triwulan string,
+	kpiList []dto.PenyusunanKpiDetailItem,
+	maxRows int,
+) (map[int][]dto.PenyusunanKpiSubDetailRow, error) {
 	if maxRows <= 0 {
 		return nil, fmt.Errorf("maxRows harus lebih dari 0, nilai saat ini: %d", maxRows)
 	}
@@ -96,10 +121,23 @@ func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]
 	}
 	defer xlsx.Close()
 
-	// Ambil sheet pertama
-	sheetName := xlsx.GetSheetName(0)
-	if sheetName == "" {
-		return nil, fmt.Errorf("file Excel '%s' tidak memiliki sheet", file.Filename)
+	// --- Tentukan nama sheet berdasarkan triwulan ---
+	isTW4 := strings.EqualFold(triwulan, triwulanTW4)
+	var sheetName string
+	if isTW4 {
+		sheetName = sheetTW4
+	} else {
+		sheetName = sheetSelainTW4
+	}
+
+	// --- Validasi sheet ada di file Excel ---
+	sheetIndex, err := xlsx.GetSheetIndex(sheetName)
+	if err != nil || sheetIndex < 0 {
+		return nil, fmt.Errorf(
+			"file Excel '%s' tidak memiliki sheet '%s'. "+
+				"Pastikan file memiliki sheet '%s' dan '%s'",
+			file.Filename, sheetName, sheetTW4, sheetSelainTW4,
+		)
 	}
 
 	allRows, err := xlsx.GetRows(sheetName)
@@ -109,65 +147,58 @@ func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]
 
 	// Pastikan ada data mulai baris ke-3 (index 2)
 	if len(allRows) < excelDataStartRow {
-		return nil, fmt.Errorf("file Excel '%s' tidak memiliki data (data dimulai dari baris %d)",
-			file.Filename, excelDataStartRow)
+		return nil, fmt.Errorf(
+			"file Excel '%s' sheet '%s' tidak memiliki data (data dimulai dari baris %d)",
+			file.Filename, sheetName, excelDataStartRow,
+		)
 	}
 
-	// --- [DEBUG] Log SEMUA baris Excel untuk inspeksi struktur ---
-	// TODO: Hapus blok debug ini setelah struktur Excel dikonfirmasi
-	fmt.Printf("[DEBUG] File: '%s' | Total baris terbaca: %d | Sheet: '%s'\n",
-		file.Filename, len(allRows), sheetName)
-	for i, row := range allRows {
-		// Cek apakah baris kosong
-		isEmpty := true
-		for _, cell := range row {
-			if strings.TrimSpace(cell) != "" {
-				isEmpty = false
-				break
-			}
-		}
-		if isEmpty {
-			fmt.Printf("[DEBUG]   Baris %d: (kosong)\n", i+1)
-			continue
-		}
-		// Tampilkan maksimal 5 kolom pertama per baris yang tidak kosong
-		preview := row
-		if len(preview) > 5 {
-			preview = preview[:5]
-		}
-		fmt.Printf("[DEBUG]   Baris %d [%d kolom]: %v\n", i+1, len(row), preview)
-	}
-	// --- [END DEBUG] ---
+	// --- [DEBUG] Log info sheet & baris ---
+	fmt.Printf("[DEBUG] File: '%s' | Sheet: '%s' | Total baris: %d | maxRows: %d\n",
+		file.Filename, sheetName, len(allRows), maxRows)
 
-	// Tentukan batas baris yang akan dibaca
-	// allRows index 0-based: data mulai index (excelDataStartRow - 1)
+	// --- Tentukan batas baris yang akan dibaca ---
 	dataStartIdx := excelDataStartRow - 1
-	dataEndIdx := dataStartIdx + maxRows // exclusive
+	dataEndIdx := dataStartIdx + maxRows
 	if dataEndIdx > len(allRows) {
 		dataEndIdx = len(allRows)
 	}
 
-	totalAvailableRows := len(allRows) - dataStartIdx
 	limitedRows := allRows[dataStartIdx:dataEndIdx]
+	skippedRows := (len(allRows) - dataStartIdx) - len(limitedRows)
 
-	// Info jika ada baris yang dipotong
-	skippedRows := totalAvailableRows - len(limitedRows)
+	// --- Buat map index KPI (lowercase nama KPI → index di kpiList) ---
+	// Untuk lookup O(1) saat mapping kolom B
+	kpiIndexMap := make(map[string]int, len(kpiList))
+	for i, kpiItem := range kpiList {
+		kpiIndexMap[strings.ToLower(strings.TrimSpace(kpiItem.Kpi))] = i
+	}
 
-	// --- Loop setiap baris data dalam batas ---
-	var result []dto.PenyusunanKpiSubDetailRow
-	var totalBobot float64
+	// --- Hasil: map index KPI → slice baris sub KPI ---
+	kpiSubDetails := make(map[int][]dto.PenyusunanKpiSubDetailRow)
 
+	// --- Akumulasi bobot per KPI untuk validasi total 100% ---
+	bobotPerKpi := make(map[int]float64)
+
+	// --- Tentukan jumlah kolom yang diharapkan berdasarkan sheet ---
+	// TW 4: 21 kolom (A–U), Selain TW 4: 15 kolom (A–O)
+	expectedCols := 15
+	if isTW4 {
+		expectedCols = 21
+	}
+
+	// --- Loop setiap baris data ---
 	for rowIdx, row := range limitedRows {
 		displayRow := dataStartIdx + rowIdx + 1 // nomor baris 1-based untuk pesan error
 
-		// Padding jika kolom kurang dari 21
-		for len(row) < 21 {
+		// Padding jika kolom kurang dari jumlah yang diharapkan
+		for len(row) < expectedCols {
 			row = append(row, "")
 		}
 
-		// Ambil nilai tiap kolom
+		// Ambil kolom A–O (selalu ada di kedua sheet)
 		colA := strings.TrimSpace(row[0])  // NO
-		colB := strings.TrimSpace(row[1])  // KPI
+		colB := strings.TrimSpace(row[1])  // KPI (text) — kunci mapping
 		colC := strings.TrimSpace(row[2])  // Sub KPI
 		colD := strings.TrimSpace(row[3])  // Polarisasi
 		colE := strings.TrimSpace(row[4])  // Capping
@@ -181,150 +212,194 @@ func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]
 		colM := strings.TrimSpace(row[12]) // Qualifier
 		colN := strings.TrimSpace(row[13]) // Deskripsi Qualifier
 		colO := strings.TrimSpace(row[14]) // Target Qualifier
-		colP := strings.TrimSpace(row[15]) // Result
-		colQ := strings.TrimSpace(row[16]) // Deskripsi Result
-		colR := strings.TrimSpace(row[17]) // Process
-		colS := strings.TrimSpace(row[18]) // Deskripsi Process
-		colT := strings.TrimSpace(row[19]) // Context
-		colU := strings.TrimSpace(row[20]) // Deskripsi Context
 
-		// Lewati baris kosong (semua kolom kosong)
+		// Kolom P–U hanya tersedia di sheet "TW 4"
+		var colP, colQ, colR, colS, colT, colU string
+		if isTW4 {
+			colP = strings.TrimSpace(row[15]) // Result
+			colQ = strings.TrimSpace(row[16]) // Deskripsi Result
+			colR = strings.TrimSpace(row[17]) // Process
+			colS = strings.TrimSpace(row[18]) // Deskripsi Process
+			colT = strings.TrimSpace(row[19]) // Context
+			colU = strings.TrimSpace(row[20]) // Deskripsi Context
+		}
+		// Untuk sheet "Selain TW 4", colP–colU tetap "" (akan disimpan NULL di DB)
+
+		// Lewati baris kosong
 		if colA == "" && colB == "" && colC == "" {
 			continue
 		}
 
-		// --- Validasi Col A: NO (angka) ---
+		// =============================================
+		// VALIDASI KOLOM A: NO (angka)
+		// =============================================
 		no, errNo := strconv.Atoi(colA)
 		if errNo != nil {
 			return nil, fmt.Errorf("baris %d, Kolom A (NO): harus berupa angka, nilai saat ini: '%s'",
 				displayRow, colA)
 		}
 
-		// --- Validasi Col B: KPI (free text, tidak boleh blank) ---
+		// =============================================
+		// MAPPING KOLOM B → INDEX KPI (case-insensitive)
+		// =============================================
 		if colB == "" {
 			return nil, fmt.Errorf("baris %d, Kolom B (KPI): tidak boleh kosong", displayRow)
 		}
+		kpiIdx, found := kpiIndexMap[strings.ToLower(colB)]
+		if !found {
+			// Kolom B tidak cocok dengan KPI manapun di request → error
+			kpiNames := make([]string, len(kpiList))
+			for i, k := range kpiList {
+				kpiNames[i] = "'" + k.Kpi + "'"
+			}
+			return nil, fmt.Errorf(
+				"baris %d, Kolom B (KPI): nilai '%s' tidak cocok dengan KPI manapun di REQUEST. "+
+					"KPI yang valid: %s",
+				displayRow, colB, strings.Join(kpiNames, ", "),
+			)
+		}
 
-		// --- Validasi Col C: Sub KPI (free text, tidak boleh blank) ---
+		// =============================================
+		// VALIDASI KOLOM C: Sub KPI
+		// =============================================
 		if colC == "" {
 			return nil, fmt.Errorf("baris %d, Kolom C (Sub KPI): tidak boleh kosong", displayRow)
 		}
 
-		// --- Validasi Col D: Polarisasi (enum) ---
+		// =============================================
+		// VALIDASI KOLOM D: Polarisasi
+		// =============================================
 		if colD == "" {
 			return nil, fmt.Errorf("baris %d, Kolom D (Polarisasi): tidak boleh kosong", displayRow)
 		}
 		if colD != polarisasiMaximize && colD != polarisasiMinimize {
-			return nil, fmt.Errorf("baris %d, Kolom D (Polarisasi): nilai tidak valid '%s', harus '%s' atau '%s'",
+			return nil, fmt.Errorf(
+				"baris %d, Kolom D (Polarisasi): nilai tidak valid '%s', harus '%s' atau '%s'",
 				displayRow, colD, polarisasiMaximize, polarisasiMinimize)
 		}
 
-		// --- Validasi Col E: Capping (enum) ---
+		// =============================================
+		// VALIDASI KOLOM E: Capping
+		// =============================================
 		if colE == "" {
 			return nil, fmt.Errorf("baris %d, Kolom E (Capping): tidak boleh kosong", displayRow)
 		}
 		if colE != cappingOption1 && colE != cappingOption2 {
-			return nil, fmt.Errorf("baris %d, Kolom E (Capping): nilai tidak valid '%s', harus '%s' atau '%s'",
+			return nil, fmt.Errorf(
+				"baris %d, Kolom E (Capping): nilai tidak valid '%s', harus '%s' atau '%s'",
 				displayRow, colE, cappingOption1, cappingOption2)
 		}
 
-		// --- Validasi Col F: Bobot % (angka 2 desimal) ---
+		// =============================================
+		// VALIDASI KOLOM F: Bobot % (akumulasi per KPI)
+		// =============================================
 		if colF == "" {
 			return nil, fmt.Errorf("baris %d, Kolom F (Bobot %%): tidak boleh kosong", displayRow)
 		}
 		bobot, errBobot := parseFloat2Decimal(colF)
 		if errBobot != nil {
-			return nil, fmt.Errorf("baris %d, Kolom F (Bobot %%): harus berupa angka 2 desimal tanpa simbol persen, nilai saat ini: '%s'",
+			return nil, fmt.Errorf(
+				"baris %d, Kolom F (Bobot %%): harus berupa angka 2 desimal tanpa simbol persen, nilai saat ini: '%s'",
 				displayRow, colF)
 		}
-		totalBobot += bobot
+		bobotPerKpi[kpiIdx] += bobot
 
-		// --- Validasi Col G: Glossary ---
+		// =============================================
+		// VALIDASI KOLOM G–K
+		// =============================================
 		if colG == "" {
 			return nil, fmt.Errorf("baris %d, Kolom G (Glossary): tidak boleh kosong", displayRow)
 		}
-
-		// --- Validasi Col H: Target Triwulanan ---
 		if colH == "" {
 			return nil, fmt.Errorf("baris %d, Kolom H (Target Triwulanan): tidak boleh kosong", displayRow)
 		}
-
-		// --- Validasi Col I: Target Kuantitatif Triwulanan (angka 2 desimal) ---
 		targetKuantitatifTriwulan, errI := parseFloat2Decimal(colI)
 		if errI != nil {
-			return nil, fmt.Errorf("baris %d, Kolom I (Target Kuantitatif Triwulanan): harus berupa angka 2 desimal, nilai saat ini: '%s'",
+			return nil, fmt.Errorf(
+				"baris %d, Kolom I (Target Kuantitatif Triwulanan): harus berupa angka 2 desimal, nilai saat ini: '%s'",
 				displayRow, colI)
 		}
-
-		// --- Validasi Col J: Target Tahunan ---
 		if colJ == "" {
 			return nil, fmt.Errorf("baris %d, Kolom J (Target Tahunan): tidak boleh kosong", displayRow)
 		}
-
-		// --- Validasi Col K: Target Kuantitatif Tahunan (angka 2 desimal) ---
 		targetKuantitatifTahunan, errK := parseFloat2Decimal(colK)
 		if errK != nil {
-			return nil, fmt.Errorf("baris %d, Kolom K (Target Kuantitatif Tahunan): harus berupa angka 2 desimal, nilai saat ini: '%s'",
+			return nil, fmt.Errorf(
+				"baris %d, Kolom K (Target Kuantitatif Tahunan): harus berupa angka 2 desimal, nilai saat ini: '%s'",
 				displayRow, colK)
 		}
 
-		// --- Validasi Col L: Terdapat Qualifier (enum) ---
+		// =============================================
+		// VALIDASI KOLOM L: Terdapat Qualifier
+		// =============================================
 		if colL == "" {
 			return nil, fmt.Errorf("baris %d, Kolom L (Terdapat Qualifier): tidak boleh kosong", displayRow)
 		}
 		if colL != qualifierYa && colL != qualifierTidak {
-			return nil, fmt.Errorf("baris %d, Kolom L (Terdapat Qualifier): nilai tidak valid '%s', harus '%s' atau '%s'",
+			return nil, fmt.Errorf(
+				"baris %d, Kolom L (Terdapat Qualifier): nilai tidak valid '%s', harus '%s' atau '%s'",
 				displayRow, colL, qualifierYa, qualifierTidak)
 		}
 
-		// --- Validasi Col M, N, O: wajib jika Kolom L = "Ya" ---
+		// =============================================
+		// VALIDASI KOLOM M, N, O: Wajib jika Qualifier = "Ya"
+		// =============================================
 		if strings.EqualFold(colL, qualifierYa) {
 			if colM == "" {
-				return nil, fmt.Errorf("baris %d, Kolom M (Qualifier): tidak boleh kosong karena Kolom L = 'Ya'",
-					displayRow)
+				return nil, fmt.Errorf(
+					"baris %d, Kolom M (Qualifier): tidak boleh kosong jika Kolom L = 'Ya'", displayRow)
 			}
 			if colN == "" {
-				return nil, fmt.Errorf("baris %d, Kolom N (Deskripsi Qualifier): tidak boleh kosong karena Kolom L = 'Ya'",
-					displayRow)
+				return nil, fmt.Errorf(
+					"baris %d, Kolom N (Deskripsi Qualifier): tidak boleh kosong jika Kolom L = 'Ya'", displayRow)
 			}
 			if colO == "" {
-				return nil, fmt.Errorf("baris %d, Kolom O (Target Qualifier): tidak boleh kosong karena Kolom L = 'Ya'",
-					displayRow)
+				return nil, fmt.Errorf(
+					"baris %d, Kolom O (Target Qualifier): tidak boleh kosong jika Kolom L = 'Ya'", displayRow)
 			}
 		}
 
-		// --- Validasi Col P: Result ---
-		if colP == "" {
-			return nil, fmt.Errorf("baris %d, Kolom P (Result): tidak boleh kosong", displayRow)
+		// =============================================
+		// VALIDASI KOLOM P–U: Hanya untuk sheet "TW 4"
+		// =============================================
+		if isTW4 {
+			if colP == "" {
+				return nil, fmt.Errorf("baris %d, Kolom P (Result): tidak boleh kosong", displayRow)
+			}
+			if colQ == "" {
+				return nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Result): tidak boleh kosong", displayRow)
+			}
+			if colR == "" {
+				return nil, fmt.Errorf("baris %d, Kolom R (Process): tidak boleh kosong", displayRow)
+			}
+			if colS == "" {
+				return nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Process): tidak boleh kosong", displayRow)
+			}
+			if colT == "" {
+				return nil, fmt.Errorf("baris %d, Kolom T (Context): tidak boleh kosong", displayRow)
+			}
+			if colU == "" {
+				return nil, fmt.Errorf("baris %d, Kolom U (Deskripsi Context): tidak boleh kosong", displayRow)
+			}
 		}
 
-		// --- Validasi Col Q: Deskripsi Result ---
-		if colQ == "" {
-			return nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Result): tidak boleh kosong", displayRow)
+		// =============================================
+		// SEMUA VALIDASI LOLOS — tambahkan ke map berdasarkan index KPI
+		// =============================================
+
+		// Qualifier: hanya diisi jika Terdapat Qualifier = "Ya"
+		itemQualifier := ""
+		deskripsiQualifier := ""
+		targetQualifier := ""
+		if strings.EqualFold(colL, qualifierYa) {
+			itemQualifier = colM
+			deskripsiQualifier = colN
+			targetQualifier = colO
 		}
 
-		// --- Validasi Col R: Process ---
-		if colR == "" {
-			return nil, fmt.Errorf("baris %d, Kolom R (Process): tidak boleh kosong", displayRow)
-		}
-
-		// --- Validasi Col S: Deskripsi Process ---
-		if colS == "" {
-			return nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Process): tidak boleh kosong", displayRow)
-		}
-
-		// --- Validasi Col T: Context ---
-		if colT == "" {
-			return nil, fmt.Errorf("baris %d, Kolom T (Context): tidak boleh kosong", displayRow)
-		}
-
-		// --- Validasi Col U: Deskripsi Context ---
-		if colU == "" {
-			return nil, fmt.Errorf("baris %d, Kolom U (Deskripsi Context): tidak boleh kosong", displayRow)
-		}
-
-		// --- Semua validasi lolos, tambahkan ke result ---
-		result = append(result, dto.PenyusunanKpiSubDetailRow{
+		// Untuk sheet "Selain TW 4", kolom P–U adalah "" → disimpan NULL di DB
+		// (nil pada *string akan di-handle repo, cukup kirim "" dan biarkan repo konversi)
+		subRow := dto.PenyusunanKpiSubDetailRow{
 			No:                        no,
 			KPI:                       colB,
 			SubKPI:                    colC,
@@ -337,62 +412,84 @@ func ParseAndValidateExcelWithLimit(file *multipart.FileHeader, maxRows int) ([]
 			TargetTahunan:             colJ,
 			TargetKuantitatifTahunan:  targetKuantitatifTahunan,
 			TerdapatQualifier:         colL,
-			Qualifier:                 colM,
-			DeskripsiQualifier:        colN,
-			TargetQualifier:           colO,
-			Result:                    colP,
-			DeskripsiResult:           colQ,
-			Process:                   colR,
-			DeskripsiProcess:          colS,
-			Context:                   colT,
-			DeskripsiContext:          colU,
-		})
+			Qualifier:                 itemQualifier,
+			DeskripsiQualifier:        deskripsiQualifier,
+			TargetQualifier:           targetQualifier,
+			IsTW4:                     isTW4,
+			// Kolom P–U: diisi hanya jika TW4, selain itu nil (NULL di DB)
+			Result:           nullableString(colP, isTW4),
+			DeskripsiResult:  nullableString(colQ, isTW4),
+			Process:          nullableString(colR, isTW4),
+			DeskripsiProcess: nullableString(colS, isTW4),
+			Context:          nullableString(colT, isTW4),
+			DeskripsiContext: nullableString(colU, isTW4),
+		}
+
+		kpiSubDetails[kpiIdx] = append(kpiSubDetails[kpiIdx], subRow)
 	}
 
-	// --- Validasi result tidak kosong ---
-	if len(result) == 0 {
-		return nil, fmt.Errorf("file Excel '%s' tidak memiliki data yang valid", file.Filename)
-	}
-
-	// --- Peringatan jika ada baris yang dipotong karena melebihi limit ---
+	// --- Peringatan jika ada baris yang dipotong ---
 	if skippedRows > 0 {
-		fmt.Printf("[WARN] file '%s': %d baris melebihi batas maksimal (%d baris), baris tersebut diabaikan\n",
+		fmt.Printf("[WARN] file '%s': %d baris melebihi batas maksimal (%d baris), diabaikan\n",
 			file.Filename, skippedRows, maxRows)
 	}
 
-	// --- Validasi total bobot setelah semua baris diproses ---
-	totalBobotRounded := math.Round(totalBobot*100) / 100
-	if math.Abs(totalBobotRounded-totalBobotExpected) > bobotTolerance {
-		return nil, fmt.Errorf(
-			"file Excel '%s': total Bobot (Kolom F) = %.2f%%, harus tepat 100%%",
-			file.Filename, totalBobotRounded,
-		)
+	// --- Validasi: pastikan setiap KPI di request punya minimal 1 baris sub KPI ---
+	for i, kpiItem := range kpiList {
+		if _, ok := kpiSubDetails[i]; !ok {
+			return nil, fmt.Errorf(
+				"KPI '%s' (index %d) tidak memiliki data sub KPI di file Excel '%s'. "+
+					"Pastikan kolom B berisi nama KPI yang sesuai dengan REQUEST",
+				kpiItem.Kpi, i+1, file.Filename,
+			)
+		}
 	}
 
-	return result, nil
+	// --- Validasi total bobot per KPI harus = 100% ---
+	for i, kpiItem := range kpiList {
+		totalBobot := bobotPerKpi[i]
+		totalBobotRounded := math.Round(totalBobot*100) / 100
+		if math.Abs(totalBobotRounded-totalBobotExpected) > bobotTolerance {
+			return nil, fmt.Errorf(
+				"KPI '%s': total Bobot (Kolom F) = %.2f%%, harus tepat 100%%",
+				kpiItem.Kpi, totalBobotRounded,
+			)
+		}
+	}
+
+	// --- Validasi result tidak kosong ---
+	if len(kpiSubDetails) == 0 {
+		return nil, fmt.Errorf("file Excel '%s' tidak memiliki data yang valid", file.Filename)
+	}
+
+	return kpiSubDetails, nil
 }
 
 // =============================================
 // HELPER FUNCTIONS
 // =============================================
 
+// nullableString mengembalikan pointer string jika isActive true, atau nil jika false.
+// Digunakan untuk kolom P–U yang hanya ada di sheet "TW 4".
+// Nilai nil akan disimpan sebagai NULL di DB.
+func nullableString(val string, isActive bool) *string {
+	if !isActive {
+		return nil
+	}
+	return &val
+}
+
 // parseFloat2Decimal mem-parse string menjadi float64 dengan 2 angka di belakang koma.
-// Mengembalikan error jika string bukan angka valid.
 func parseFloat2Decimal(s string) (float64, error) {
 	if s == "" {
 		return 0, nil
 	}
-
-	// Hapus simbol % jika ada (misal jika user salah format)
 	cleaned := strings.ReplaceAll(s, "%", "")
 	cleaned = strings.TrimSpace(cleaned)
-
 	val, err := strconv.ParseFloat(cleaned, 64)
 	if err != nil {
 		return 0, fmt.Errorf("'%s' bukan angka valid", s)
 	}
-
-	// Bulatkan ke 2 desimal
 	rounded := math.Round(val*100) / 100
 	return rounded, nil
 }
