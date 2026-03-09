@@ -117,6 +117,7 @@ type PenyusunanKpiSubDetailRow struct {
 	KPI          string // kolom B — nama KPI induk (untuk mapping, tidak disimpan ke subdetail)
 	SubKPI       string // kolom C — nama sub KPI; diupdate ke nama dari DB jika ditemukan di mst_kpi
 	IdSubKpi     string // hasil lookup mst_kpi; "0" jika tidak ditemukan
+	Otomatis     string // "1" jika IdSubKpi ditemukan di mst_kpi, "0" jika tidak
 	Polarisasi   string // kolom D — teks "Maximize" atau "Minimize" dari Excel
 	IdPolarisasi string // hasil lookup mst_polarisasi; "1"=Maximize, "0"=Minimize
 	// Catatan: IdPolarisasi inilah yang disimpan ke kolom `rumus` di data_kpi_subdetail

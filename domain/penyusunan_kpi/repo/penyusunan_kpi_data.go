@@ -200,19 +200,20 @@ func (r *penyusunanKpiRepo) LookupPolarisasi(polarisasiText string) (idPolarisas
 //  2. Cek apakah data sudah ada (tahun + triwulan + kostl)
 //  3. Ambil orgeh & orgeh_tx dari tabel user
 //  4. Tentukan status berdasarkan SaveAsDraft
+//
 // Catatan generate ID:
 //   - IDPengajuan   = Kostl + Tahun + Triwulan + timestamp(ymdhis)
 //   - id_detail     = IDPengajuan + "P" + index KPI 3 digit (P001, P002, ...)
 //   - id_sub_detail = IDPengajuan + "C" + counter global (tidak reset antar KPI)
 //   - id_keterangan_project = "-" (backend otomatis)
-//  5. Build batch INSERT data_kpi_detail
-//  6. Build batch INSERT data_kpi_subdetail
-//     - id_kpi  = subRow.IdSubKpi  (dari mst_kpi, atau "0")
-//     - kpi     = subRow.SubKPI    (nama dari DB, atau nama Excel)
-//     - rumus   = subRow.IdPolarisasi (id_polarisasi dari mst_polarisasi)
-//  7. Build batch INSERT data_challenge_detail
-//  8. Build batch INSERT data_method_detail
-//  9. Eksekusi semua INSERT dalam 1 transaksi
+//     5. Build batch INSERT data_kpi_detail
+//     6. Build batch INSERT data_kpi_subdetail
+//   - id_kpi  = subRow.IdSubKpi  (dari mst_kpi, atau "0")
+//   - kpi     = subRow.SubKPI    (nama dari DB, atau nama Excel)
+//   - rumus   = subRow.IdPolarisasi (id_polarisasi dari mst_polarisasi)
+//     7. Build batch INSERT data_challenge_detail
+//     8. Build batch INSERT data_method_detail
+//     9. Eksekusi semua INSERT dalam 1 transaksi
 func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 	req *dto.InsertPenyusunanKpiRequest,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
@@ -347,7 +348,7 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 				subRow.IdSubKpi,     // id_kpi dari mst_kpi (atau "0")
 				subRow.SubKPI,       // nama dari DB (atau Excel jika tidak ditemukan)
 				subRow.IdPolarisasi, // id_polarisasi dari mst_polarisasi (1=Maximize, 0=Minimize)
-				"0",                 // otomatis: selalu "0"
+				subRow.Otomatis,     // dari resolveMasterLookup, tidak perlu logic lagi di sini
 				subRow.Bobot,
 				subRow.Capping,
 				subRow.TargetTriwulan,

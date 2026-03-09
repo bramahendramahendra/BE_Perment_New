@@ -137,6 +137,15 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 			subRow.IdSubKpi = idSubKpi
 			subRow.SubKPI = kpiFromDB // nama dari DB jika ditemukan, tetap Excel jika tidak
 
+			// Set otomatis berdasarkan hasil lookup mst_kpi
+			// "1" = Sub KPI ditemukan di master → data otomatis/terstandarisasi
+			// "0" = Sub KPI tidak ditemukan di master → data manual/bebas
+			if idSubKpi != "0" {
+				subRow.Otomatis = "1"
+			} else {
+				subRow.Otomatis = "0"
+			}
+
 			// --- Step b: Lookup mst_polarisasi ---
 			idPolarisasi, err := s.repo.LookupPolarisasi(subRow.Polarisasi)
 			if err != nil {
@@ -349,7 +358,7 @@ func logPreviewInsert(
 				// --- Info polarisasi untuk debugging ---
 				"[polarisasi_excel]": subRow.Polarisasi, // teks asli dari kolom D Excel
 				// --- Kolom A–O ---
-				"otomatis":                    "0",
+				"otomatis":                    subRow.Otomatis,
 				"bobot":                       subRow.Bobot,
 				"capping":                     subRow.Capping,
 				"target_triwulan":             subRow.TargetTriwulan,
