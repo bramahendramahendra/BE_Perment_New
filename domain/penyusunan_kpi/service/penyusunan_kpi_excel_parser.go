@@ -50,7 +50,7 @@ func getMaxRowsFromEnv() int {
 func ParseAndValidateExcel(
 	file *multipart.FileHeader,
 	triwulan string,
-	kpiList []dto.PenyusunanKpiDetailItem,
+	kpiList []dto.PenyusunanKpiDetailItemRequest,
 ) (map[int][]dto.PenyusunanKpiSubDetailRow, error) {
 	maxRows := getMaxRowsFromEnv()
 	return parseAndValidateExcelInternal(file, triwulan, kpiList, maxRows)
@@ -59,7 +59,7 @@ func ParseAndValidateExcel(
 func parseAndValidateExcelInternal(
 	file *multipart.FileHeader,
 	triwulan string,
-	kpiList []dto.PenyusunanKpiDetailItem,
+	kpiList []dto.PenyusunanKpiDetailItemRequest,
 	maxRows int,
 ) (map[int][]dto.PenyusunanKpiSubDetailRow, error) {
 	if maxRows <= 0 {

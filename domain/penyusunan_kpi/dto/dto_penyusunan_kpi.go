@@ -1,8 +1,6 @@
 package dto
 
-// =============================================
 // REQUEST DTO
-// =============================================
 
 type DivisiItem struct {
 	Kostl   string `json:"Kostl"   validate:"required"`
@@ -10,27 +8,37 @@ type DivisiItem struct {
 }
 
 type InsertPenyusunanKpiRequest struct {
-	Divisi         DivisiItem                `json:"Divisi"         validate:"required"`
-	Tahun          string                    `json:"Tahun"          validate:"required"`
-	Triwulan       string                    `json:"Triwulan"       validate:"required"`
-	Kostl          string                    `json:"Kostl"`
-	KostlTx        string                    `json:"KostlTx"`
-	EntryUser      string                    `json:"EntryUser"`
-	EntryName      string                    `json:"EntryName"`
-	EntryTime      string                    `json:"EntryTime"`
-	ApprovalPosisi string                    `json:"ApprovalPosisi" validate:"required"`
-	ApprovalList   string                    `json:"ApprovalList"   validate:"required"`
-	SaveAsDraft    string                    `json:"SaveAsDraft"    validate:"required"`
-	Kpi            []PenyusunanKpiDetailItem `json:"Kpi"            validate:"required,min=1,dive"`
-	ChallengeList  []PenyusunanChallengeItem `json:"ChallengeList"  validate:"required,min=1,dive"`
-	MethodList     []PenyusunanMethodItem    `json:"MethodList"     validate:"required,min=1,dive"`
+	Divisi         DivisiItem                       `json:"Divisi"         validate:"required"`
+	Tahun          string                           `json:"Tahun"          validate:"required"`
+	Triwulan       string                           `json:"Triwulan"       validate:"required"`
+	Kostl          string                           `json:"Kostl"`
+	KostlTx        string                           `json:"KostlTx"`
+	EntryUser      string                           `json:"EntryUser"`
+	EntryName      string                           `json:"EntryName"`
+	EntryTime      string                           `json:"EntryTime"`
+	ApprovalPosisi string                           `json:"ApprovalPosisi" validate:"required"`
+	ApprovalList   string                           `json:"ApprovalList"   validate:"required"`
+	SaveAsDraft    string                           `json:"SaveAsDraft"    validate:"required"`
+	Kpi            []PenyusunanKpiDetailItemRequest `json:"Kpi"            validate:"required,min=1,dive"`
+	ChallengeList  []PenyusunanChallengeItem        `json:"ChallengeList"  validate:"required,min=1,dive"`
+	MethodList     []PenyusunanMethodItem           `json:"MethodList"     validate:"required,min=1,dive"`
 }
 
-type PenyusunanKpiDetailItem struct {
+// PenyusunanKpiDetailItemRequest digunakan untuk binding & validasi request dari frontend.
+type PenyusunanKpiDetailItemRequest struct {
 	IdKpi      string `json:"idKpi"      validate:"required"`
 	Kpi        string `json:"kpi"        validate:"required"`
 	Rumus      string `json:"rumus"      validate:"required"`
 	Persfektif string `json:"persfektif" validate:"required"`
+}
+
+// PenyusunanKpiDetailItemResponse digunakan untuk response, dengan KpiSubDetail nested di dalamnya.
+type PenyusunanKpiDetailItemResponse struct {
+	IdKpi        string                 `json:"idKpi"`
+	Kpi          string                 `json:"kpi"`
+	Rumus        string                 `json:"rumus"`
+	Persfektif   string                 `json:"persfektif"`
+	KpiSubDetail []KpiSubDetailResponse `json:"kpiSubDetail"`
 }
 
 type PenyusunanChallengeItem struct {
@@ -49,9 +57,7 @@ type PenyusunanMethodItem struct {
 	DeskripsiMethod string `json:"deskripsiMethod" validate:"required"`
 }
 
-// =============================================
 // EXCEL ROW DTO
-// =============================================
 
 type PenyusunanKpiSubDetailRow struct {
 	No           int
@@ -82,9 +88,7 @@ type PenyusunanKpiSubDetailRow struct {
 	DeskripsiContext          *string
 }
 
-// =============================================
 // RESPONSE DTO
-// =============================================
 
 type KpiSubDetailResponse struct {
 	IdDetail                  string  `json:"idDetail"`
@@ -115,25 +119,22 @@ type KpiSubDetailResponse struct {
 }
 
 type InsertPenyusunanKpiResponse struct {
-	IDPengajuan    string                    `json:"idPengajuan"`
-	Tahun          string                    `json:"tahun"`
-	Triwulan       string                    `json:"triwulan"`
-	Kostl          string                    `json:"kostl"`
-	KostlTx        string                    `json:"kostlTx"`
-	EntryUser      string                    `json:"entryUser"`
-	EntryName      string                    `json:"entryName"`
-	EntryTime      string                    `json:"entryTime"`
-	ApprovalPosisi string                    `json:"approvalPosisi"`
-	SaveAsDraft    string                    `json:"saveAsDraft"`
-	TotalKpi       int                       `json:"totalKpi"`
-	Kpi            []PenyusunanKpiDetailItem `json:"kpi"`
-	KpiSubDetail   []KpiSubDetailResponse    `json:"kpiSubDetail"`
-	ChallengeList  []PenyusunanChallengeItem `json:"challengeList"`
-	MethodList     []PenyusunanMethodItem    `json:"methodList"`
+	IDPengajuan    string                            `json:"idPengajuan"`
+	Tahun          string                            `json:"tahun"`
+	Triwulan       string                            `json:"triwulan"`
+	Kostl          string                            `json:"kostl"`
+	KostlTx        string                            `json:"kostlTx"`
+	EntryUser      string                            `json:"entryUser"`
+	EntryName      string                            `json:"entryName"`
+	EntryTime      string                            `json:"entryTime"`
+	ApprovalPosisi string                            `json:"approvalPosisi"`
+	SaveAsDraft    string                            `json:"saveAsDraft"`
+	TotalKpi       int                               `json:"totalKpi"`
+	Kpi            []PenyusunanKpiDetailItemResponse `json:"kpi"`
+	ChallengeList  []PenyusunanChallengeItem         `json:"challengeList"`
+	MethodList     []PenyusunanMethodItem            `json:"methodList"`
 }
 
-// InsertPenyusunanKpiResult adalah return value dari service InsertPenyusunanKpi,
-// berisi idPengajuan hasil insert dan kpiSubDetails hasil parse + lookup master.
 type InsertPenyusunanKpiResult struct {
 	IDPengajuan   string
 	KpiSubDetails map[int][]PenyusunanKpiSubDetailRow

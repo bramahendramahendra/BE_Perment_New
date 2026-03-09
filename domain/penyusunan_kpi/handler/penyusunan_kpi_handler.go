@@ -98,8 +98,7 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 		return
 	}
 
-	// Build kpiSubDetail response dengan idDetail dan idSubDetail
-	subDetailResp := buildKpiSubDetailResponse(result.IDPengajuan, req.Kpi, result.KpiSubDetails)
+	kpiResp := buildKpiResponse(result.IDPengajuan, req.Kpi, result.KpiSubDetails)
 
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
@@ -117,41 +116,33 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 			ApprovalPosisi: req.ApprovalPosisi,
 			SaveAsDraft:    req.SaveAsDraft,
 			TotalKpi:       len(req.Kpi),
-			Kpi:            req.Kpi,
-			KpiSubDetail:   subDetailResp,
+			Kpi:            kpiResp,
 			ChallengeList:  req.ChallengeList,
 			MethodList:     req.MethodList,
 		},
 	})
 }
 
-// =============================================
-// HELPER FUNCTIONS
-// =============================================
-
-// buildKpiSubDetailResponse memetakan kpiSubDetails hasil parse Excel ke slice response,
-// dengan generate ulang idDetail dan idSubDetail sesuai pola yang sama dengan repo.
-func buildKpiSubDetailResponse(
+// buildKpiResponse membangun slice KpiDetailItemResponse dengan KpiSubDetail
+// yang sudah di-nested ke dalam masing-masing KPI sesuai indeksnya.
+func buildKpiResponse(
 	idPengajuan string,
-	kpiList []dto.PenyusunanKpiDetailItem,
+	kpiList []dto.PenyusunanKpiDetailItemRequest,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) []dto.KpiSubDetailResponse {
-	var result []dto.KpiSubDetailResponse
+) []dto.PenyusunanKpiDetailItemResponse {
+	result := make([]dto.PenyusunanKpiDetailItemResponse, len(kpiList))
 	subCounter := 1
 
-	for i := range kpiList {
-		rows, ok := kpiSubDetails[i]
-		if !ok {
-			continue
-		}
-
+	for i, kpiItem := range kpiList {
 		idDetail := fmt.Sprintf("%sP%03d", idPengajuan, i+1)
+		rows := kpiSubDetails[i]
 
+		subDetails := make([]dto.KpiSubDetailResponse, 0, len(rows))
 		for _, row := range rows {
 			idSubDetail := fmt.Sprintf("%sC%03d", idPengajuan, subCounter)
 			subCounter++
 
-			result = append(result, dto.KpiSubDetailResponse{
+			subDetails = append(subDetails, dto.KpiSubDetailResponse{
 				IdDetail:                  idDetail,
 				IdSubDetail:               idSubDetail,
 				NamaKpi:                   row.KPI,
@@ -179,12 +170,19 @@ func buildKpiSubDetailResponse(
 				DeskripsiContext:          row.DeskripsiContext,
 			})
 		}
+
+		result[i] = dto.PenyusunanKpiDetailItemResponse{
+			IdKpi:        kpiItem.IdKpi,
+			Kpi:          kpiItem.Kpi,
+			Rumus:        kpiItem.Rumus,
+			Persfektif:   kpiItem.Persfektif,
+			KpiSubDetail: subDetails,
+		}
 	}
 
 	return result
 }
 
-// karena frontend mengirim ApprovalList tanpa escape inner quotes, membuat JSON invalid.
 func extractApprovalList(requestStr string) (sanitizedStr, approvalListRaw string, err error) {
 	marker := `"ApprovalList":`
 	markerIdx := strings.Index(requestStr, marker)
@@ -200,23 +198,21 @@ func extractApprovalList(requestStr string) (sanitizedStr, approvalListRaw strin
 	}
 
 	startIdx := markerIdx + len(marker) + strings.Index(requestStr[markerIdx+len(marker):], `"[`)
-	contentStart := startIdx + 1 // skip leading "
+	contentStart := startIdx + 1
 
-	// Scan sampai menemukan ]" sebagai penutup
 	content := requestStr[contentStart:]
 	endIdx := strings.Index(content, `]"`)
 	if endIdx == -1 {
 		return "", "", fmt.Errorf("tidak menemukan penutup ']\"' pada ApprovalList")
 	}
 
-	approvalListRaw = content[:endIdx+1] // isi termasuk ]
+	approvalListRaw = content[:endIdx+1]
 	placeholder := `"__APPROVAL_PLACEHOLDER__"`
 	sanitizedStr = requestStr[:startIdx] + placeholder + requestStr[contentStart+endIdx+2:]
 
 	return sanitizedStr, approvalListRaw, nil
 }
 
-// validateExcelFiles memvalidasi bahwa semua file memiliki ekstensi .xlsx
 func validateExcelFiles(files []*multipart.FileHeader) error {
 	for _, f := range files {
 		if !strings.HasSuffix(strings.ToLower(f.Filename), ".xlsx") {
