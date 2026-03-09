@@ -11,14 +11,20 @@ package dto
 //                   contoh: "PS100012026TW2260304040242"
 //   - Id per KPI  = IDPengajuan + "P" + index 3 digit
 //                   contoh: "PS100012026TW2260304040242P001"
+type DivisiItem struct {
+	Kostl   string `json:"Kostl"   validate:"required"`
+	KostlTx string `json:"KostlTx" validate:"required"`
+}
+
 type InsertPenyusunanKpiRequest struct {
+	Divisi         DivisiItem                `json:"Divisi"         validate:"required"`
 	Tahun          string                    `json:"Tahun"          validate:"required"`
 	Triwulan       string                    `json:"Triwulan"       validate:"required"`
-	Kostl          string                    `json:"Kostl"          validate:"required"`
-	KostlTx        string                    `json:"KostlTx"        validate:"required"`
-	EntryUser      string                    `json:"EntryUser"` // ✅ diisi dari token, tidak perlu validate required
-	EntryName      string                    `json:"EntryName"` // ✅ diisi dari token, tidak perlu validate required
-	EntryTime      string                    `json:"EntryTime"` // ✅ di-generate backend, tidak perlu validate required
+	Kostl          string                    `json:"Kostl"`   // diisi dari Divisi.Kostl
+	KostlTx        string                    `json:"KostlTx"` // diisi dari Divisi.KostlTx
+	EntryUser      string                    `json:"EntryUser"`
+	EntryName      string                    `json:"EntryName"`
+	EntryTime      string                    `json:"EntryTime"`
 	ApprovalPosisi string                    `json:"ApprovalPosisi" validate:"required"`
 	ApprovalList   string                    `json:"ApprovalList"   validate:"required"`
 	SaveAsDraft    string                    `json:"SaveAsDraft"    validate:"required"`

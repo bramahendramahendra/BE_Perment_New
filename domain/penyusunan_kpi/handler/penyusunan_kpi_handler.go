@@ -73,24 +73,25 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 	// --- 4. Set ApprovalList dengan nilai asli yang sudah diextract ---
 	req.ApprovalList = approvalListRaw
 
-	// ✅ REVISI: Parse EntryUser & EntryName dari header "userq"
-	// Format userq: "pernr | nama" contoh: "123145231 | Brama"
+	// ✅ Kostl & KostlTx langsung diambil dari object Divisi
+	req.Kostl = req.Divisi.Kostl
+	req.KostlTx = req.Divisi.KostlTx
+
+	// ✅ EntryUser & EntryName dari header userq
 	userq := c.GetHeader("userq")
 	if userq == "" {
 		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
 		return
 	}
-
 	parts := strings.SplitN(userq, " | ", 2)
 	if len(parts) != 2 {
 		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
 		return
 	}
+	req.EntryUser = strings.TrimSpace(parts[0])
+	req.EntryName = strings.TrimSpace(parts[1])
 
-	req.EntryUser = strings.TrimSpace(parts[0]) // "123145231"
-	req.EntryName = strings.TrimSpace(parts[1]) // "Brama"
-
-	// // ✅ REVISI: EntryTime di-generate di backend
+	// ✅ EntryTime di-generate di backend
 	req.EntryTime = time.Now().Format("2006-01-02 15:04:05")
 
 	// --- 5. Validasi struct menggunakan validator ---

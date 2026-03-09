@@ -1,5 +1,5 @@
 {
-    "Divisi": "{"Kostl":"PS82002","KostlTx":"DIVISI TREASURY BUSINESS"}",
+    "Divisi": {"Kostl":"PS82002","KostlTx":"DIVISI TREASURY BUSINESS"},
     "Tahun": "2026",
     "Triwulan": "TW1",
     "ApprovalPosisi": "00071965",
@@ -18,7 +18,7 @@
             "rumus": "0",
             "persfektif": "5"
         },
-         {
+        {
             "idKpi": "0",
             "kpi": "KPI Lain Main Satu",
             "rumus": "0",
