@@ -65,12 +65,6 @@ func BearerAuthMiddleware() gin.HandlerFunc {
 		// Set userq header from validated auth result
 		c.Request.Header.Set("userq", authResult.UserqHeader)
 
-		// Set user header
-		userHeader := c.GetHeader("User")
-		if userHeader != "" {
-			c.Request.Header.Set("User", userHeader)
-		}
-
 		// Set additional headers from claims (already validated by helper)
 		for key, value := range authResult.HeadersToSet {
 			c.Request.Header.Set(key, value)

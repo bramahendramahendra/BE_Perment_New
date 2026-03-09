@@ -33,7 +33,7 @@ func Cors() gin.HandlerFunc {
 		}
 
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, User")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Disposition, File-Name, Content-Type, Content-Length")
 		c.Writer.Header().Set("Access-Control-Max-Age", "86400") // Cache preflight for 24 hours
 
