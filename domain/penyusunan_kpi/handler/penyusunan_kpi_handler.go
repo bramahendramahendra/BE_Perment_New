@@ -92,18 +92,21 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 		return
 	}
 
-	idPengajuan, err := h.service.InsertPenyusunanKpi(&req, files)
+	result, err := h.service.InsertPenyusunanKpi(&req, files)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
+
+	// Build kpiSubDetail response dengan idDetail dan idSubDetail
+	subDetailResp := buildKpiSubDetailResponse(result.IDPengajuan, req.Kpi, result.KpiSubDetails)
 
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
 		Status:  true,
 		Message: "Data KPI berhasil disimpan",
 		Data: dto.InsertPenyusunanKpiResponse{
-			IDPengajuan:    idPengajuan,
+			IDPengajuan:    result.IDPengajuan,
 			Tahun:          req.Tahun,
 			Triwulan:       req.Triwulan,
 			Kostl:          req.Kostl,
@@ -115,6 +118,7 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 			SaveAsDraft:    req.SaveAsDraft,
 			TotalKpi:       len(req.Kpi),
 			Kpi:            req.Kpi,
+			KpiSubDetail:   subDetailResp,
 			ChallengeList:  req.ChallengeList,
 			MethodList:     req.MethodList,
 		},
@@ -125,7 +129,61 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 // HELPER FUNCTIONS
 // =============================================
 
-// extractApprovalList mengekstrak nilai ApprovalList dari raw REQUEST string
+// buildKpiSubDetailResponse memetakan kpiSubDetails hasil parse Excel ke slice response,
+// dengan generate ulang idDetail dan idSubDetail sesuai pola yang sama dengan repo.
+func buildKpiSubDetailResponse(
+	idPengajuan string,
+	kpiList []dto.PenyusunanKpiDetailItem,
+	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
+) []dto.KpiSubDetailResponse {
+	var result []dto.KpiSubDetailResponse
+	subCounter := 1
+
+	for i := range kpiList {
+		rows, ok := kpiSubDetails[i]
+		if !ok {
+			continue
+		}
+
+		idDetail := fmt.Sprintf("%sP%03d", idPengajuan, i+1)
+
+		for _, row := range rows {
+			idSubDetail := fmt.Sprintf("%sC%03d", idPengajuan, subCounter)
+			subCounter++
+
+			result = append(result, dto.KpiSubDetailResponse{
+				IdDetail:                  idDetail,
+				IdSubDetail:               idSubDetail,
+				NamaKpi:                   row.KPI,
+				IdSubKpi:                  row.IdSubKpi,
+				SubKpi:                    row.SubKPI,
+				Otomatis:                  row.Otomatis,
+				Polarisasi:                row.Polarisasi,
+				IdPolarisasi:              row.IdPolarisasi,
+				Capping:                   row.Capping,
+				Bobot:                     row.Bobot,
+				Glossary:                  row.Glossary,
+				TargetTriwulan:            row.TargetTriwulan,
+				TargetKuantitatifTriwulan: row.TargetKuantitatifTriwulan,
+				TargetTahunan:             row.TargetTahunan,
+				TargetKuantitatifTahunan:  row.TargetKuantitatifTahunan,
+				TerdapatQualifier:         row.TerdapatQualifier,
+				Qualifier:                 row.Qualifier,
+				DeskripsiQualifier:        row.DeskripsiQualifier,
+				TargetQualifier:           row.TargetQualifier,
+				Result:                    row.Result,
+				DeskripsiResult:           row.DeskripsiResult,
+				Process:                   row.Process,
+				DeskripsiProcess:          row.DeskripsiProcess,
+				Context:                   row.Context,
+				DeskripsiContext:          row.DeskripsiContext,
+			})
+		}
+	}
+
+	return result
+}
+
 // karena frontend mengirim ApprovalList tanpa escape inner quotes, membuat JSON invalid.
 func extractApprovalList(requestStr string) (sanitizedStr, approvalListRaw string, err error) {
 	marker := `"ApprovalList":`

@@ -11,7 +11,7 @@ type (
 		InsertPenyusunanKpi(
 			req *dto.InsertPenyusunanKpiRequest,
 			files []*multipart.FileHeader,
-		) (string, error)
+		) (*dto.InsertPenyusunanKpiResult, error)
 	}
 
 	penyusunanKpiService struct {

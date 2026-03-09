@@ -11,13 +11,13 @@ import (
 func (s *penyusunanKpiService) InsertPenyusunanKpi(
 	req *dto.InsertPenyusunanKpiRequest,
 	files []*multipart.FileHeader,
-) (string, error) {
+) (*dto.InsertPenyusunanKpiResult, error) {
 
 	if len(files) == 0 {
-		return "", fmt.Errorf("tidak ada file Excel yang dikirim, harus mengirim tepat 1 file Excel")
+		return nil, fmt.Errorf("tidak ada file Excel yang dikirim, harus mengirim tepat 1 file Excel")
 	}
 	if len(files) > 1 {
-		return "", fmt.Errorf(
+		return nil, fmt.Errorf(
 			"hanya boleh mengirim 1 file Excel (diterima %d file). "+
 				"Semua data sub KPI dari semua KPI harus digabung dalam 1 file",
 			len(files),
@@ -28,19 +28,22 @@ func (s *penyusunanKpiService) InsertPenyusunanKpi(
 
 	kpiSubDetails, err := ParseAndValidateExcel(file, req.Triwulan, req.Kpi)
 	if err != nil {
-		return "", fmt.Errorf("validasi file Excel '%s' gagal: %w", file.Filename, err)
+		return nil, fmt.Errorf("validasi file Excel '%s' gagal: %w", file.Filename, err)
 	}
 
 	if err := s.resolveMasterLookup(kpiSubDetails); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	idPengajuan, err := s.repo.InsertPenyusunanKpi(req, kpiSubDetails)
 	if err != nil {
-		return "", fmt.Errorf("gagal menyimpan data KPI: %w", err)
+		return nil, fmt.Errorf("gagal menyimpan data KPI: %w", err)
 	}
 
-	return idPengajuan, nil
+	return &dto.InsertPenyusunanKpiResult{
+		IDPengajuan:   idPengajuan,
+		KpiSubDetails: kpiSubDetails,
+	}, nil
 }
 
 // resolveMasterLookup melakukan lookup mst_kpi dan mst_polarisasi untuk setiap

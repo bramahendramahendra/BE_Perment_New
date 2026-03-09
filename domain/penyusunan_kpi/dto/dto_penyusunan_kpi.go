@@ -86,6 +86,34 @@ type PenyusunanKpiSubDetailRow struct {
 // RESPONSE DTO
 // =============================================
 
+type KpiSubDetailResponse struct {
+	IdDetail                  string  `json:"idDetail"`
+	IdSubDetail               string  `json:"idSubDetail"`
+	NamaKpi                   string  `json:"namaKpi"`
+	IdSubKpi                  string  `json:"idSubKpi"`
+	SubKpi                    string  `json:"subKpi"`
+	Otomatis                  string  `json:"otomatis"`
+	Polarisasi                string  `json:"polarisasi"`
+	IdPolarisasi              string  `json:"idPolarisasi"`
+	Capping                   string  `json:"capping"`
+	Bobot                     float64 `json:"bobot"`
+	Glossary                  string  `json:"glossary"`
+	TargetTriwulan            string  `json:"targetTriwulan"`
+	TargetKuantitatifTriwulan float64 `json:"targetKuantitatifTriwulan"`
+	TargetTahunan             string  `json:"targetTahunan"`
+	TargetKuantitatifTahunan  float64 `json:"targetKuantitatifTahunan"`
+	TerdapatQualifier         string  `json:"terdapatQualifier"`
+	Qualifier                 string  `json:"qualifier"`
+	DeskripsiQualifier        string  `json:"deskripsiQualifier"`
+	TargetQualifier           string  `json:"targetQualifier"`
+	Result                    *string `json:"result"`
+	DeskripsiResult           *string `json:"deskripsiResult"`
+	Process                   *string `json:"process"`
+	DeskripsiProcess          *string `json:"deskripsiProcess"`
+	Context                   *string `json:"context"`
+	DeskripsiContext          *string `json:"deskripsiContext"`
+}
+
 type InsertPenyusunanKpiResponse struct {
 	IDPengajuan    string                    `json:"idPengajuan"`
 	Tahun          string                    `json:"tahun"`
@@ -99,6 +127,14 @@ type InsertPenyusunanKpiResponse struct {
 	SaveAsDraft    string                    `json:"saveAsDraft"`
 	TotalKpi       int                       `json:"totalKpi"`
 	Kpi            []PenyusunanKpiDetailItem `json:"kpi"`
+	KpiSubDetail   []KpiSubDetailResponse    `json:"kpiSubDetail"`
 	ChallengeList  []PenyusunanChallengeItem `json:"challengeList"`
 	MethodList     []PenyusunanMethodItem    `json:"methodList"`
+}
+
+// InsertPenyusunanKpiResult adalah return value dari service InsertPenyusunanKpi,
+// berisi idPengajuan hasil insert dan kpiSubDetails hasil parse + lookup master.
+type InsertPenyusunanKpiResult struct {
+	IDPengajuan   string
+	KpiSubDetails map[int][]PenyusunanKpiSubDetailRow
 }
