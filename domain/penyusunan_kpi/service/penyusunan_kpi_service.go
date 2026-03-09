@@ -24,8 +24,12 @@ import (
 //     - Mapping baris ke KPI via kolom B (case-insensitive)
 //     - Jika kolom B tidak cocok dengan KPI manapun → error
 //     - Validasi bobot 100% per KPI
-//  3. [TESTING] Log semua data yang akan di-insert per tabel — INSERT DB DINONAKTIFKAN
-//  4. Return dummy idPengajuan untuk keperluan testing
+//  3. Lookup master untuk setiap Sub KPI:
+//     - LookupSubKpiMaster  → dapat IdSubKpi, nama dari DB, rumus
+//     - LookupPolarisasi    → dapat IdPolarisasi dari mst_polarisasi
+//     - Validasi: jika Sub KPI ditemukan di mst_kpi, cocokkan IdPolarisasi == rumus
+//  4. [TESTING] Log semua data yang akan di-insert (sudah termasuk hasil lookup)
+//  5. Return dummy idPengajuan untuk keperluan testing
 //
 // TODO: Setelah testing selesai dan log sudah diverifikasi:
 //   - Hapus blok logPreviewInsert & return dummy
@@ -60,11 +64,29 @@ func (s *penyusunanKpiService) InsertPenyusunanKpi(
 		return "", fmt.Errorf("validasi file Excel '%s' gagal: %w", file.Filename, err)
 	}
 
-	// --- 3. [TESTING] Log semua data yang akan di-insert ---
+	// --- 3. Lookup master untuk setiap Sub KPI ---
+	//
+	// Untuk setiap baris sub KPI di kpiSubDetails:
+	//   a. LookupSubKpiMaster(SubKPI) → IdSubKpi, nama dari DB, rumus mst_kpi
+	//      - Ditemukan    : IdSubKpi = id dari DB, SubKPI diupdate ke nama DB
+	//      - Tidak ditemukan: IdSubKpi = "0", SubKPI tetap dari Excel, skip validasi rumus
+	//
+	//   b. LookupPolarisasi(Polarisasi) → IdPolarisasi
+	//      - Tidak ditemukan → error (polarisasi tidak valid)
+	//
+	//   c. Validasi rumus (hanya jika IdSubKpi != "0"):
+	//      - IdPolarisasi harus == rumus dari mst_kpi
+	//      - Tidak cocok → error dengan keterangan jelas
+	if err := s.resolveMasterLookup(kpiSubDetails); err != nil {
+		return "", err
+	}
+
+	// --- 4. [TESTING] Log semua data yang akan di-insert ---
 	// INSERT KE DB DINONAKTIFKAN — hanya log preview saja
+	// kpiSubDetails sudah berisi IdSubKpi dan IdPolarisasi hasil lookup
 	logPreviewInsert(req, kpiSubDetails)
 
-	// --- 4. INSERT KE DB (DINONAKTIFKAN SEMENTARA UNTUK TESTING) ---
+	// --- 5. INSERT KE DB (DINONAKTIFKAN SEMENTARA UNTUK TESTING) ---
 	// Uncomment blok ini setelah log sudah diverifikasi & testing selesai:
 	//
 	// idPengajuan, err := s.repo.InsertPenyusunanKpi(req, kpiSubDetails)
@@ -73,9 +95,80 @@ func (s *penyusunanKpiService) InsertPenyusunanKpi(
 	// }
 	// return idPengajuan, nil
 
-	// --- 5. Return dummy idPengajuan untuk testing ---
+	// --- 6. Return dummy idPengajuan untuk testing ---
 	dummyID := simulateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
 	return dummyID, nil
+}
+
+// =============================================
+// MASTER LOOKUP
+// =============================================
+
+// resolveMasterLookup melakukan lookup mst_kpi dan mst_polarisasi untuk setiap
+// baris sub KPI, lalu memvalidasi kesesuaian polarisasi dengan rumus di mst_kpi.
+//
+// Alur per baris:
+//  1. Lookup mst_kpi (case-insensitive) berdasarkan SubKPI (kolom C)
+//     → Ditemukan    : set IdSubKpi, update SubKPI ke nama DB, simpan rumus untuk validasi
+//     → Tidak ditemukan: set IdSubKpi = "0", skip validasi rumus
+//  2. Lookup mst_polarisasi berdasarkan Polarisasi (kolom D)
+//     → Dapat IdPolarisasi (1=Maximize, 0=Minimize)
+//     → Tidak ditemukan → return error
+//  3. Validasi (hanya jika IdSubKpi != "0"):
+//     → IdPolarisasi harus == rumus dari mst_kpi
+//     → Tidak cocok → return error dengan keterangan baris dan nilai yang konflik
+//
+// Hasil lookup disimpan langsung ke field IdSubKpi dan IdPolarisasi di subRow.
+func (s *penyusunanKpiService) resolveMasterLookup(
+	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
+) error {
+	for i := range kpiSubDetails {
+		for j := range kpiSubDetails[i] {
+			subRow := &kpiSubDetails[i][j]
+
+			// --- Step a: Lookup mst_kpi ---
+			idSubKpi, kpiFromDB, rumusMstKpi, err := s.repo.LookupSubKpiMaster(subRow.SubKPI)
+			if err != nil {
+				return fmt.Errorf(
+					"KPI induk ke-%d, sub KPI ke-%d ('%s'): %w",
+					i+1, j+1, subRow.SubKPI, err,
+				)
+			}
+			subRow.IdSubKpi = idSubKpi
+			subRow.SubKPI = kpiFromDB // nama dari DB jika ditemukan, tetap Excel jika tidak
+
+			// --- Step b: Lookup mst_polarisasi ---
+			idPolarisasi, err := s.repo.LookupPolarisasi(subRow.Polarisasi)
+			if err != nil {
+				return fmt.Errorf(
+					"KPI induk ke-%d, sub KPI ke-%d ('%s'): %w",
+					i+1, j+1, subRow.SubKPI, err,
+				)
+			}
+			subRow.IdPolarisasi = idPolarisasi
+
+			// --- Step c: Validasi rumus vs polarisasi (hanya jika ditemukan di mst_kpi) ---
+			// id_kpi = "0" berarti tidak ditemukan di mst_kpi → skip validasi, lebih fleksibel
+			if idSubKpi != "0" && idPolarisasi != rumusMstKpi {
+				// Tentukan label polarisasi untuk pesan error yang lebih informatif
+				polarisasiMaster := "Minimize"
+				if rumusMstKpi == "1" {
+					polarisasiMaster = "Maximize"
+				}
+
+				return fmt.Errorf(
+					"KPI induk ke-%d, sub KPI ke-%d ('%s'): "+
+						"Polarisasi di Excel '%s' (id_polarisasi=%s) tidak sesuai dengan "+
+						"master KPI yang mengharuskan '%s' (rumus=%s). "+
+						"Periksa kembali kolom D pada file Excel",
+					i+1, j+1, subRow.SubKPI,
+					subRow.Polarisasi, idPolarisasi,
+					polarisasiMaster, rumusMstKpi,
+				)
+			}
+		}
+	}
+	return nil
 }
 
 // =============================================
@@ -106,14 +199,19 @@ func simulateIDPengajuan(kostl, tahun, triwulan string) string {
 // Output log mencakup:
 //   - [TABLE] data_kpi           → 1 baris header
 //   - [TABLE] data_kpi_detail    → 1 baris per KPI
-//   - [TABLE] data_kpi_subdetail → N baris per KPI dari Excel
+//   - [TABLE] data_kpi_subdetail → N baris per KPI dari Excel (sudah hasil lookup master)
 //   - [TABLE] data_challenge_detail
 //   - [TABLE] data_method_detail
 //   - [SUMMARY] ringkasan jumlah baris per tabel
 //
-// Catatan kolom P–U (result–deskripsi_context):
-//   - Sheet "TW 4"        → tampil nilai string
-//   - Sheet "Selain TW 4" → tampil "NULL" (akan disimpan NULL di DB)
+// Catatan kolom subdetail:
+//   - id_kpi         : hasil lookup mst_kpi ("0" jika tidak ditemukan)
+//   - rumus          : id_polarisasi dari mst_polarisasi (1=Maximize, 0=Minimize)
+//   - kolom P–U      : sheet "TW 4" → nilai string | sheet "Selain TW 4" → "NULL"
+//
+// Catatan approval_list:
+//   - Dicetak langsung dengan log.Printf (BUKAN via json.Marshal/printJSON)
+//     agar inner quotes tidak di-escape menjadi \"
 func logPreviewInsert(
 	req *dto.InsertPenyusunanKpiRequest,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
@@ -149,6 +247,7 @@ func logPreviewInsert(
 		statusVal = 70
 	}
 
+	// Cetak semua kolom kecuali approval_list via printJSON
 	printJSON(map[string]interface{}{
 		"id_pengajuan":    idPengajuan,
 		"tahun":           req.Tahun,
@@ -161,9 +260,10 @@ func logPreviewInsert(
 		"entry_name":      req.EntryName,
 		"entry_time":      req.EntryTime,
 		"approval_posisi": req.ApprovalPosisi,
-		"approval_list":   req.ApprovalList,
 		"status":          statusVal,
 	})
+	// approval_list dicetak terpisah — TIDAK via json.Marshal agar inner quotes tidak di-escape
+	log.Printf("      approval_list: %s", req.ApprovalList)
 
 	// -------------------------------------------------------
 	// TABLE: data_kpi_detail (1 baris per KPI)
@@ -189,7 +289,7 @@ func logPreviewInsert(
 	}
 
 	// -------------------------------------------------------
-	// TABLE: data_kpi_subdetail (dari Excel, dikelompokkan per KPI)
+	// TABLE: data_kpi_subdetail (dari Excel + hasil lookup master)
 	// -------------------------------------------------------
 	totalSubRows := 0
 	for _, rows := range kpiSubDetails {
@@ -214,6 +314,7 @@ func logPreviewInsert(
 
 		for j, subRow := range rows {
 			idSubDetail := fmt.Sprintf("%sC%03d", idPengajuan, subCounter)
+			subCounter++
 
 			// Qualifier hanya diisi jika TerdapatQualifier = "Ya"
 			itemQualifier := ""
@@ -225,7 +326,15 @@ func logPreviewInsert(
 				targetQualifier = subRow.TargetQualifier
 			}
 
-			log.Printf("    Sub KPI %d/%d | id_sub_detail: %s", j+1, len(rows), idSubDetail)
+			// Info lookup untuk debugging
+			subKpiFoundInfo := "DITEMUKAN di mst_kpi"
+			if subRow.IdSubKpi == "0" {
+				subKpiFoundInfo = "TIDAK ditemukan di mst_kpi → id_kpi=0, skip validasi rumus"
+			}
+
+			log.Printf("    Sub KPI %d/%d | id_sub_detail: %s | [lookup: %s]",
+				j+1, len(rows), idSubDetail, subKpiFoundInfo)
+
 			printJSON(map[string]interface{}{
 				// --- Kolom identitas ---
 				"id_pengajuan":  idPengajuan,
@@ -233,10 +342,13 @@ func logPreviewInsert(
 				"id_sub_detail": idSubDetail,
 				"tahun":         req.Tahun,
 				"triwulan":      req.Triwulan,
-				"id_kpi":        kpiItem.IdKpi,
-				// --- Kolom A–O (selalu ada, kedua sheet) ---
-				"kpi":                         subRow.SubKPI,
-				"rumus":                       subRow.Polarisasi,
+				// --- Kolom master (hasil lookup) ---
+				"id_kpi": subRow.IdSubKpi,     // dari mst_kpi ("0" jika tidak ditemukan)
+				"kpi":    subRow.SubKPI,       // nama dari DB (atau Excel jika tidak ditemukan)
+				"rumus":  subRow.IdPolarisasi, // id_polarisasi: 1=Maximize, 0=Minimize
+				// --- Info polarisasi untuk debugging ---
+				"[polarisasi_excel]": subRow.Polarisasi, // teks asli dari kolom D Excel
+				// --- Kolom A–O ---
 				"otomatis":                    "0",
 				"bobot":                       subRow.Bobot,
 				"capping":                     subRow.Capping,
@@ -258,7 +370,6 @@ func logPreviewInsert(
 				"context":           nullableStringLog(subRow.Context),
 				"deskripsi_context": nullableStringLog(subRow.DeskripsiContext),
 			})
-			subCounter++
 		}
 	}
 
@@ -336,6 +447,9 @@ func nullableStringLog(s *string) interface{} {
 }
 
 // printJSON mencetak map sebagai JSON yang diformat rapi ke terminal log.
+// CATATAN: Jangan gunakan printJSON untuk field yang mengandung JSON string
+// (seperti approval_list) karena inner quotes akan di-escape menjadi \".
+// Gunakan log.Printf langsung untuk field tersebut.
 func printJSON(data map[string]interface{}) {
 	b, err := json.MarshalIndent(data, "      ", "  ")
 	if err != nil {

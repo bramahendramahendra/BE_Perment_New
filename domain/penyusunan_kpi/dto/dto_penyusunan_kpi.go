@@ -68,8 +68,8 @@ type PenyusunanMethodItem struct {
 // PenyusunanKpiSubDetailRow adalah representasi satu baris data sub KPI dari file Excel.
 //
 // Sheet & kolom:
-//   Sheet "TW 4"       → kolom A (No.) sampai U (Deskripsi Context)  — 21 kolom
-//   Sheet "Selain TW 4" → kolom A (No.) sampai O (Target Qualifier)   — 15 kolom
+//	Sheet "TW 4"        → kolom A (No.) sampai U (Deskripsi Context)  — 21 kolom
+//	Sheet "Selain TW 4" → kolom A (No.) sampai O (Target Qualifier)   — 15 kolom
 //
 // Mapping kolom:
 //   Col A  = No                            (angka)
@@ -94,14 +94,33 @@ type PenyusunanMethodItem struct {
 //   Col T  = Context                       (free text, hanya sheet "TW 4", NULL jika "Selain TW 4")
 //   Col U  = Deskripsi Context             (free text, hanya sheet "TW 4", NULL jika "Selain TW 4")
 //
-// Catatan: Field Result–DeskripsiContext bertipe *string.
-//   - Jika sheet "TW 4"        → berisi nilai dari Excel
-//   - Jika sheet "Selain TW 4" → nil (disimpan NULL di DB)
+
+//
+// Lookup yang dilakukan backend (setelah parse Excel, sebelum insert DB):
+//
+//	IdSubKpi     → lookup mst_kpi WHERE LOWER(kpi) = LOWER(SubKPI)
+//	               Ditemukan  : ambil id_kpi dari DB (SubKPI juga diupdate ke nama dari DB)
+//	               Tidak ditemukan : IdSubKpi = "0", SubKPI tetap dari Excel
+//
+//	IdPolarisasi → lookup mst_polarisasi WHERE LOWER(polarisasi) = LOWER(Polarisasi)
+//	               Maximize = "1", Minimize = "0"
+//
+//	Validasi rumus (hanya jika IdSubKpi != "0"):
+//	               IdPolarisasi harus == rumus dari mst_kpi
+//	               Jika tidak cocok → return error
+//
+// Kolom P–U (Result–DeskripsiContext):
+//   - Sheet "TW 4"        → berisi nilai dari Excel (*string != nil)
+//   - Sheet "Selain TW 4" → nil (disimpan NULL di DB)
 type PenyusunanKpiSubDetailRow struct {
-	No                        int
-	KPI                       string
-	SubKPI                    string
-	Polarisasi                string
+	No           int
+	KPI          string // kolom B — nama KPI induk (untuk mapping, tidak disimpan ke subdetail)
+	SubKPI       string // kolom C — nama sub KPI; diupdate ke nama dari DB jika ditemukan di mst_kpi
+	IdSubKpi     string // hasil lookup mst_kpi; "0" jika tidak ditemukan
+	Polarisasi   string // kolom D — teks "Maximize" atau "Minimize" dari Excel
+	IdPolarisasi string // hasil lookup mst_polarisasi; "1"=Maximize, "0"=Minimize
+	// Catatan: IdPolarisasi inilah yang disimpan ke kolom `rumus` di data_kpi_subdetail
+
 	Capping                   string
 	Bobot                     float64
 	Glossary                  string
