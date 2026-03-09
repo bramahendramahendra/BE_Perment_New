@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mime/multipart"
 	"strings"
+	"time"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
 	service "permen_api/domain/penyusunan_kpi/service"
@@ -52,9 +53,6 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 	}
 
 	// --- 2. Extract & sanitize ApprovalList sebelum parse JSON ---
-	// Frontend mengirim ApprovalList dengan inner quotes tanpa escape,
-	// sehingga JSON menjadi invalid. Kita extract nilainya terlebih dahulu,
-	// ganti dengan placeholder, baru parse JSON sisanya.
 	sanitizedStr, approvalListRaw, err := extractApprovalList(requestStr)
 	if err != nil {
 		c.Error(&errors.BadRequestError{
@@ -73,8 +71,27 @@ func (h *PenyusunanKpiHandler) InsertKPI(c *gin.Context) {
 	}
 
 	// --- 4. Set ApprovalList dengan nilai asli yang sudah diextract ---
-	// Nilai ini disimpan persis seperti yang dikirim frontend (tanpa escape)
 	req.ApprovalList = approvalListRaw
+
+	// ✅ REVISI: Parse EntryUser & EntryName dari header "userq"
+	// Format userq: "pernr | nama" contoh: "123145231 | Brama"
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+
+	req.EntryUser = strings.TrimSpace(parts[0]) // "123145231"
+	req.EntryName = strings.TrimSpace(parts[1]) // "Brama"
+
+	// // ✅ REVISI: EntryTime di-generate di backend
+	req.EntryTime = time.Now().Format("2006-01-02 15:04:05")
 
 	// --- 5. Validasi struct menggunakan validator ---
 	if err := validator.Validate.Struct(req); err != nil {

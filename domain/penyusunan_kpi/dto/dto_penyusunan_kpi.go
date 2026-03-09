@@ -17,15 +17,15 @@ type InsertPenyusunanKpiRequest struct {
 	Triwulan       string                    `json:"Triwulan"       validate:"required"`
 	Kostl          string                    `json:"Kostl"          validate:"required"`
 	KostlTx        string                    `json:"KostlTx"        validate:"required"`
-	EntryUser      string                    `json:"EntryUser"      validate:"required"`
-	EntryName      string                    `json:"EntryName"      validate:"required"`
-	EntryTime      string                    `json:"EntryTime"      validate:"required"`
+	EntryUser      string                    `json:"EntryUser"` // ✅ diisi dari token, tidak perlu validate required
+	EntryName      string                    `json:"EntryName"` // ✅ diisi dari token, tidak perlu validate required
+	EntryTime      string                    `json:"EntryTime"` // ✅ di-generate backend, tidak perlu validate required
 	ApprovalPosisi string                    `json:"ApprovalPosisi" validate:"required"`
 	ApprovalList   string                    `json:"ApprovalList"   validate:"required"`
 	SaveAsDraft    string                    `json:"SaveAsDraft"    validate:"required"`
-	Kpi            []PenyusunanKpiDetailItem `json:"Kpi"           validate:"required,min=1,dive"`
-	ChallengeList  []PenyusunanChallengeItem `json:"ChallengeList" validate:"required,min=1,dive"`
-	MethodList     []PenyusunanMethodItem    `json:"MethodList"    validate:"required,min=1,dive"`
+	Kpi            []PenyusunanKpiDetailItem `json:"Kpi"            validate:"required,min=1,dive"`
+	ChallengeList  []PenyusunanChallengeItem `json:"ChallengeList"  validate:"required,min=1,dive"`
+	MethodList     []PenyusunanMethodItem    `json:"MethodList"     validate:"required,min=1,dive"`
 }
 
 // PenyusunanKpiDetailItem adalah metadata satu KPI pada tabel data_kpi_detail.
