@@ -1,6 +1,6 @@
 array(15) {
   ["IDPengajuan"]=>
-  string(26) "PS820022026TW1260309115014"
+  string(26) "PS820022026TW1260309115241"
   ["Divisi"]=>
   string(32) "PS82002-DIVISI TREASURY BUSINESS"
   ["Tahun"]=>
@@ -16,9 +16,9 @@ array(15) {
     [0]=>
     array(10) {
       ["idPengajuan"]=>
-      string(26) "PS820022026TW1260309115014"
+      string(26) "PS820022026TW1260309115241"
       ["id"]=>
-      string(30) "PS820022026TW1260309115014P001"
+      string(30) "PS820022026TW1260309115241P001"
       ["tahun"]=>
       string(4) "2026"
       ["triwulan"]=>
@@ -38,11 +38,11 @@ array(15) {
         [0]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS820022026TW1260309115014"
+          string(26) "PS820022026TW1260309115241"
           ["idDetail"]=>
-          string(30) "PS820022026TW1260309115014P001"
+          string(30) "PS820022026TW1260309115241P001"
           ["idSubDetail"]=>
-          string(30) "PS820022026TW1260309115014C001"
+          string(30) "PS820022026TW1260309115241C001"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
@@ -83,11 +83,11 @@ array(15) {
         [1]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS820022026TW1260309115014"
+          string(26) "PS820022026TW1260309115241"
           ["idDetail"]=>
-          string(30) "PS820022026TW1260309115014P001"
+          string(30) "PS820022026TW1260309115241P001"
           ["idSubDetail"]=>
-          string(30) "PS820022026TW1260309115014C002"
+          string(30) "PS820022026TW1260309115241C002"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
@@ -128,11 +128,11 @@ array(15) {
         [2]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS820022026TW1260309115014"
+          string(26) "PS820022026TW1260309115241"
           ["idDetail"]=>
-          string(30) "PS820022026TW1260309115014P001"
+          string(30) "PS820022026TW1260309115241P001"
           ["idSubDetail"]=>
-          string(30) "PS820022026TW1260309115014C003"
+          string(30) "PS820022026TW1260309115241C003"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
@@ -175,9 +175,9 @@ array(15) {
     [1]=>
     array(10) {
       ["idPengajuan"]=>
-      string(26) "PS820022026TW1260309115014"
+      string(26) "PS820022026TW1260309115241"
       ["id"]=>
-      string(30) "PS820022026TW1260309115014P002"
+      string(30) "PS820022026TW1260309115241P002"
       ["tahun"]=>
       string(4) "2026"
       ["triwulan"]=>
@@ -197,11 +197,11 @@ array(15) {
         [0]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS820022026TW1260309115014"
+          string(26) "PS820022026TW1260309115241"
           ["idDetail"]=>
-          string(30) "PS820022026TW1260309115014P002"
+          string(30) "PS820022026TW1260309115241P002"
           ["idSubDetail"]=>
-          string(30) "PS820022026TW1260309115014C001"
+          string(30) "PS820022026TW1260309115241C001"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
@@ -242,11 +242,11 @@ array(15) {
         [1]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS820022026TW1260309115014"
+          string(26) "PS820022026TW1260309115241"
           ["idDetail"]=>
-          string(30) "PS820022026TW1260309115014P002"
+          string(30) "PS820022026TW1260309115241P002"
           ["idSubDetail"]=>
-          string(30) "PS820022026TW1260309115014C002"
+          string(30) "PS820022026TW1260309115241C002"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
@@ -287,11 +287,11 @@ array(15) {
         [2]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS820022026TW1260309115014"
+          string(26) "PS820022026TW1260309115241"
           ["idDetail"]=>
-          string(30) "PS820022026TW1260309115014P002"
+          string(30) "PS820022026TW1260309115241P002"
           ["idSubDetail"]=>
-          string(30) "PS820022026TW1260309115014C003"
+          string(30) "PS820022026TW1260309115241C003"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
@@ -334,9 +334,9 @@ array(15) {
     [2]=>
     array(10) {
       ["idPengajuan"]=>
-      string(26) "PS820022026TW1260309115014"
+      string(26) "PS820022026TW1260309115241"
       ["id"]=>
-      string(30) "PS820022026TW1260309115014P003"
+      string(30) "PS820022026TW1260309115241P003"
       ["tahun"]=>
       string(4) "2026"
       ["triwulan"]=>
@@ -356,11 +356,11 @@ array(15) {
         [0]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS820022026TW1260309115014"
+          string(26) "PS820022026TW1260309115241"
           ["idDetail"]=>
-          string(30) "PS820022026TW1260309115014P003"
+          string(30) "PS820022026TW1260309115241P003"
           ["idSubDetail"]=>
-          string(30) "PS820022026TW1260309115014C001"
+          string(30) "PS820022026TW1260309115241C001"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
@@ -401,11 +401,11 @@ array(15) {
         [1]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS820022026TW1260309115014"
+          string(26) "PS820022026TW1260309115241"
           ["idDetail"]=>
-          string(30) "PS820022026TW1260309115014P003"
+          string(30) "PS820022026TW1260309115241P003"
           ["idSubDetail"]=>
-          string(30) "PS820022026TW1260309115014C002"
+          string(30) "PS820022026TW1260309115241C002"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
@@ -446,11 +446,11 @@ array(15) {
         [2]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS820022026TW1260309115014"
+          string(26) "PS820022026TW1260309115241"
           ["idDetail"]=>
-          string(30) "PS820022026TW1260309115014P003"
+          string(30) "PS820022026TW1260309115241P003"
           ["idSubDetail"]=>
-          string(30) "PS820022026TW1260309115014C003"
+          string(30) "PS820022026TW1260309115241C003"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
@@ -496,7 +496,7 @@ array(15) {
   ["EntryName"]=>
   string(20) "Felia Puti Salsabila"
   ["EntryTime"]=>
-  string(19) "2026-03-09 11:50:14"
+  string(19) "2026-03-09 11:52:41"
   ["ApprovalPosisi"]=>
   string(8) "00130596"
   ["ApprovalList"]=>
@@ -508,7 +508,7 @@ array(15) {
     [0]=>
     array(6) {
       ["idPengajuan"]=>
-      string(26) "PS820022026TW1260309115014"
+      string(26) "PS820022026TW1260309115241"
       ["idDetailChallenge"]=>
       string(1) "-"
       ["tahun"]=>
@@ -526,7 +526,7 @@ array(15) {
     [0]=>
     array(6) {
       ["idPengajuan"]=>
-      string(26) "PS820022026TW1260309115014"
+      string(26) "PS820022026TW1260309115241"
       ["idDetailMethod"]=>
       string(1) "-"
       ["tahun"]=>
@@ -540,3 +540,4 @@ array(15) {
     }
   }
 }
+{"page_alt":"Penyusunan\/penyusunanDraft","page_icon":"fas fa-list-alt fw","page_title":"Draft"}

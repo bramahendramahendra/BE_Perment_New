@@ -12,7 +12,6 @@ package dto
 //   - Id per KPI  = IDPengajuan + "P" + index 3 digit
 //                   contoh: "PS100012026TW2260304040242P001"
 type InsertPenyusunanKpiRequest struct {
-	Divisi         string                    `json:"Divisi"         validate:"required"`
 	Tahun          string                    `json:"Tahun"          validate:"required"`
 	Triwulan       string                    `json:"Triwulan"       validate:"required"`
 	Kostl          string                    `json:"Kostl"          validate:"required"`
