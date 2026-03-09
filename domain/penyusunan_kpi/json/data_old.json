@@ -1,415 +1,36 @@
-
-Post
-array(61) {
-  ["save_as_draft"]=>
-  string(1) "1"
-  ["divisi"]=>
-  string(48) "PS10001-Direktorat Manajemen Aktiva Tetap & Peng"
-  ["tahun"]=>
-  string(4) "2026"
-  ["triwulan"]=>
-  string(3) "TW2"
-  ["keyKPI"]=>
-  array(3) {
-    [0]=>
-    string(1) "1"
-    [1]=>
-    string(1) "2"
-    [2]=>
-    string(1) "3"
-  }
-  ["kpi"]=>
-  array(3) {
-    [0]=>
-    string(20) "2-1-OS Briguna Ritel"
-    [1]=>
-    string(12) "9-0-%NPL KPR"
-    [2]=>
-    string(8) "KPI-LAIN"
-  }
-  ["kpi_lain"]=>
-  array(3) {
-    [0]=>
-    string(0) ""
-    [1]=>
-    string(0) ""
-    [2]=>
-    string(7) "Lainnya"
-  }
-  ["persfektif"]=>
-  array(3) {
-    [0]=>
-    string(1) "2"
-    [1]=>
-    string(1) "4"
-    [2]=>
-    string(1) "3"
-  }
-  ["keterangan_project"]=>
-  array(3) {
-    [0]=>
-    string(0) ""
-    [1]=>
-    string(0) ""
-    [2]=>
-    string(0) ""
-  }
-  ["subKPI1"]=>
-  array(3) {
-    [0]=>
-    string(20) "2-1-OS Briguna Ritel"
-    [1]=>
-    string(12) "7-0-%DPK KPR"
-    [2]=>
-    string(8) "KPI-LAIN"
-  }
-  ["subKPLain1"]=>
-  array(3) {
-    [0]=>
-    string(0) ""
-    [1]=>
-    string(0) ""
-    [2]=>
-    string(11) "KPI Lainnya"
-  }
-  ["subRumus1"]=>
-  array(3) {
-    [0]=>
-    string(0) ""
-    [1]=>
-    string(0) ""
-    [2]=>
-    string(1) "1"
-  }
-  ["subBobot1"]=>
-  array(3) {
-    [0]=>
-    string(2) "30"
-    [1]=>
-    string(2) "30"
-    [2]=>
-    string(2) "40"
-  }
-  ["subCapping1"]=>
-  array(3) {
-    [0]=>
-    string(3) "100"
-    [1]=>
-    string(3) "100"
-    [2]=>
-    string(3) "110"
-  }
-  ["subDeskripsiGlossary1"]=>
-  array(3) {
-    [0]=>
-    string(9) "Glos Satu"
-    [1]=>
-    string(8) "Glos Dua"
-    [2]=>
-    string(9) "Glos Tiga"
-  }
-  ["subTargetKuantitatifTahunan1"]=>
-  array(3) {
-    [0]=>
-    string(2) "11"
-    [1]=>
-    string(2) "21"
-    [2]=>
-    string(2) "31"
-  }
-  ["subTargetTahunan1"]=>
-  array(3) {
-    [0]=>
-    string(17) "Target Tahun Satu"
-    [1]=>
-    string(16) "Target Tahun Dua"
-    [2]=>
-    string(17) "Target Tahun TIga"
-  }
-  ["subQualifier1"]=>
-  array(3) {
-    [0]=>
-    string(2) "YA"
-    [1]=>
-    string(5) "TIDAK"
-    [2]=>
-    string(5) "TIDAK"
-  }
-  ["subQualifierItem1"]=>
-  array(3) {
-    [0]=>
-    string(11) "Item Q Satu"
-    [1]=>
-    string(0) ""
-    [2]=>
-    string(0) ""
-  }
-  ["subQualifierDeskripsi1"]=>
-  array(3) {
-    [0]=>
-    string(15) "Desc Q KPI Satu"
-    [1]=>
-    string(0) ""
-    [2]=>
-    string(0) ""
-  }
-  ["subQualifierTarget1"]=>
-  array(3) {
-    [0]=>
-    string(21) "Q Target Tri KPI Satu"
-    [1]=>
-    string(0) ""
-    [2]=>
-    string(0) ""
-  }
-  ["subTargetKuantitatifTriwulan1"]=>
-  array(3) {
-    [0]=>
-    string(2) "12"
-    [1]=>
-    string(2) "22"
-    [2]=>
-    string(2) "32"
-  }
-  ["subTargetTriwulan1"]=>
-  array(3) {
-    [0]=>
-    string(15) "Target tri satu"
-    [1]=>
-    string(14) "Target tri dua"
-    [2]=>
-    string(15) "Target tri tiga"
-  }
-  ["subKeteranganProject1"]=>
-  array(3) {
-    [0]=>
-    string(0) ""
-    [1]=>
-    string(0) ""
-    [2]=>
-    string(0) ""
-  }
-  ["subKPI2"]=>
-  array(1) {
-    [0]=>
-    string(22) "8-0-%NPL Briguna Ritel"
-  }
-  ["subKPLain2"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subRumus2"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subBobot2"]=>
-  array(1) {
-    [0]=>
-    string(3) "100"
-  }
-  ["subCapping2"]=>
-  array(1) {
-    [0]=>
-    string(3) "100"
-  }
-  ["subDeskripsiGlossary2"]=>
-  array(1) {
-    [0]=>
-    string(10) "GLos KPI 2"
-  }
-  ["subTargetKuantitatifTahunan2"]=>
-  array(1) {
-    [0]=>
-    string(2) "41"
-  }
-  ["subTargetTahunan2"]=>
-  array(1) {
-    [0]=>
-    string(11) "T Tahunan 4"
-  }
-  ["subQualifier2"]=>
-  array(1) {
-    [0]=>
-    string(5) "TIDAK"
-  }
-  ["subQualifierItem2"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subQualifierDeskripsi2"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subQualifierTarget2"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subTargetKuantitatifTriwulan2"]=>
-  array(1) {
-    [0]=>
-    string(2) "42"
-  }
-  ["subTargetTriwulan2"]=>
-  array(1) {
-    [0]=>
-    string(9) "T Triwu 4"
-  }
-  ["subKeteranganProject2"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subKPI3"]=>
-  array(1) {
-    [0]=>
-    string(28) "3-1-OS Briguna Mikro + Ritel"
-  }
-  ["subKPLain3"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subRumus3"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subBobot3"]=>
-  array(1) {
-    [0]=>
-    string(3) "100"
-  }
-  ["subCapping3"]=>
-  array(1) {
-    [0]=>
-    string(3) "110"
-  }
-  ["subDeskripsiGlossary3"]=>
-  array(1) {
-    [0]=>
-    string(15) "Desc Gloss Lain"
-  }
-  ["subTargetKuantitatifTahunan3"]=>
-  array(1) {
-    [0]=>
-    string(2) "51"
-  }
-  ["subTargetTahunan3"]=>
-  array(1) {
-    [0]=>
-    string(14) "T Tahun Triwul"
-  }
-  ["subQualifier3"]=>
-  array(1) {
-    [0]=>
-    string(5) "TIDAK"
-  }
-  ["subQualifierItem3"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subQualifierDeskripsi3"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subQualifierTarget3"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subTargetKuantitatifTriwulan3"]=>
-  array(1) {
-    [0]=>
-    string(2) "52"
-  }
-  ["subTargetTriwulan3"]=>
-  array(1) {
-    [0]=>
-    string(16) "Lainnya T Triwul"
-  }
-  ["subKeteranganProject3"]=>
-  array(1) {
-    [0]=>
-    string(1) "3"
-  }
-  ["keyChallenge"]=>
-  array(1) {
-    [0]=>
-    string(1) "1"
-  }
-  ["subIdChallenge"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subDeskripsiChallenge"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["keyMethod"]=>
-  array(1) {
-    [0]=>
-    string(1) "1"
-  }
-  ["subIdMethod"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["subDeskripsiMethod"]=>
-  array(1) {
-    [0]=>
-    string(0) ""
-  }
-  ["list_approval"]=>
-  array(1) {
-    [0]=>
-    string(8) "00071965"
-  }
-}
-
-Input
 array(15) {
   ["IDPengajuan"]=>
-  string(26) "PS100012026TW2260304040242"
+  string(26) "PS820022026TW1260309115014"
   ["Divisi"]=>
-  string(48) "PS10001-Direktorat Manajemen Aktiva Tetap & Peng"
+  string(32) "PS82002-DIVISI TREASURY BUSINESS"
   ["Tahun"]=>
   string(4) "2026"
   ["Triwulan"]=>
-  string(3) "TW2"
+  string(3) "TW1"
   ["Kostl"]=>
-  string(7) "PS10001"
+  string(7) "PS82002"
   ["KostlTx"]=>
-  string(40) "Direktorat Manajemen Aktiva Tetap & Peng"
+  string(24) "DIVISI TREASURY BUSINESS"
   ["Kpi"]=>
   array(3) {
     [0]=>
     array(10) {
       ["idPengajuan"]=>
-      string(26) "PS100012026TW2260304040242"
+      string(26) "PS820022026TW1260309115014"
       ["id"]=>
-      string(30) "PS100012026TW2260304040242P001"
+      string(30) "PS820022026TW1260309115014P001"
       ["tahun"]=>
       string(4) "2026"
       ["triwulan"]=>
-      string(3) "TW2"
+      string(3) "TW1"
       ["idKpi"]=>
-      string(1) "2"
+      string(1) "3"
       ["kpi"]=>
-      string(16) "OS Briguna Ritel"
+      string(24) "OS Briguna Mikro + Ritel"
       ["rumus"]=>
       string(1) "1"
       ["persfektif"]=>
-      string(1) "2"
+      string(1) "1"
       ["keterangan_project"]=>
       string(1) "-"
       ["subKPI"]=>
@@ -417,60 +38,60 @@ array(15) {
         [0]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS100012026TW2260304040242"
+          string(26) "PS820022026TW1260309115014"
           ["idDetail"]=>
-          string(30) "PS100012026TW2260304040242P001"
+          string(30) "PS820022026TW1260309115014P001"
           ["idSubDetail"]=>
-          string(30) "PS100012026TW2260304040242C001"
+          string(30) "PS820022026TW1260309115014C001"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
-          string(3) "TW2"
+          string(3) "TW1"
           ["subKPIId"]=>
-          string(1) "2"
+          string(1) "1"
           ["subKPIVal"]=>
-          string(16) "OS Briguna Ritel"
+          string(16) "OS Briguna Mikro"
           ["rumus"]=>
           string(1) "1"
           ["otomatis"]=>
           string(1) "1"
           ["bobot"]=>
-          string(2) "30"
+          string(2) "10"
           ["capping"]=>
-          string(3) "100"
+          string(3) "110"
           ["targetKuantitatifTahunan"]=>
-          string(2) "11"
+          string(2) "10"
           ["targetTahunan"]=>
-          string(21) "Target%20Tahun%20Satu"
+          string(21) "target%20tahun%20satu"
           ["targetKuantitatifTriwulan"]=>
-          string(2) "12"
+          string(2) "20"
           ["targetTriwulan"]=>
-          string(19) "Target%20tri%20satu"
+          string(22) "target%20triwul%20satu"
           ["deskripsiGlossary"]=>
-          string(11) "Glos%20Satu"
+          string(13) "Glossy%20satu"
           ["qualifier"]=>
           string(2) "YA"
           ["qualifierItem"]=>
-          string(15) "Item%20Q%20Satu"
+          string(24) "item%20qual%20kpi%20satu"
           ["qualifierDeskripsi"]=>
-          string(21) "Desc%20Q%20KPI%20Satu"
+          string(24) "desc%20qual%20kpi%20satu"
           ["qualifierTarget"]=>
-          string(29) "Q%20Target%20Tri%20KPI%20Satu"
+          string(35) "qual%20target%20triwul%20kpi%20satu"
           ["keteranganProject"]=>
           string(0) ""
         }
         [1]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS100012026TW2260304040242"
+          string(26) "PS820022026TW1260309115014"
           ["idDetail"]=>
-          string(30) "PS100012026TW2260304040242P001"
+          string(30) "PS820022026TW1260309115014P001"
           ["idSubDetail"]=>
-          string(30) "PS100012026TW2260304040242C002"
+          string(30) "PS820022026TW1260309115014C002"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
-          string(3) "TW2"
+          string(3) "TW1"
           ["subKPIId"]=>
           string(1) "7"
           ["subKPIVal"]=>
@@ -484,15 +105,15 @@ array(15) {
           ["capping"]=>
           string(3) "100"
           ["targetKuantitatifTahunan"]=>
-          string(2) "21"
+          string(2) "30"
           ["targetTahunan"]=>
-          string(20) "Target%20Tahun%20Dua"
+          string(20) "target%20tahun%20dua"
           ["targetKuantitatifTriwulan"]=>
-          string(2) "22"
+          string(2) "40"
           ["targetTriwulan"]=>
-          string(18) "Target%20tri%20dua"
+          string(21) "target%20triwul%20dua"
           ["deskripsiGlossary"]=>
-          string(10) "Glos%20Dua"
+          string(12) "glossy%20dua"
           ["qualifier"]=>
           string(5) "TIDAK"
           ["qualifierItem"]=>
@@ -507,37 +128,106 @@ array(15) {
         [2]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS100012026TW2260304040242"
+          string(26) "PS820022026TW1260309115014"
           ["idDetail"]=>
-          string(30) "PS100012026TW2260304040242P001"
+          string(30) "PS820022026TW1260309115014P001"
           ["idSubDetail"]=>
-          string(30) "PS100012026TW2260304040242C003"
+          string(30) "PS820022026TW1260309115014C003"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
-          string(3) "TW2"
+          string(3) "TW1"
           ["subKPIId"]=>
           string(1) "0"
           ["subKPIVal"]=>
-          string(11) "KPI Lainnya"
+          string(13) "KPI lain satu"
           ["rumus"]=>
-          string(1) "1"
+          string(1) "0"
           ["otomatis"]=>
           string(1) "0"
           ["bobot"]=>
-          string(2) "40"
+          string(2) "60"
           ["capping"]=>
-          string(3) "110"
+          string(3) "100"
           ["targetKuantitatifTahunan"]=>
-          string(2) "31"
+          string(2) "50"
           ["targetTahunan"]=>
-          string(21) "Target%20Tahun%20TIga"
+          string(21) "target%20tahun%20tiga"
           ["targetKuantitatifTriwulan"]=>
-          string(2) "32"
+          string(2) "60"
           ["targetTriwulan"]=>
-          string(19) "Target%20tri%20tiga"
+          string(22) "target%20triwul%20tiga"
           ["deskripsiGlossary"]=>
-          string(11) "Glos%20Tiga"
+          string(13) "glossy%20tiga"
+          ["qualifier"]=>
+          string(2) "YA"
+          ["qualifierItem"]=>
+          string(23) "item%20qual%20kpi%20dua"
+          ["qualifierDeskripsi"]=>
+          string(23) "desc%20qual%20kpi%20dua"
+          ["qualifierTarget"]=>
+          string(34) "qual%20target%20triwul%20kpi%20dua"
+          ["keteranganProject"]=>
+          string(0) ""
+        }
+      }
+    }
+    [1]=>
+    array(10) {
+      ["idPengajuan"]=>
+      string(26) "PS820022026TW1260309115014"
+      ["id"]=>
+      string(30) "PS820022026TW1260309115014P002"
+      ["tahun"]=>
+      string(4) "2026"
+      ["triwulan"]=>
+      string(3) "TW1"
+      ["idKpi"]=>
+      string(4) "6020"
+      ["kpi"]=>
+      string(7) "LAR KPR"
+      ["rumus"]=>
+      string(1) "0"
+      ["persfektif"]=>
+      string(1) "5"
+      ["keterangan_project"]=>
+      string(1) "-"
+      ["subKPI"]=>
+      array(3) {
+        [0]=>
+        array(21) {
+          ["idPengajuan"]=>
+          string(26) "PS820022026TW1260309115014"
+          ["idDetail"]=>
+          string(30) "PS820022026TW1260309115014P002"
+          ["idSubDetail"]=>
+          string(30) "PS820022026TW1260309115014C001"
+          ["tahun"]=>
+          string(4) "2026"
+          ["triwulan"]=>
+          string(3) "TW1"
+          ["subKPIId"]=>
+          string(4) "2006"
+          ["subKPIVal"]=>
+          string(22) "Daily Average CASA MNP"
+          ["rumus"]=>
+          string(1) "1"
+          ["otomatis"]=>
+          string(1) "1"
+          ["bobot"]=>
+          string(2) "30"
+          ["capping"]=>
+          string(3) "100"
+          ["targetKuantitatifTahunan"]=>
+          string(2) "11"
+          ["targetTahunan"]=>
+          string(22) "target%20tahun%20empat"
+          ["targetKuantitatifTriwulan"]=>
+          string(2) "21"
+          ["targetTriwulan"]=>
+          string(23) "target%20triwul%20empat"
+          ["deskripsiGlossary"]=>
+          string(14) "glossy%20empat"
           ["qualifier"]=>
           string(5) "TIDAK"
           ["qualifierItem"]=>
@@ -549,64 +239,85 @@ array(15) {
           ["keteranganProject"]=>
           string(0) ""
         }
-      }
-    }
-    [1]=>
-    array(10) {
-      ["idPengajuan"]=>
-      string(26) "PS100012026TW2260304040242"
-      ["id"]=>
-      string(30) "PS100012026TW2260304040242P002"
-      ["tahun"]=>
-      string(4) "2026"
-      ["triwulan"]=>
-      string(3) "TW2"
-      ["idKpi"]=>
-      string(1) "9"
-      ["kpi"]=>
-      string(8) "%NPL KPR"
-      ["rumus"]=>
-      string(1) "0"
-      ["persfektif"]=>
-      string(1) "4"
-      ["keterangan_project"]=>
-      string(1) "-"
-      ["subKPI"]=>
-      array(1) {
-        [0]=>
+        [1]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS100012026TW2260304040242"
+          string(26) "PS820022026TW1260309115014"
           ["idDetail"]=>
-          string(30) "PS100012026TW2260304040242P002"
+          string(30) "PS820022026TW1260309115014P002"
           ["idSubDetail"]=>
-          string(30) "PS100012026TW2260304040242C001"
+          string(30) "PS820022026TW1260309115014C002"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
-          string(3) "TW2"
+          string(3) "TW1"
           ["subKPIId"]=>
-          string(1) "8"
+          string(4) "6032"
           ["subKPIVal"]=>
-          string(18) "%NPL Briguna Ritel"
+          string(7) "LAR SDD"
           ["rumus"]=>
           string(1) "0"
           ["otomatis"]=>
           string(1) "1"
           ["bobot"]=>
-          string(3) "100"
+          string(2) "30"
+          ["capping"]=>
+          string(3) "110"
+          ["targetKuantitatifTahunan"]=>
+          string(2) "31"
+          ["targetTahunan"]=>
+          string(21) "target%20tahun%20lima"
+          ["targetKuantitatifTriwulan"]=>
+          string(2) "41"
+          ["targetTriwulan"]=>
+          string(22) "target%20triwul%20lima"
+          ["deskripsiGlossary"]=>
+          string(13) "glossy%20lima"
+          ["qualifier"]=>
+          string(2) "YA"
+          ["qualifierItem"]=>
+          string(24) "item%20qual%20kpi%20tiga"
+          ["qualifierDeskripsi"]=>
+          string(24) "desc%20qual%20kpi%20tiga"
+          ["qualifierTarget"]=>
+          string(34) "qual%20target%20triwul%20kpi%20dua"
+          ["keteranganProject"]=>
+          string(0) ""
+        }
+        [2]=>
+        array(21) {
+          ["idPengajuan"]=>
+          string(26) "PS820022026TW1260309115014"
+          ["idDetail"]=>
+          string(30) "PS820022026TW1260309115014P002"
+          ["idSubDetail"]=>
+          string(30) "PS820022026TW1260309115014C003"
+          ["tahun"]=>
+          string(4) "2026"
+          ["triwulan"]=>
+          string(3) "TW1"
+          ["subKPIId"]=>
+          string(1) "0"
+          ["subKPIVal"]=>
+          string(12) "KPI lain dua"
+          ["rumus"]=>
+          string(1) "1"
+          ["otomatis"]=>
+          string(1) "0"
+          ["bobot"]=>
+          string(2) "40"
           ["capping"]=>
           string(3) "100"
           ["targetKuantitatifTahunan"]=>
-          string(2) "41"
+          string(2) "51"
           ["targetTahunan"]=>
-          string(15) "T%20Tahunan%204"
+          string(21) "target%20tahun%20enam"
           ["targetKuantitatifTriwulan"]=>
-          string(2) "42"
+          string(2) "61"
           ["targetTriwulan"]=>
-          string(13) "T%20Triwu%204"
+          string(22) "target%20triwul%20enam"
           ["deskripsiGlossary"]=>
-          string(14) "GLos%20KPI%202"
+          string(13) "glossy%20enam"
           ["qualifier"]=>
           string(5) "TIDAK"
           ["qualifierItem"]=>
@@ -623,59 +334,59 @@ array(15) {
     [2]=>
     array(10) {
       ["idPengajuan"]=>
-      string(26) "PS100012026TW2260304040242"
+      string(26) "PS820022026TW1260309115014"
       ["id"]=>
-      string(30) "PS100012026TW2260304040242P003"
+      string(30) "PS820022026TW1260309115014P003"
       ["tahun"]=>
       string(4) "2026"
       ["triwulan"]=>
-      string(3) "TW2"
+      string(3) "TW1"
       ["idKpi"]=>
       string(1) "0"
       ["kpi"]=>
-      string(7) "Lainnya"
+      string(18) "KPI Lain Main Satu"
       ["rumus"]=>
       string(1) "0"
       ["persfektif"]=>
-      string(1) "3"
+      string(1) "2"
       ["keterangan_project"]=>
       string(1) "-"
       ["subKPI"]=>
-      array(1) {
+      array(3) {
         [0]=>
         array(21) {
           ["idPengajuan"]=>
-          string(26) "PS100012026TW2260304040242"
+          string(26) "PS820022026TW1260309115014"
           ["idDetail"]=>
-          string(30) "PS100012026TW2260304040242P003"
+          string(30) "PS820022026TW1260309115014P003"
           ["idSubDetail"]=>
-          string(30) "PS100012026TW2260304040242C001"
+          string(30) "PS820022026TW1260309115014C001"
           ["tahun"]=>
           string(4) "2026"
           ["triwulan"]=>
-          string(3) "TW2"
+          string(3) "TW1"
           ["subKPIId"]=>
-          string(1) "3"
+          string(2) "27"
           ["subKPIVal"]=>
-          string(24) "OS Briguna Mikro + Ritel"
+          string(24) "Rp Performing Loan Mikro"
           ["rumus"]=>
           string(1) "1"
           ["otomatis"]=>
           string(1) "1"
           ["bobot"]=>
-          string(3) "100"
+          string(2) "40"
           ["capping"]=>
-          string(3) "110"
+          string(3) "100"
           ["targetKuantitatifTahunan"]=>
-          string(2) "51"
+          string(2) "12"
           ["targetTahunan"]=>
-          string(18) "T%20Tahun%20Triwul"
+          string(22) "target%20tahun%20tujuh"
           ["targetKuantitatifTriwulan"]=>
-          string(2) "52"
+          string(2) "22"
           ["targetTriwulan"]=>
-          string(20) "Lainnya%20T%20Triwul"
+          string(23) "target%20triwul%20tujuh"
           ["deskripsiGlossary"]=>
-          string(19) "Desc%20Gloss%20Lain"
+          string(14) "glossy%20tujuh"
           ["qualifier"]=>
           string(5) "TIDAK"
           ["qualifierItem"]=>
@@ -685,21 +396,111 @@ array(15) {
           ["qualifierTarget"]=>
           string(0) ""
           ["keteranganProject"]=>
-          string(1) "3"
+          string(0) ""
+        }
+        [1]=>
+        array(21) {
+          ["idPengajuan"]=>
+          string(26) "PS820022026TW1260309115014"
+          ["idDetail"]=>
+          string(30) "PS820022026TW1260309115014P003"
+          ["idSubDetail"]=>
+          string(30) "PS820022026TW1260309115014C002"
+          ["tahun"]=>
+          string(4) "2026"
+          ["triwulan"]=>
+          string(3) "TW1"
+          ["subKPIId"]=>
+          string(5) "16023"
+          ["subKPIVal"]=>
+          string(11) "LAR KPR CMT"
+          ["rumus"]=>
+          string(1) "0"
+          ["otomatis"]=>
+          string(1) "1"
+          ["bobot"]=>
+          string(2) "40"
+          ["capping"]=>
+          string(3) "100"
+          ["targetKuantitatifTahunan"]=>
+          string(2) "32"
+          ["targetTahunan"]=>
+          string(24) "target%20tahun%20delapan"
+          ["targetKuantitatifTriwulan"]=>
+          string(2) "42"
+          ["targetTriwulan"]=>
+          string(25) "target%20triwul%20delapan"
+          ["deskripsiGlossary"]=>
+          string(16) "glossy%20delapan"
+          ["qualifier"]=>
+          string(5) "TIDAK"
+          ["qualifierItem"]=>
+          string(0) ""
+          ["qualifierDeskripsi"]=>
+          string(0) ""
+          ["qualifierTarget"]=>
+          string(0) ""
+          ["keteranganProject"]=>
+          string(0) ""
+        }
+        [2]=>
+        array(21) {
+          ["idPengajuan"]=>
+          string(26) "PS820022026TW1260309115014"
+          ["idDetail"]=>
+          string(30) "PS820022026TW1260309115014P003"
+          ["idSubDetail"]=>
+          string(30) "PS820022026TW1260309115014C003"
+          ["tahun"]=>
+          string(4) "2026"
+          ["triwulan"]=>
+          string(3) "TW1"
+          ["subKPIId"]=>
+          string(1) "0"
+          ["subKPIVal"]=>
+          string(13) "KPI lain tiga"
+          ["rumus"]=>
+          string(1) "1"
+          ["otomatis"]=>
+          string(1) "0"
+          ["bobot"]=>
+          string(2) "20"
+          ["capping"]=>
+          string(3) "110"
+          ["targetKuantitatifTahunan"]=>
+          string(2) "52"
+          ["targetTahunan"]=>
+          string(25) "target%20tahun%20sembilan"
+          ["targetKuantitatifTriwulan"]=>
+          string(2) "62"
+          ["targetTriwulan"]=>
+          string(26) "target%20triwul%20sembilan"
+          ["deskripsiGlossary"]=>
+          string(17) "glossy%20sembilan"
+          ["qualifier"]=>
+          string(2) "YA"
+          ["qualifierItem"]=>
+          string(25) "item%20qual%20kpi%20empat"
+          ["qualifierDeskripsi"]=>
+          string(25) "desc%20qual%20kpi%20empat"
+          ["qualifierTarget"]=>
+          string(30) "qual%20target%20triwul%20empat"
+          ["keteranganProject"]=>
+          string(0) ""
         }
       }
     }
   }
   ["EntryUser"]=>
-  string(8) "00130596"
+  string(8) "00294429"
   ["EntryName"]=>
-  string(18) "Erlina Nurmahasasi"
+  string(20) "Felia Puti Salsabila"
   ["EntryTime"]=>
-  string(19) "2026-03-04 16:02:42"
+  string(19) "2026-03-09 11:50:14"
   ["ApprovalPosisi"]=>
-  string(8) "00071965"
+  string(8) "00130596"
   ["ApprovalList"]=>
-  string(139) "[{"userid":"00071965","nama":"Bayu Hidayat","status":"","keterangan":"","posisi":"SIGNER","level":"","fungsi":"PENYUSUNAN KPI","waktu":""}]"
+  string(284) "[{"userid":"00130596","nama":"Erlina Nurmahasasi","status":"","keterangan":"","posisi":"CHECKER","level":"","fungsi":"PENYUSUNAN KPI","waktu":""},{"userid":"00071965","nama":"Bayu Hidayat","status":"","keterangan":"","posisi":"SIGNER","level":"","fungsi":"PENYUSUNAN KPI","waktu":""}]"
   ["SaveAsDraft"]=>
   string(1) "1"
   ["ChallengeList"]=>
@@ -707,7 +508,7 @@ array(15) {
     [0]=>
     array(6) {
       ["idPengajuan"]=>
-      string(26) "PS100012026TW2260304040242"
+      string(26) "PS820022026TW1260309115014"
       ["idDetailChallenge"]=>
       string(1) "-"
       ["tahun"]=>
@@ -725,7 +526,7 @@ array(15) {
     [0]=>
     array(6) {
       ["idPengajuan"]=>
-      string(26) "PS100012026TW2260304040242"
+      string(26) "PS820022026TW1260309115014"
       ["idDetailMethod"]=>
       string(1) "-"
       ["tahun"]=>
