@@ -3,6 +3,7 @@ package binder
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"reflect"
@@ -194,6 +195,57 @@ func BindMultipartForm[T any](c *gin.Context) (T, error) {
 	}
 
 	return result, nil
+}
+
+// BindMultipartJSON extracts a JSON string from a named multipart form field
+// and unmarshals it into the target struct. It also returns the uploaded file
+// from the specified file field name.
+//
+// This is intended for requests that send structured JSON data as a plain text
+// field alongside a single file upload within one multipart/form-data request.
+//
+// Parameters:
+//   - requestField : name of the form field that contains the JSON string (e.g. "REQUEST")
+//   - fileField    : name of the form field that contains the uploaded file  (e.g. "files")
+//
+// Usage:
+//
+//	req, file, err := binder.BindMultipartJSON[dto.MyRequest](c, "REQUEST", "files")
+func BindMultipartJSON[T any](c *gin.Context, requestField, fileField string) (T, *multipart.FileHeader, error) {
+	var result T
+
+	// Validate that the type parameter is a struct
+	destVal := reflect.ValueOf(&result).Elem()
+	if destVal.Kind() != reflect.Struct {
+		return result, nil, errors.New("type parameter must be a struct")
+	}
+
+	// Parse multipart form with 32MB max memory
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+		return result, nil, errors.New("failed to parse multipart form")
+	}
+
+	// Extract JSON string from the named request field
+	requestStr := c.Request.FormValue(requestField)
+	if requestStr == "" {
+		return result, nil, fmt.Errorf("field '%s' is required and must not be empty", requestField)
+	}
+
+	// Unmarshal JSON string into target struct
+	if err := json.Unmarshal([]byte(requestStr), &result); err != nil {
+		return result, nil, fmt.Errorf("field '%s' contains invalid JSON: %w", requestField, err)
+	}
+
+	// Extract the uploaded file from the named file field
+	// Returns nil file (no error) when the field is absent — caller decides if required
+	var fileHeader *multipart.FileHeader
+	file, header, err := c.Request.FormFile(fileField)
+	if err == nil {
+		file.Close()
+		fileHeader = header
+	}
+
+	return result, fileHeader, nil
 }
 
 // mapJSONToStruct maps JSON data to a struct using reflection

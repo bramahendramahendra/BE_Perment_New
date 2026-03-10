@@ -97,6 +97,17 @@ type NoTagStruct struct {
 	Value int
 }
 
+type MultipartJSONStruct struct {
+	Name   string `json:"name"`
+	Age    int    `json:"age"`
+	Active bool   `json:"active"`
+}
+
+type MultipartJSONNestedStruct struct {
+	Title  string       `json:"title"`
+	Detail InnerDetails `json:"detail"`
+}
+
 // Helper function to create a gin context with JSON body
 func createJSONContext(body string) (*gin.Context, *httptest.ResponseRecorder) {
 	gin.SetMode(gin.TestMode)
@@ -146,6 +157,34 @@ func createMultipartContext(fields map[string]string, files map[string][]byte) (
 	for filename, content := range files {
 		fw, _ := mw.CreateFormFile(filename, filename+".txt")
 		fw.Write(content)
+	}
+
+	mw.Close()
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/", &b)
+	c.Request.Header.Set("Content-Type", mw.FormDataContentType())
+
+	return c, w
+}
+
+// Helper: membuat context dengan 1 field JSON string + 1 file upload
+func createMultipartJSONContext(requestField, jsonStr, fileField string, fileContent []byte) (*gin.Context, *httptest.ResponseRecorder) {
+	gin.SetMode(gin.TestMode)
+
+	var b bytes.Buffer
+	mw := multipart.NewWriter(&b)
+
+	// Tulis field JSON string
+	if jsonStr != "" {
+		mw.WriteField(requestField, jsonStr)
+	}
+
+	// Tulis file jika ada
+	if fileContent != nil {
+		fw, _ := mw.CreateFormFile(fileField, "test_file.xlsx")
+		fw.Write(fileContent)
 	}
 
 	mw.Close()
@@ -879,6 +918,158 @@ func TestBindMultipartForm_AllTypes(t *testing.T) {
 	}
 	if result.Int64Val != 9999999999 {
 		t.Errorf("expected int64 9999999999, got %d", result.Int64Val)
+	}
+}
+
+// =============================================================================
+// BindMultipartJSON Tests
+// =============================================================================
+
+func TestBindMultipartJSON_SimpleWithFile(t *testing.T) {
+	jsonStr := `{"name": "John", "age": 30, "active": true}`
+	c, _ := createMultipartJSONContext("REQUEST", jsonStr, "files", []byte("xlsx content"))
+
+	result, file, err := BindMultipartJSON[MultipartJSONStruct](c, "REQUEST", "files")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result.Name != "John" {
+		t.Errorf("expected name 'John', got '%s'", result.Name)
+	}
+	if result.Age != 30 {
+		t.Errorf("expected age 30, got %d", result.Age)
+	}
+	if result.Active != true {
+		t.Errorf("expected active true, got %v", result.Active)
+	}
+	if file == nil {
+		t.Error("expected file to be set, got nil")
+	}
+	if file.Filename != "test_file.xlsx" {
+		t.Errorf("expected filename 'test_file.xlsx', got '%s'", file.Filename)
+	}
+}
+
+func TestBindMultipartJSON_SimpleWithoutFile(t *testing.T) {
+	jsonStr := `{"name": "Jane", "age": 25, "active": false}`
+	c, _ := createMultipartJSONContext("REQUEST", jsonStr, "files", nil)
+
+	result, file, err := BindMultipartJSON[MultipartJSONStruct](c, "REQUEST", "files")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result.Name != "Jane" {
+		t.Errorf("expected name 'Jane', got '%s'", result.Name)
+	}
+	if file != nil {
+		t.Error("expected file to be nil when no file is uploaded")
+	}
+}
+
+func TestBindMultipartJSON_NestedStruct(t *testing.T) {
+	jsonStr := `{"title": "Test", "detail": {"description": "nested desc", "count": 5}}`
+	c, _ := createMultipartJSONContext("REQUEST", jsonStr, "files", nil)
+
+	result, _, err := BindMultipartJSON[MultipartJSONNestedStruct](c, "REQUEST", "files")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result.Title != "Test" {
+		t.Errorf("expected title 'Test', got '%s'", result.Title)
+	}
+	if result.Detail.Description != "nested desc" {
+		t.Errorf("expected description 'nested desc', got '%s'", result.Detail.Description)
+	}
+	if result.Detail.Count != 5 {
+		t.Errorf("expected count 5, got %d", result.Detail.Count)
+	}
+}
+
+func TestBindMultipartJSON_EmptyRequestField(t *testing.T) {
+	// Kirim field REQUEST kosong
+	c, _ := createMultipartJSONContext("REQUEST", "", "files", []byte("xlsx content"))
+
+	_, _, err := BindMultipartJSON[MultipartJSONStruct](c, "REQUEST", "files")
+
+	if err == nil {
+		t.Fatal("expected error when REQUEST field is empty, got nil")
+	}
+	if err.Error() != "field 'REQUEST' is required and must not be empty" {
+		t.Errorf("unexpected error message: %s", err.Error())
+	}
+}
+
+func TestBindMultipartJSON_InvalidJSON(t *testing.T) {
+	// Kirim JSON yang tidak valid
+	c, _ := createMultipartJSONContext("REQUEST", `{invalid json}`, "files", nil)
+
+	_, _, err := BindMultipartJSON[MultipartJSONStruct](c, "REQUEST", "files")
+
+	if err == nil {
+		t.Fatal("expected error for invalid JSON, got nil")
+	}
+}
+
+func TestBindMultipartJSON_NonStructType(t *testing.T) {
+	c, _ := createMultipartJSONContext("REQUEST", `"hello"`, "files", nil)
+
+	_, _, err := BindMultipartJSON[string](c, "REQUEST", "files")
+
+	if err == nil {
+		t.Fatal("expected error for non-struct type, got nil")
+	}
+	if err.Error() != "type parameter must be a struct" {
+		t.Errorf("expected 'type parameter must be a struct', got '%s'", err.Error())
+	}
+}
+
+func TestBindMultipartJSON_CustomFieldNames(t *testing.T) {
+	// Pastikan requestField dan fileField bisa dikustomisasi
+	jsonStr := `{"name": "Custom", "age": 10, "active": true}`
+
+	var b bytes.Buffer
+	mw := multipart.NewWriter(&b)
+	mw.WriteField("DATA", jsonStr)
+	fw, _ := mw.CreateFormFile("attachment", "report.xlsx")
+	fw.Write([]byte("xlsx content"))
+	mw.Close()
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/", &b)
+	c.Request.Header.Set("Content-Type", mw.FormDataContentType())
+
+	result, file, err := BindMultipartJSON[MultipartJSONStruct](c, "DATA", "attachment")
+
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if result.Name != "Custom" {
+		t.Errorf("expected name 'Custom', got '%s'", result.Name)
+	}
+	if file == nil {
+		t.Error("expected file to be set, got nil")
+	}
+}
+
+func TestBindMultipartJSON_InvalidMultipartForm(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader("not multipart"))
+	c.Request.Header.Set("Content-Type", "multipart/form-data; boundary=invalid")
+
+	_, _, err := BindMultipartJSON[MultipartJSONStruct](c, "REQUEST", "files")
+
+	if err == nil {
+		t.Fatal("expected error for invalid multipart form, got nil")
+	}
+	if err.Error() != "failed to parse multipart form" {
+		t.Errorf("unexpected error message: %s", err.Error())
 	}
 }
 
