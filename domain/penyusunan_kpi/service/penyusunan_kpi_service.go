@@ -8,42 +8,111 @@ import (
 	dto "permen_api/domain/penyusunan_kpi/dto"
 )
 
-func (s *penyusunanKpiService) InsertPenyusunanKpi(
-	req *dto.InsertPenyusunanKpiRequest,
-	files []*multipart.FileHeader,
-) (*dto.InsertPenyusunanKpiResult, error) {
+func (s *penyusunanKpiService) CreatePenyusunanKpi(
+	req *dto.CreatePenyusunanKpiRequest,
+	file *multipart.FileHeader,
+) (data dto.CreatePenyusunanKpiResponse, err error) {
 
-	if len(files) == 0 {
-		return nil, fmt.Errorf("tidak ada file Excel yang dikirim, harus mengirim tepat 1 file Excel")
-	}
-	if len(files) > 1 {
-		return nil, fmt.Errorf(
-			"hanya boleh mengirim 1 file Excel (diterima %d file). "+
-				"Semua data sub KPI dari semua KPI harus digabung dalam 1 file",
-			len(files),
-		)
+	if file == nil {
+		return data, fmt.Errorf("file Excel tidak ditemukan, pastikan mengirim file via field 'files'")
 	}
 
-	file := files[0]
+	if !strings.HasSuffix(strings.ToLower(file.Filename), ".xlsx") {
+		return data, fmt.Errorf("file '%s' bukan format Excel (.xlsx)", file.Filename)
+	}
 
 	kpiSubDetails, err := ParseAndValidateExcel(file, req.Triwulan, req.Kpi)
 	if err != nil {
-		return nil, fmt.Errorf("validasi file Excel '%s' gagal: %w", file.Filename, err)
+		return data, fmt.Errorf("validasi file Excel '%s' gagal: %w", file.Filename, err)
 	}
 
 	if err := s.resolveMasterLookup(kpiSubDetails); err != nil {
-		return nil, err
+		return data, err
 	}
 
-	idPengajuan, err := s.repo.InsertPenyusunanKpi(req, kpiSubDetails)
+	idPengajuan, err := s.repo.CreatePenyusunanKpi(req, kpiSubDetails)
 	if err != nil {
-		return nil, fmt.Errorf("gagal menyimpan data KPI: %w", err)
+		return data, err
 	}
 
-	return &dto.InsertPenyusunanKpiResult{
-		IDPengajuan:   idPengajuan,
-		KpiSubDetails: kpiSubDetails,
-	}, nil
+	data = dto.CreatePenyusunanKpiResponse{
+		IDPengajuan:    idPengajuan,
+		Tahun:          req.Tahun,
+		Triwulan:       req.Triwulan,
+		Kostl:          req.Kostl,
+		KostlTx:        req.KostlTx,
+		EntryUser:      req.EntryUser,
+		EntryName:      req.EntryName,
+		EntryTime:      req.EntryTime,
+		ApprovalPosisi: req.ApprovalPosisi,
+		SaveAsDraft:    req.SaveAsDraft,
+		TotalKpi:       len(req.Kpi),
+		Kpi:            buildKpiResponse(idPengajuan, req.Kpi, kpiSubDetails),
+		ChallengeList:  req.ChallengeList,
+		MethodList:     req.MethodList,
+	}
+
+	return data, nil
+}
+
+// buildKpiResponse membangun slice PenyusunanKpiDetailItemResponse dengan
+// KpiSubDetail yang sudah di-nested ke dalam masing-masing KPI sesuai indeksnya.
+func buildKpiResponse(
+	idPengajuan string,
+	kpiList []dto.PenyusunanKpiDetailRequest,
+	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
+) []dto.PenyusunanKpiDetailResponse {
+	result := make([]dto.PenyusunanKpiDetailResponse, len(kpiList))
+	subCounter := 1
+
+	for i, kpiItem := range kpiList {
+		idDetail := fmt.Sprintf("%sP%03d", idPengajuan, i+1)
+		rows := kpiSubDetails[i]
+
+		subDetails := make([]dto.PenyusunanKpiSubDetailResponse, 0, len(rows))
+		for _, row := range rows {
+			idSubDetail := fmt.Sprintf("%sC%03d", idPengajuan, subCounter)
+			subCounter++
+
+			subDetails = append(subDetails, dto.PenyusunanKpiSubDetailResponse{
+				IdDetail:                  idDetail,
+				IdSubDetail:               idSubDetail,
+				NamaKpi:                   row.KPI,
+				IdSubKpi:                  row.IdSubKpi,
+				SubKpi:                    row.SubKPI,
+				Otomatis:                  row.Otomatis,
+				Polarisasi:                row.Polarisasi,
+				IdPolarisasi:              row.IdPolarisasi,
+				Capping:                   row.Capping,
+				Bobot:                     row.Bobot,
+				Glossary:                  row.Glossary,
+				TargetTriwulan:            row.TargetTriwulan,
+				TargetKuantitatifTriwulan: row.TargetKuantitatifTriwulan,
+				TargetTahunan:             row.TargetTahunan,
+				TargetKuantitatifTahunan:  row.TargetKuantitatifTahunan,
+				TerdapatQualifier:         row.TerdapatQualifier,
+				Qualifier:                 row.Qualifier,
+				DeskripsiQualifier:        row.DeskripsiQualifier,
+				TargetQualifier:           row.TargetQualifier,
+				Result:                    row.Result,
+				DeskripsiResult:           row.DeskripsiResult,
+				Process:                   row.Process,
+				DeskripsiProcess:          row.DeskripsiProcess,
+				Context:                   row.Context,
+				DeskripsiContext:          row.DeskripsiContext,
+			})
+		}
+
+		result[i] = dto.PenyusunanKpiDetailResponse{
+			IdKpi:        kpiItem.IdKpi,
+			Kpi:          kpiItem.Kpi,
+			Rumus:        kpiItem.Rumus,
+			Persfektif:   kpiItem.Persfektif,
+			KpiSubDetail: subDetails,
+		}
+	}
+
+	return result
 }
 
 // resolveMasterLookup melakukan lookup mst_kpi dan mst_polarisasi untuk setiap

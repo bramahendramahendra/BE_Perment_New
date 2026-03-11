@@ -8,8 +8,8 @@ import (
 
 type (
 	PenyusunanKpiRepoInterface interface {
-		InsertPenyusunanKpi(
-			req *dto.InsertPenyusunanKpiRequest,
+		CreatePenyusunanKpi(
+			req *dto.CreatePenyusunanKpiRequest,
 			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 		) (string, error)
 

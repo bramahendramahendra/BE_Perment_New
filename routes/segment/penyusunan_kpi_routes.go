@@ -21,5 +21,5 @@ func PenyusunanKpiRoutes(r *gin.RouterGroup) {
 	penyusunanKpiHandler := handler.NewPenyusunanKpiHandler(penyusunanKpiService)
 
 	penyusunanKpiGroup := r.Group("penyusunan-kpi")
-	penyusunanKpiGroup.POST("/insert", penyusunanKpiHandler.InsertKPI)
+	penyusunanKpiGroup.POST("/create", penyusunanKpiHandler.CreatePenyusunanKpi)
 }

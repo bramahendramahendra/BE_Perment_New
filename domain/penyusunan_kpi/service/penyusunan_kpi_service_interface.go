@@ -2,16 +2,17 @@ package service
 
 import (
 	"mime/multipart"
+
 	dto "permen_api/domain/penyusunan_kpi/dto"
 	repo "permen_api/domain/penyusunan_kpi/repo"
 )
 
 type (
 	PenyusunanKpiServiceInterface interface {
-		InsertPenyusunanKpi(
-			req *dto.InsertPenyusunanKpiRequest,
-			files []*multipart.FileHeader,
-		) (*dto.InsertPenyusunanKpiResult, error)
+		CreatePenyusunanKpi(
+			req *dto.CreatePenyusunanKpiRequest,
+			file *multipart.FileHeader,
+		) (data dto.CreatePenyusunanKpiResponse, err error)
 	}
 
 	penyusunanKpiService struct {

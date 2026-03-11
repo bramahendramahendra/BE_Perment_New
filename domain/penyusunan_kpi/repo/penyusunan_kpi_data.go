@@ -2,12 +2,14 @@ package repo
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
+	customErrors "permen_api/errors"
 )
 
 const (
@@ -119,8 +121,8 @@ func (r *penyusunanKpiRepo) LookupPolarisasi(polarisasiText string) (idPolarisas
 	return idPolarisasi, nil
 }
 
-func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
-	req *dto.InsertPenyusunanKpiRequest,
+func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
+	req *dto.CreatePenyusunanKpiRequest,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 ) (string, error) {
 
@@ -131,11 +133,19 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 		Scan(&countExist).Error; err != nil {
 		return "", fmt.Errorf("gagal mengecek data KPI: %w", err)
 	}
+	// if countExist > 0 {
+	// 	return "", fmt.Errorf(
+	// 		"data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
+	// 		req.Tahun, req.Triwulan, req.Kostl,
+	// 	)
+	// }
 	if countExist > 0 {
-		return "", fmt.Errorf(
-			"data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
-			req.Tahun, req.Triwulan, req.Kostl,
-		)
+		return "", &customErrors.BadRequestError{
+			Message: fmt.Sprintf(
+				"data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
+				req.Tahun, req.Triwulan, req.Kostl,
+			),
+		}
 	}
 
 	var orgeh, orgehTx string
@@ -280,10 +290,13 @@ func (r *penyusunanKpiRepo) InsertPenyusunanKpi(
 		return "", fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
 	}
 
+	approvalListBytes, _ := json.Marshal(req.ApprovalList)
+	approvalListStr := string(approvalListBytes)
+
 	if err := tx.Exec(queryInsertKpi,
 		idPengajuan, req.Tahun, req.Triwulan, req.Kostl, req.KostlTx,
 		orgeh, orgehTx, req.EntryUser, req.EntryName, req.EntryTime,
-		req.ApprovalPosisi, req.ApprovalList, statusKpi,
+		req.ApprovalPosisi, approvalListStr, statusKpi,
 	).Error; err != nil {
 		tx.Rollback()
 		return "", fmt.Errorf("gagal insert data_kpi: %w", err)
