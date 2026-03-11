@@ -23,8 +23,10 @@ func NewPenyusunanKpiHandler(service service.PenyusunanKpiServiceInterface) *Pen
 	return &PenyusunanKpiHandler{service: service}
 }
 
-func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
-	req, file, err := binder.BindMultipartJSON[dto.CreatePenyusunanKpiRequest](c, "REQUEST", "files")
+// ValidatePenyusunanKpi handles POST /penyusunan-kpi/validate
+// Menerima multipart/form-data dengan field REQUEST (JSON) dan files (Excel).
+func (h *PenyusunanKpiHandler) ValidatePenyusunanKpi(c *gin.Context) {
+	req, file, err := binder.BindMultipartJSON[dto.ValidatePenyusunanKpiRequest](c, "REQUEST", "files")
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -53,7 +55,7 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.CreatePenyusunanKpi(&req, file)
+	data, err := h.service.ValidatePenyusunanKpi(&req, file)
 	if err != nil {
 		c.Error(err)
 		return
@@ -63,6 +65,34 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 		Code:    "00",
 		Status:  true,
 		Message: "Data KPI berhasil disimpan",
+		Data:    data,
+	})
+}
+
+// CreatePenyusunanKpi handles POST /penyusunan-kpi/create
+// Menerima JSON biasa (bukan multipart) dengan idPengajuan, ApprovalList, dan SaveAsDraft.
+func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.CreatePenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.CreatePenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:    "00",
+		Status:  true,
+		Message: "Data KPI berhasil diajukan",
 		Data:    data,
 	})
 }

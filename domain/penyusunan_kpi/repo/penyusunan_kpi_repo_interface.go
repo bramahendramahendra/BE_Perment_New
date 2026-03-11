@@ -8,10 +8,16 @@ import (
 
 type (
 	PenyusunanKpiRepoInterface interface {
-		CreatePenyusunanKpi(
-			req *dto.CreatePenyusunanKpiRequest,
+		// Digunakan oleh endpoint POST /penyusunan-kpi/validate.
+		ValidatePenyusunanKpi(
+			req *dto.ValidatePenyusunanKpiRequest,
 			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 		) (string, error)
+
+		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
+		CreatePenyusunanKpi(
+			req *dto.CreatePenyusunanKpiRequest,
+		) error
 
 		LookupSubKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error)
 

@@ -8,10 +8,14 @@ import (
 	dto "permen_api/domain/penyusunan_kpi/dto"
 )
 
-func (s *penyusunanKpiService) CreatePenyusunanKpi(
-	req *dto.CreatePenyusunanKpiRequest,
+// =============================================================================
+// VALIDATE
+// =============================================================================
+
+func (s *penyusunanKpiService) ValidatePenyusunanKpi(
+	req *dto.ValidatePenyusunanKpiRequest,
 	file *multipart.FileHeader,
-) (data dto.CreatePenyusunanKpiResponse, err error) {
+) (data dto.ValidatePenyusunanKpiResponse, err error) {
 
 	if file == nil {
 		return data, fmt.Errorf("file Excel tidak ditemukan, pastikan mengirim file via field 'files'")
@@ -30,86 +34,122 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 		return data, err
 	}
 
-	idPengajuan, err := s.repo.CreatePenyusunanKpi(req, kpiSubDetails)
+	idPengajuan, err := s.repo.ValidatePenyusunanKpi(req, kpiSubDetails)
 	if err != nil {
 		return data, err
 	}
 
-	data = dto.CreatePenyusunanKpiResponse{
-		IDPengajuan:    idPengajuan,
-		Tahun:          req.Tahun,
-		Triwulan:       req.Triwulan,
-		Kostl:          req.Kostl,
-		KostlTx:        req.KostlTx,
-		EntryUser:      req.EntryUser,
-		EntryName:      req.EntryName,
-		EntryTime:      req.EntryTime,
-		ApprovalPosisi: req.ApprovalPosisi,
-		SaveAsDraft:    req.SaveAsDraft,
-		TotalKpi:       len(req.Kpi),
-		Kpi:            buildKpiResponse(idPengajuan, req.Kpi, kpiSubDetails),
-		ChallengeList:  req.ChallengeList,
-		MethodList:     req.MethodList,
+	data = dto.ValidatePenyusunanKpiResponse{
+		IDPengajuan:   idPengajuan,
+		Tahun:         req.Tahun,
+		Triwulan:      req.Triwulan,
+		Kostl:         req.Kostl,
+		KostlTx:       req.KostlTx,
+		EntryUser:     req.EntryUser,
+		EntryName:     req.EntryName,
+		EntryTime:     req.EntryTime,
+		SaveAsDraft:   req.SaveAsDraft,
+		TotalKpi:      len(req.Kpi),
+		Kpi:           buildKpiResponse(idPengajuan, req.Kpi, kpiSubDetails),
+		ChallengeList: req.ChallengeList,
+		MethodList:    req.MethodList,
 	}
 
 	return data, nil
 }
 
-// buildKpiResponse membangun slice PenyusunanKpiDetailItemResponse dengan
+// =============================================================================
+// SUBMIT (CREATE)
+// =============================================================================
+
+func (s *penyusunanKpiService) CreatePenyusunanKpi(
+	req *dto.CreatePenyusunanKpiRequest,
+) (data dto.CreatePenyusunanKpiResponse, err error) {
+
+	// Paksa SaveAsDraft selalu "0" saat submit
+	req.SaveAsDraft = "0"
+
+	if err := s.repo.CreatePenyusunanKpi(req); err != nil {
+		return data, err
+	}
+
+	data = dto.CreatePenyusunanKpiResponse{
+		IdPengajuan:  req.IdPengajuan,
+		SaveAsDraft:  req.SaveAsDraft,
+		ApprovalList: req.ApprovalList,
+	}
+
+	return data, nil
+}
+
+// =============================================================================
+// HELPER
+// =============================================================================
+
+// buildKpiResponse membangun slice PenyusunanKpiDetailResponse dengan
 // KpiSubDetail yang sudah di-nested ke dalam masing-masing KPI sesuai indeksnya.
 func buildKpiResponse(
 	idPengajuan string,
 	kpiList []dto.PenyusunanKpiDetailRequest,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 ) []dto.PenyusunanKpiDetailResponse {
-	result := make([]dto.PenyusunanKpiDetailResponse, len(kpiList))
-	subCounter := 1
 
+	result := make([]dto.PenyusunanKpiDetailResponse, 0, len(kpiList))
+
+	subCounter := 1
 	for i, kpiItem := range kpiList {
 		idDetail := fmt.Sprintf("%sP%03d", idPengajuan, i+1)
-		rows := kpiSubDetails[i]
 
+		rows := kpiSubDetails[i]
 		subDetails := make([]dto.PenyusunanKpiSubDetailResponse, 0, len(rows))
-		for _, row := range rows {
+
+		for _, subRow := range rows {
 			idSubDetail := fmt.Sprintf("%sC%03d", idPengajuan, subCounter)
 			subCounter++
+
+			qualifier, deskripsiQualifier, targetQualifier := "", "", ""
+			if strings.EqualFold(subRow.TerdapatQualifier, "Ya") {
+				qualifier = subRow.Qualifier
+				deskripsiQualifier = subRow.DeskripsiQualifier
+				targetQualifier = subRow.TargetQualifier
+			}
 
 			subDetails = append(subDetails, dto.PenyusunanKpiSubDetailResponse{
 				IdDetail:                  idDetail,
 				IdSubDetail:               idSubDetail,
-				NamaKpi:                   row.KPI,
-				IdSubKpi:                  row.IdSubKpi,
-				SubKpi:                    row.SubKPI,
-				Otomatis:                  row.Otomatis,
-				Polarisasi:                row.Polarisasi,
-				IdPolarisasi:              row.IdPolarisasi,
-				Capping:                   row.Capping,
-				Bobot:                     row.Bobot,
-				Glossary:                  row.Glossary,
-				TargetTriwulan:            row.TargetTriwulan,
-				TargetKuantitatifTriwulan: row.TargetKuantitatifTriwulan,
-				TargetTahunan:             row.TargetTahunan,
-				TargetKuantitatifTahunan:  row.TargetKuantitatifTahunan,
-				TerdapatQualifier:         row.TerdapatQualifier,
-				Qualifier:                 row.Qualifier,
-				DeskripsiQualifier:        row.DeskripsiQualifier,
-				TargetQualifier:           row.TargetQualifier,
-				Result:                    row.Result,
-				DeskripsiResult:           row.DeskripsiResult,
-				Process:                   row.Process,
-				DeskripsiProcess:          row.DeskripsiProcess,
-				Context:                   row.Context,
-				DeskripsiContext:          row.DeskripsiContext,
+				NamaKpi:                   subRow.KPI,
+				IdSubKpi:                  subRow.IdSubKpi,
+				SubKpi:                    subRow.SubKPI,
+				Otomatis:                  subRow.Otomatis,
+				Polarisasi:                subRow.Polarisasi,
+				IdPolarisasi:              subRow.IdPolarisasi,
+				Capping:                   subRow.Capping,
+				Bobot:                     subRow.Bobot,
+				Glossary:                  subRow.Glossary,
+				TargetTriwulan:            subRow.TargetTriwulan,
+				TargetKuantitatifTriwulan: subRow.TargetKuantitatifTriwulan,
+				TargetTahunan:             subRow.TargetTahunan,
+				TargetKuantitatifTahunan:  subRow.TargetKuantitatifTahunan,
+				TerdapatQualifier:         subRow.TerdapatQualifier,
+				Qualifier:                 qualifier,
+				DeskripsiQualifier:        deskripsiQualifier,
+				TargetQualifier:           targetQualifier,
+				Result:                    subRow.Result,
+				DeskripsiResult:           subRow.DeskripsiResult,
+				Process:                   subRow.Process,
+				DeskripsiProcess:          subRow.DeskripsiProcess,
+				Context:                   subRow.Context,
+				DeskripsiContext:          subRow.DeskripsiContext,
 			})
 		}
 
-		result[i] = dto.PenyusunanKpiDetailResponse{
+		result = append(result, dto.PenyusunanKpiDetailResponse{
 			IdKpi:        kpiItem.IdKpi,
 			Kpi:          kpiItem.Kpi,
 			Rumus:        kpiItem.Rumus,
 			Persfektif:   kpiItem.Persfektif,
 			KpiSubDetail: subDetails,
-		}
+		})
 	}
 
 	return result
@@ -167,12 +207,4 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 		}
 	}
 	return nil
-}
-
-// sheetName mengembalikan nama sheet Excel berdasarkan triwulan.
-func sheetName(triwulan string) string {
-	if strings.EqualFold(triwulan, "TW4") {
-		return "TW 4"
-	}
-	return "Selain TW 4"
 }

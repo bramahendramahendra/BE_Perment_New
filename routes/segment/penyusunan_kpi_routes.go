@@ -14,12 +14,14 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /penyusunan-kpi/insert  → InsertKPI
+//	POST /penyusunan-kpi/validate → ValidatePenyusunanKpi  (multipart/form-data + file Excel)
+//	POST /penyusunan-kpi/create   → SubmitPenyusunanKpi    (application/json)
 func PenyusunanKpiRoutes(r *gin.RouterGroup) {
 	penyusunanKpiRepo := repo.NewPenyusunanKpiRepo(db.DB)
 	penyusunanKpiService := service.NewPenyusunanKpiService(penyusunanKpiRepo)
 	penyusunanKpiHandler := handler.NewPenyusunanKpiHandler(penyusunanKpiService)
 
 	penyusunanKpiGroup := r.Group("penyusunan-kpi")
+	penyusunanKpiGroup.POST("/validate", penyusunanKpiHandler.ValidatePenyusunanKpi)
 	penyusunanKpiGroup.POST("/create", penyusunanKpiHandler.CreatePenyusunanKpi)
 }

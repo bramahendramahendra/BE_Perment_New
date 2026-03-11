@@ -9,24 +9,29 @@ type DivisiItem struct {
 	KostlTx string `json:"KostlTx" validate:"required"`
 }
 
-type CreatePenyusunanKpiRequest struct {
-	Divisi         DivisiItem                   `json:"Divisi"         validate:"required"`
-	Tahun          string                       `json:"Tahun"          validate:"required"`
-	Triwulan       string                       `json:"Triwulan"       validate:"required"`
-	Kostl          string                       `json:"Kostl"`
-	KostlTx        string                       `json:"KostlTx"`
-	EntryUser      string                       `json:"EntryUser"`
-	EntryName      string                       `json:"EntryName"`
-	EntryTime      string                       `json:"EntryTime"`
-	ApprovalPosisi string                       `json:"ApprovalPosisi" validate:"required"`
-	ApprovalList   []Approval                   `json:"ApprovalList" validate:"required,min=1,dive"`
-	SaveAsDraft    string                       `json:"SaveAsDraft"    validate:"required"`
-	Kpi            []PenyusunanKpiDetailRequest `json:"Kpi"            validate:"required,min=1,dive"`
-	ChallengeList  []PenyusunanChallenge        `json:"ChallengeList"  validate:"required,min=1,dive"`
-	MethodList     []PenyusunanMethod           `json:"MethodList"     validate:"required,min=1,dive"`
+// ValidatePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/validate.
+type ValidatePenyusunanKpiRequest struct {
+	Divisi        DivisiItem                   `json:"Divisi"        validate:"required"`
+	Tahun         string                       `json:"Tahun"         validate:"required"`
+	Triwulan      string                       `json:"Triwulan"      validate:"required"`
+	Kostl         string                       `json:"Kostl"`
+	KostlTx       string                       `json:"KostlTx"`
+	EntryUser     string                       `json:"EntryUser"`
+	EntryName     string                       `json:"EntryName"`
+	EntryTime     string                       `json:"EntryTime"`
+	SaveAsDraft   string                       `json:"SaveAsDraft"   validate:"required"`
+	Kpi           []PenyusunanKpiDetailRequest `json:"Kpi"           validate:"required,min=1,dive"`
+	ChallengeList []PenyusunanChallenge        `json:"ChallengeList" validate:"required,min=1,dive"`
+	MethodList    []PenyusunanMethod           `json:"MethodList"    validate:"required,min=1,dive"`
 }
 
-// PenyusunanKpiDetailItemRequest digunakan untuk binding & validasi request dari frontend.
+// CreatePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/create.
+type CreatePenyusunanKpiRequest struct {
+	IdPengajuan  string     `json:"idPengajuan"  validate:"required"`
+	ApprovalList []Approval `json:"ApprovalList" validate:"required,min=1,dive"`
+	SaveAsDraft  string     `json:"SaveAsDraft"  validate:"required"`
+}
+
 type PenyusunanKpiDetailRequest struct {
 	IdKpi      string `json:"idKpi"      validate:"required"`
 	Kpi        string `json:"kpi"        validate:"required"`
@@ -98,21 +103,29 @@ type PenyusunanKpiSubDetailRow struct {
 // =============================================================================
 // RESPONSE DTO
 // =============================================================================
+
+// ValidatePenyusunanKpiResponse adalah response untuk endpoint /validate.
+type ValidatePenyusunanKpiResponse struct {
+	IDPengajuan   string                        `json:"idPengajuan"`
+	Tahun         string                        `json:"tahun"`
+	Triwulan      string                        `json:"triwulan"`
+	Kostl         string                        `json:"kostl"`
+	KostlTx       string                        `json:"kostlTx"`
+	EntryUser     string                        `json:"entryUser"`
+	EntryName     string                        `json:"entryName"`
+	EntryTime     string                        `json:"entryTime"`
+	SaveAsDraft   string                        `json:"saveAsDraft"`
+	TotalKpi      int                           `json:"totalKpi"`
+	Kpi           []PenyusunanKpiDetailResponse `json:"kpi"`
+	ChallengeList []PenyusunanChallenge         `json:"challengeList"`
+	MethodList    []PenyusunanMethod            `json:"methodList"`
+}
+
+// CreatePenyusunanKpiResponse adalah response untuk endpoint /create.
 type CreatePenyusunanKpiResponse struct {
-	IDPengajuan    string                        `json:"idPengajuan"`
-	Tahun          string                        `json:"tahun"`
-	Triwulan       string                        `json:"triwulan"`
-	Kostl          string                        `json:"kostl"`
-	KostlTx        string                        `json:"kostlTx"`
-	EntryUser      string                        `json:"entryUser"`
-	EntryName      string                        `json:"entryName"`
-	EntryTime      string                        `json:"entryTime"`
-	ApprovalPosisi string                        `json:"approvalPosisi"`
-	SaveAsDraft    string                        `json:"saveAsDraft"`
-	TotalKpi       int                           `json:"totalKpi"`
-	Kpi            []PenyusunanKpiDetailResponse `json:"kpi"`
-	ChallengeList  []PenyusunanChallenge         `json:"challengeList"`
-	MethodList     []PenyusunanMethod            `json:"methodList"`
+	IdPengajuan  string     `json:"idPengajuan"`
+	SaveAsDraft  string     `json:"saveAsDraft"`
+	ApprovalList []Approval `json:"approvalList"`
 }
 
 type PenyusunanKpiDetailResponse struct {

@@ -25,11 +25,23 @@ const (
 		ORDER BY HILFM ASC 
 		LIMIT 1`
 
+	// queryInsertKpi digunakan oleh ValidatePenyusunanKpi.
 	queryInsertKpi = `
 		INSERT INTO data_kpi 
 			(id_pengajuan, tahun, triwulan, kostl, kostl_tx, orgeh, orgeh_tx, 
 			 entry_user, entry_name, entry_time, approval_posisi, approval_list, status) 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+	// queryUpdateKpi digunakan oleh CreatePenyusunanKpi untuk mengisi approval dan mengubah status.
+	queryUpdateKpi = `
+		UPDATE data_kpi 
+		SET approval_posisi = ?, approval_list = ?, status = NULL
+		WHERE id_pengajuan = ?`
+
+	queryCheckExistIdPengajuan = `
+		SELECT COUNT(id_pengajuan) 
+		FROM data_kpi 
+		WHERE id_pengajuan = ?`
 
 	queryInsertKpiDetail = `
 		INSERT INTO data_kpi_detail 
@@ -75,6 +87,10 @@ const (
 		LIMIT 1`
 )
 
+// =============================================================================
+// HELPER
+// =============================================================================
+
 func generateIDPengajuan(kostl, tahun, triwulan string) string {
 	t := time.Now()
 	timestamp := fmt.Sprintf("%02d%02d%02d%02d%02d%02d",
@@ -92,37 +108,49 @@ func generateIDDetail(idPengajuan string, index int) string {
 	return fmt.Sprintf("%sP%03d", idPengajuan, index+1)
 }
 
-func generateIDSubDetail(idPengajuan string, globalIndex int) string {
-	return fmt.Sprintf("%sC%03d", idPengajuan, globalIndex)
+func generateIDSubDetail(idPengajuan string, counter int) string {
+	return fmt.Sprintf("%sC%03d", idPengajuan, counter)
 }
+
+// =============================================================================
+// LOOKUP
+// =============================================================================
 
 func (r *penyusunanKpiRepo) LookupSubKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error) {
 	row := r.db.Raw(queryLookupSubKpi, subKpiText).Row()
-	if scanErr := row.Scan(&idKpi, &kpiFromDB, &rumus); scanErr != nil {
+	scanErr := row.Scan(&idKpi, &kpiFromDB, &rumus)
+	if scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
-			return "0", subKpiText, "", nil
+			return "", "", "", nil
 		}
-		return "0", subKpiText, "", fmt.Errorf("gagal lookup mst_kpi untuk Sub KPI '%s': %w", subKpiText, scanErr)
+		return "", "", "", fmt.Errorf("gagal lookup mst_kpi untuk sub KPI '%s': %w", subKpiText, scanErr)
 	}
 	return idKpi, kpiFromDB, rumus, nil
 }
 
 func (r *penyusunanKpiRepo) LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error) {
 	row := r.db.Raw(queryLookupPolarisasi, polarisasiText).Row()
-	if scanErr := row.Scan(&idPolarisasi); scanErr != nil {
+	scanErr := row.Scan(&idPolarisasi)
+	if scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
-			return "", fmt.Errorf(
-				"polarisasi '%s' tidak ditemukan di tabel mst_polarisasi. Nilai yang valid: 'Maximize' atau 'Minimize'",
-				polarisasiText,
-			)
+			return "", &customErrors.BadRequestError{
+				Message: fmt.Sprintf(
+					"polarisasi '%s' tidak ditemukan di master. Nilai yang valid: 'Maximize' atau 'Minimize'",
+					polarisasiText,
+				),
+			}
 		}
 		return "", fmt.Errorf("gagal lookup mst_polarisasi untuk polarisasi '%s': %w", polarisasiText, scanErr)
 	}
 	return idPolarisasi, nil
 }
 
-func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
-	req *dto.CreatePenyusunanKpiRequest,
+// =============================================================================
+// VALIDATE — simpan data KPI tanpa approval
+// =============================================================================
+
+func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
+	req *dto.ValidatePenyusunanKpiRequest,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 ) (string, error) {
 
@@ -133,12 +161,6 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 		Scan(&countExist).Error; err != nil {
 		return "", fmt.Errorf("gagal mengecek data KPI: %w", err)
 	}
-	// if countExist > 0 {
-	// 	return "", fmt.Errorf(
-	// 		"data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
-	// 		req.Tahun, req.Triwulan, req.Kostl,
-	// 	)
-	// }
 	if countExist > 0 {
 		return "", &customErrors.BadRequestError{
 			Message: fmt.Sprintf(
@@ -151,7 +173,7 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 	var orgeh, orgehTx string
 	r.db.Raw(queryGetOrgeh, req.Kostl).Row().Scan(&orgeh, &orgehTx)
 
-	// status 70 = draft, nil = submit normal
+	// status 70 = draft
 	var statusKpi interface{}
 	if req.SaveAsDraft == "1" {
 		statusKpi = 70
@@ -202,7 +224,6 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 				targetQualifier = subRow.TargetQualifier
 			}
 
-			// nil *string → nil interface{} → NULL di DB
 			var result, deskripsiResult, process, deskripsiProcess, context, deskripsiContext interface{}
 			if subRow.Result != nil {
 				result = *subRow.Result
@@ -290,13 +311,11 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 		return "", fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
 	}
 
-	approvalListBytes, _ := json.Marshal(req.ApprovalList)
-	approvalListStr := string(approvalListBytes)
-
+	// approval_posisi dan approval_list dikosongkan — diisi saat SubmitPenyusunanKpi
 	if err := tx.Exec(queryInsertKpi,
 		idPengajuan, req.Tahun, req.Triwulan, req.Kostl, req.KostlTx,
 		orgeh, orgehTx, req.EntryUser, req.EntryName, req.EntryTime,
-		req.ApprovalPosisi, approvalListStr, statusKpi,
+		"", "[]", statusKpi,
 	).Error; err != nil {
 		tx.Rollback()
 		return "", fmt.Errorf("gagal insert data_kpi: %w", err)
@@ -339,4 +358,53 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 	}
 
 	return idPengajuan, nil
+}
+
+// =============================================================================
+// SUBMIT — update approval pada data KPI yang sudah ada
+// =============================================================================
+
+func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
+	req *dto.CreatePenyusunanKpiRequest,
+) error {
+
+	// Cek apakah idPengajuan benar-benar ada di DB
+	var countExist int
+	if err := r.db.Raw(queryCheckExistIdPengajuan, req.IdPengajuan).
+		Scan(&countExist).Error; err != nil {
+		return fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
+	}
+	if countExist == 0 {
+		return &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
+
+	// Ambil userid signer sebagai approval_posisi (posisi = "SIGNER")
+	approvalPosisi := ""
+	for _, a := range req.ApprovalList {
+		if strings.EqualFold(a.Posisi, "SIGNER") {
+			approvalPosisi = a.Userid
+			break
+		}
+	}
+	// Fallback: jika tidak ada SIGNER, pakai userid pertama
+	if approvalPosisi == "" && len(req.ApprovalList) > 0 {
+		approvalPosisi = req.ApprovalList[0].Userid
+	}
+
+	approvalListBytes, err := json.Marshal(req.ApprovalList)
+	if err != nil {
+		return fmt.Errorf("gagal serialize approval_list: %w", err)
+	}
+	approvalListStr := string(approvalListBytes)
+
+	// status NULL = sudah disubmit (bukan draft)
+	if err := r.db.Exec(queryUpdateKpi,
+		approvalPosisi, approvalListStr, req.IdPengajuan,
+	).Error; err != nil {
+		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
+	}
+
+	return nil
 }

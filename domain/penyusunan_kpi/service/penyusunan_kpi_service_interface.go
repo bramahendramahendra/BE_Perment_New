@@ -9,9 +9,15 @@ import (
 
 type (
 	PenyusunanKpiServiceInterface interface {
+		// Digunakan oleh endpoint POST /penyusunan-kpi/validate.
+		ValidatePenyusunanKpi(
+			req *dto.ValidatePenyusunanKpiRequest,
+			file *multipart.FileHeader,
+		) (data dto.ValidatePenyusunanKpiResponse, err error)
+
+		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
 		CreatePenyusunanKpi(
 			req *dto.CreatePenyusunanKpiRequest,
-			file *multipart.FileHeader,
 		) (data dto.CreatePenyusunanKpiResponse, err error)
 	}
 
