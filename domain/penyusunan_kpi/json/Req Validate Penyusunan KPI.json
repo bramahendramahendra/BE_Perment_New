@@ -1,0 +1,44 @@
+{
+    "Divisi": {"Kostl":"PS82002","KostlTx":"DIVISI TREASURY BUSINESS"},
+    "Tahun": "2025",
+    "Triwulan": "TW3",
+    "SaveAsDraft": "1",
+    "Kpi": [
+        {
+            "idKpi": "3",
+            "kpi": "OS Briguna Mikro + Ritel",
+            "rumus": "1",
+            "persfektif": "1"
+        },
+        {
+            "idKpi": "6020",
+            "kpi": "LAR KPR",
+            "rumus": "0",
+            "persfektif": "5"
+        },
+        {
+            "idKpi": "0",
+            "kpi": "KPI Lain Main Satu",
+            "rumus": "0",
+            "persfektif": "2"
+        }
+    ],
+    "ChallengeList": [
+        {
+            "idDetailChallenge": "-",
+            "tahun": "-",
+            "triwulan": "-",
+            "namaChallenge": "-",
+            "deskripsiChallenge": "-"
+        }
+    ],
+    "MethodList": [
+        {
+            "idDetailMethod": "-",
+            "tahun": "-",
+            "triwulan": "-",
+            "namaMethod": "-",
+            "deskripsiMethod": "-"
+        }
+    ]
+}
