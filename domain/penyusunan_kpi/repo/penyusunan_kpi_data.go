@@ -108,8 +108,8 @@ func generateIDDetail(idPengajuan string, index int) string {
 	return fmt.Sprintf("%sP%03d", idPengajuan, index+1)
 }
 
-func generateIDSubDetail(idPengajuan string, counter int) string {
-	return fmt.Sprintf("%sC%03d", idPengajuan, counter)
+func generateIDSubDetail(idPengajuan string, globalIndex int) string {
+	return fmt.Sprintf("%sC%03d", idPengajuan, globalIndex)
 }
 
 // =============================================================================
@@ -118,29 +118,30 @@ func generateIDSubDetail(idPengajuan string, counter int) string {
 
 func (r *penyusunanKpiRepo) LookupSubKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error) {
 	row := r.db.Raw(queryLookupSubKpi, subKpiText).Row()
-	scanErr := row.Scan(&idKpi, &kpiFromDB, &rumus)
-	if scanErr != nil {
+	if scanErr := row.Scan(&idKpi, &kpiFromDB, &rumus); scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
-			return "", "", "", nil
+			// Sub KPI tidak ditemukan di master → dianggap KPI lain (id = "0")
+			return "0", subKpiText, "", nil
 		}
-		return "", "", "", fmt.Errorf("gagal lookup mst_kpi untuk sub KPI '%s': %w", subKpiText, scanErr)
+		return "0", subKpiText, "", fmt.Errorf("gagal lookup mst_kpi untuk Sub KPI '%s': %w", subKpiText, scanErr)
 	}
 	return idKpi, kpiFromDB, rumus, nil
 }
 
 func (r *penyusunanKpiRepo) LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error) {
 	row := r.db.Raw(queryLookupPolarisasi, polarisasiText).Row()
-	scanErr := row.Scan(&idPolarisasi)
-	if scanErr != nil {
+	if scanErr := row.Scan(&idPolarisasi); scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
+			// User error: nilai polarisasi dari Excel tidak ada di master
 			return "", &customErrors.BadRequestError{
 				Message: fmt.Sprintf(
-					"polarisasi '%s' tidak ditemukan di master. Nilai yang valid: 'Maximize' atau 'Minimize'",
+					"polarisasi '%s' tidak ditemukan di master polarisasi. Nilai yang valid: 'Maximize' atau 'Minimize'",
 					polarisasiText,
 				),
 			}
 		}
-		return "", fmt.Errorf("gagal lookup mst_polarisasi untuk polarisasi '%s': %w", polarisasiText, scanErr)
+		// System error: query DB gagal
+		return "", fmt.Errorf("gagal lookup master polarisasi untuk polarisasi '%s': %w", polarisasiText, scanErr)
 	}
 	return idPolarisasi, nil
 }
@@ -361,7 +362,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 }
 
 // =============================================================================
-// SUBMIT — update approval pada data KPI yang sudah ada
+// CREATE — update approval pada data KPI yang sudah ada
 // =============================================================================
 
 func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
@@ -395,11 +396,12 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 
 	approvalListBytes, err := json.Marshal(req.ApprovalList)
 	if err != nil {
+		// System error: seharusnya tidak terjadi karena struct sudah tervalidasi
 		return fmt.Errorf("gagal serialize approval_list: %w", err)
 	}
 	approvalListStr := string(approvalListBytes)
 
-	// status NULL = sudah disubmit (bukan draft)
+	// System error: gagal update ke DB
 	if err := r.db.Exec(queryUpdateKpi,
 		approvalPosisi, approvalListStr, req.IdPengajuan,
 	).Error; err != nil {

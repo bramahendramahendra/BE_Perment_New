@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
+	customErrors "permen_api/errors"
 )
 
 // =============================================================================
@@ -17,23 +18,34 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 	file *multipart.FileHeader,
 ) (data dto.ValidatePenyusunanKpiResponse, err error) {
 
+	// User error: tidak mengirim file
 	if file == nil {
-		return data, fmt.Errorf("file Excel tidak ditemukan, pastikan mengirim file via field 'files'")
+		return data, &customErrors.BadRequestError{
+			Message: "file Excel tidak ditemukan, pastikan mengirim file via field 'files'",
+		}
 	}
 
+	// User error: format file salah
 	if !strings.HasSuffix(strings.ToLower(file.Filename), ".xlsx") {
-		return data, fmt.Errorf("file '%s' bukan format Excel (.xlsx)", file.Filename)
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("file '%s' bukan format Excel (.xlsx)", file.Filename),
+		}
 	}
 
+	// User error: isi Excel tidak valid (kolom salah, bobot salah, KPI tidak cocok, dll)
 	kpiSubDetails, err := ParseAndValidateExcel(file, req.Triwulan, req.Kpi)
 	if err != nil {
-		return data, fmt.Errorf("validasi file Excel '%s' gagal: %w", file.Filename, err)
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("validasi file Excel '%s' gagal: %s", file.Filename, err.Error()),
+		}
 	}
 
+	// User error: polarisasi tidak sesuai master, lookup gagal karena data tidak valid
 	if err := s.resolveMasterLookup(kpiSubDetails); err != nil {
 		return data, err
 	}
 
+	// System error: gagal simpan ke DB — biarkan naik apa adanya
 	idPengajuan, err := s.repo.ValidatePenyusunanKpi(req, kpiSubDetails)
 	if err != nil {
 		return data, err
@@ -69,6 +81,7 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 	// Paksa SaveAsDraft selalu "0" saat submit
 	req.SaveAsDraft = "0"
 
+	// User error (idPengajuan tidak ada) atau system error (DB) — repo sudah wrap dengan tipe yang tepat
 	if err := s.repo.CreatePenyusunanKpi(req); err != nil {
 		return data, err
 	}
@@ -83,7 +96,7 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 }
 
 // =============================================================================
-// HELPER
+// HELPER — buildKpiResponse
 // =============================================================================
 
 // buildKpiResponse membangun slice PenyusunanKpiDetailResponse dengan
@@ -155,6 +168,10 @@ func buildKpiResponse(
 	return result
 }
 
+// =============================================================================
+// HELPER — resolveMasterLookup
+// =============================================================================
+
 // resolveMasterLookup melakukan lookup mst_kpi dan mst_polarisasi untuk setiap
 // baris sub KPI, lalu memvalidasi kesesuaian polarisasi dengan rumus di mst_kpi.
 func (s *penyusunanKpiService) resolveMasterLookup(
@@ -166,6 +183,7 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 
 			idKpi, kpiFromDB, rumusMstKpi, err := s.repo.LookupSubKpiMaster(subRow.SubKPI)
 			if err != nil {
+				// System error: query DB gagal
 				return fmt.Errorf(
 					"KPI ke-%d, Sub KPI ke-%d ('%s'): gagal lookup master KPI: %w",
 					i+1, j+1, subRow.SubKPI, err,
@@ -181,10 +199,13 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 
 			idPolarisasi, err := s.repo.LookupPolarisasi(subRow.Polarisasi)
 			if err != nil {
-				return fmt.Errorf(
-					"KPI ke-%d, Sub KPI ke-%d ('%s'): polarisasi '%s' tidak valid: %w",
-					i+1, j+1, subRow.SubKPI, subRow.Polarisasi, err,
-				)
+				// User error: polarisasi yang diisi di Excel tidak valid
+				return &customErrors.BadRequestError{
+					Message: fmt.Sprintf(
+						"KPI ke-%d, Sub KPI ke-%d ('%s'): polarisasi '%s' tidak valid: %s",
+						i+1, j+1, subRow.SubKPI, subRow.Polarisasi, err.Error(),
+					),
+				}
 			}
 			subRow.IdPolarisasi = idPolarisasi
 
@@ -194,14 +215,17 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 					polarisasiMaster = "Minimize"
 				}
 				if idPolarisasi != rumusMstKpi {
-					return fmt.Errorf(
-						"KPI ke-%d, Sub KPI ke-%d ('%s'): polarisasi tidak sesuai master. "+
-							"Excel: '%s' (id=%s), master KPI: '%s' (id=%s). "+
-							"Periksa kembali kolom D pada file Excel",
-						i+1, j+1, subRow.SubKPI,
-						subRow.Polarisasi, idPolarisasi,
-						polarisasiMaster, rumusMstKpi,
-					)
+					// User error: polarisasi tidak cocok dengan master KPI
+					return &customErrors.BadRequestError{
+						Message: fmt.Sprintf(
+							"KPI ke-%d, Sub KPI ke-%d ('%s'): polarisasi tidak sesuai master. "+
+								"Excel: '%s' (id=%s), master KPI: '%s' (id=%s). "+
+								"Periksa kembali kolom D pada file Excel",
+							i+1, j+1, subRow.SubKPI,
+							subRow.Polarisasi, idPolarisasi,
+							polarisasiMaster, rumusMstKpi,
+						),
+					}
 				}
 			}
 		}
