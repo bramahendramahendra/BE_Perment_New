@@ -35,7 +35,7 @@ const (
 	// queryUpdateKpi digunakan oleh CreatePenyusunanKpi untuk mengisi approval dan mengubah status.
 	queryUpdateKpi = `
 		UPDATE data_kpi 
-		SET approval_posisi = ?, approval_list = ?, status = NULL
+		SET approval_posisi = ?, approval_list = ?, status = 0
 		WHERE id_pengajuan = ?`
 
 	queryCheckExistIdPengajuan = `
@@ -175,10 +175,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	r.db.Raw(queryGetOrgeh, req.Kostl).Row().Scan(&orgeh, &orgehTx)
 
 	// status 70 = draft
-	var statusKpi interface{}
-	if req.SaveAsDraft == "1" {
-		statusKpi = 70
-	}
+	var statusKpi interface{} = 70
 
 	kpiDetailPlaceholders := []string{}
 	kpiDetailArgs := []interface{}{}

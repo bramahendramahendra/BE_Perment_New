@@ -60,7 +60,6 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		EntryUser:     req.EntryUser,
 		EntryName:     req.EntryName,
 		EntryTime:     req.EntryTime,
-		SaveAsDraft:   req.SaveAsDraft,
 		TotalKpi:      len(req.Kpi),
 		Kpi:           buildKpiResponse(idPengajuan, req.Kpi, kpiSubDetails),
 		ChallengeList: req.ChallengeList,
@@ -77,10 +76,6 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 func (s *penyusunanKpiService) CreatePenyusunanKpi(
 	req *dto.CreatePenyusunanKpiRequest,
 ) (data dto.CreatePenyusunanKpiResponse, err error) {
-
-	// Paksa SaveAsDraft selalu "0" saat submit
-	req.SaveAsDraft = "0"
-
 	// User error (idPengajuan tidak ada) atau system error (DB) — repo sudah wrap dengan tipe yang tepat
 	if err := s.repo.CreatePenyusunanKpi(req); err != nil {
 		return data, err
@@ -88,7 +83,6 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 
 	data = dto.CreatePenyusunanKpiResponse{
 		IdPengajuan:  req.IdPengajuan,
-		SaveAsDraft:  req.SaveAsDraft,
 		ApprovalList: req.ApprovalList,
 	}
 

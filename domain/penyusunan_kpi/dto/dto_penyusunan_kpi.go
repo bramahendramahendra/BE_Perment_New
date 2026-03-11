@@ -19,7 +19,6 @@ type ValidatePenyusunanKpiRequest struct {
 	EntryUser     string                       `json:"EntryUser"`
 	EntryName     string                       `json:"EntryName"`
 	EntryTime     string                       `json:"EntryTime"`
-	SaveAsDraft   string                       `json:"SaveAsDraft"   validate:"required"`
 	Kpi           []PenyusunanKpiDetailRequest `json:"Kpi"           validate:"required,min=1,dive"`
 	ChallengeList []PenyusunanChallenge        `json:"ChallengeList" validate:"required,min=1,dive"`
 	MethodList    []PenyusunanMethod           `json:"MethodList"    validate:"required,min=1,dive"`
@@ -29,7 +28,6 @@ type ValidatePenyusunanKpiRequest struct {
 type CreatePenyusunanKpiRequest struct {
 	IdPengajuan  string     `json:"idPengajuan"  validate:"required"`
 	ApprovalList []Approval `json:"ApprovalList" validate:"required,min=1,dive"`
-	SaveAsDraft  string     `json:"SaveAsDraft"  validate:"required"`
 }
 
 type PenyusunanKpiDetailRequest struct {
