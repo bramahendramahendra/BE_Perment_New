@@ -1,0 +1,52 @@
+package handler
+
+import (
+	"fmt"
+	"net/http"
+
+	dto "permen_api/domain/template/dto"
+	service "permen_api/domain/template/service"
+	"permen_api/errors"
+	binder "permen_api/pkg/binder"
+	validator "permen_api/validation"
+
+	"github.com/gin-gonic/gin"
+)
+
+type TemplateHandler struct {
+	service service.TemplateServiceInterface
+}
+
+func NewTemplateHandler(service service.TemplateServiceInterface) *TemplateHandler {
+	return &TemplateHandler{service: service}
+}
+
+// GetFormatPenyusunanKpi handles GET /template/format-penyusunan-kpi
+// Menerima JSON body dengan field triwulan (TW1/TW2/TW3/TW4).
+// Menghasilkan file Excel template yang langsung diunduh oleh client.
+func (h *TemplateHandler) GetFormatPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.FormatPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	fileBytes, filename, err := h.service.GenerateFormatPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	// Set header response untuk file download
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Cache-Control", "no-cache")
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
+}

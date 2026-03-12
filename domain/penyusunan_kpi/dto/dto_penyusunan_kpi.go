@@ -131,7 +131,6 @@ type ValidatePenyusunanKpiResponse struct {
 // CreatePenyusunanKpiResponse adalah response untuk endpoint /create.
 type CreatePenyusunanKpiResponse struct {
 	IdPengajuan  string     `json:"idPengajuan"`
-	SaveAsDraft  string     `json:"saveAsDraft"`
 	ApprovalList []Approval `json:"approvalList"`
 }
 

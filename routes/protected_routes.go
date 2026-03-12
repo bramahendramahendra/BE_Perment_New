@@ -11,6 +11,11 @@ func protectedRoutes(r *gin.RouterGroup) {
 	r.Use(auth_middleware.BearerAuthMiddleware())
 
 	// =============================================
+	// DOMAIN: TEMPLATE
+	// =============================================
+	segment.TemplateRoutes(r)
+
+	// =============================================
 	// DOMAIN: PENYUSUNAN KPI
 	// =============================================
 	segment.PenyusunanKpiRoutes(r)
