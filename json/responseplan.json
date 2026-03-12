@@ -8,14 +8,13 @@
         "triwulan": "TW3",
         "divisi": {
             "kostl": "PS82002",
-            "kostlTx": "DIVISI TREASURY BUSINESS",
+            "kostlTx": "DIVISI TREASURY BUSINESS"
         },
         "entry":{
             "entryUser": "00294429",
             "entryName": "Felia Puti Salsabila",
-            "entryTime": "2026-03-09 15:55:31"
+            "entryTime": "2026-03-11 16:02:11"
         },
-        "saveAsDraft": "1",
         "totalKpi": 3,
         "kpi": [
             {

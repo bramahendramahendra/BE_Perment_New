@@ -3,27 +3,30 @@
     "status": true,
     "message": "Data KPI berhasil disimpan",
     "data": {
-        "idPengajuan": "PS820022025TW3260311113532",
-        "tahun": "2025",
+        "idPengajuan": "PS820022024TW3260312093209",
+        "tahun": "2024",
         "triwulan": "TW3",
-        "kostl": "PS82002",
-        "kostlTx": "DIVISI TREASURY BUSINESS",
-        "entryUser": "00294429",
-        "entryName": "Felia Puti Salsabila",
-        "entryTime": "2026-03-11 11:35:31",
-        "saveAsDraft": "1",
+        "divisi": {
+            "kostl": "PS82002",
+            "kostlTx": "DIVISI TREASURY BUSINESS"
+        },
+        "entry": {
+            "entryUser": "00294429",
+            "entryName": "Felia Puti Salsabila",
+            "entryTime": "2026-03-12 09:32:07"
+        },
         "totalKpi": 3,
         "kpi": [
             {
+                "idDetail": "PS820022024TW3260312093209P001",
                 "idKpi": "3",
                 "kpi": "OS Briguna Mikro + Ritel",
                 "rumus": "1",
                 "persfektif": "1",
+                "totalSubKpi": 3,
                 "kpiSubDetail": [
                     {
-                        "idDetail": "PS820022025TW3260311113532P001",
-                        "idSubDetail": "PS820022025TW3260311113532C001",
-                        "namaKpi": "OS Briguna Mikro + Ritel",
+                        "idSubDetail": "PS820022024TW3260312093209C001",
                         "idSubKpi": "1",
                         "subKpi": "OS Briguna Mikro",
                         "otomatis": "1",
@@ -48,9 +51,7 @@
                         "deskripsiContext": null
                     },
                     {
-                        "idDetail": "PS820022025TW3260311113532P001",
-                        "idSubDetail": "PS820022025TW3260311113532C002",
-                        "namaKpi": "OS Briguna Mikro + Ritel",
+                        "idSubDetail": "PS820022024TW3260312093209C002",
                         "idSubKpi": "7",
                         "subKpi": "%DPK KPR",
                         "otomatis": "1",
@@ -75,9 +76,7 @@
                         "deskripsiContext": null
                     },
                     {
-                        "idDetail": "PS820022025TW3260311113532P001",
-                        "idSubDetail": "PS820022025TW3260311113532C003",
-                        "namaKpi": "OS Briguna Mikro + Ritel",
+                        "idSubDetail": "PS820022024TW3260312093209C003",
                         "idSubKpi": "0",
                         "subKpi": "KPI lain satu",
                         "otomatis": "0",
@@ -104,15 +103,15 @@
                 ]
             },
             {
+                "idDetail": "PS820022024TW3260312093209P002",
                 "idKpi": "6020",
                 "kpi": "LAR KPR",
                 "rumus": "0",
                 "persfektif": "5",
+                "totalSubKpi": 3,
                 "kpiSubDetail": [
                     {
-                        "idDetail": "PS820022025TW3260311113532P002",
-                        "idSubDetail": "PS820022025TW3260311113532C004",
-                        "namaKpi": "LAR KPR",
+                        "idSubDetail": "PS820022024TW3260312093209C004",
                         "idSubKpi": "2006",
                         "subKpi": "Daily Average CASA MNP",
                         "otomatis": "1",
@@ -137,9 +136,7 @@
                         "deskripsiContext": null
                     },
                     {
-                        "idDetail": "PS820022025TW3260311113532P002",
-                        "idSubDetail": "PS820022025TW3260311113532C005",
-                        "namaKpi": "LAR KPR",
+                        "idSubDetail": "PS820022024TW3260312093209C005",
                         "idSubKpi": "6032",
                         "subKpi": "LAR SDD",
                         "otomatis": "1",
@@ -164,9 +161,7 @@
                         "deskripsiContext": null
                     },
                     {
-                        "idDetail": "PS820022025TW3260311113532P002",
-                        "idSubDetail": "PS820022025TW3260311113532C006",
-                        "namaKpi": "LAR KPR",
+                        "idSubDetail": "PS820022024TW3260312093209C006",
                         "idSubKpi": "0",
                         "subKpi": "KPI lain dua",
                         "otomatis": "0",
@@ -193,15 +188,15 @@
                 ]
             },
             {
+                "idDetail": "PS820022024TW3260312093209P003",
                 "idKpi": "0",
                 "kpi": "KPI Lain Main Satu",
                 "rumus": "0",
                 "persfektif": "2",
+                "totalSubKpi": 3,
                 "kpiSubDetail": [
                     {
-                        "idDetail": "PS820022025TW3260311113532P003",
-                        "idSubDetail": "PS820022025TW3260311113532C007",
-                        "namaKpi": "KPI Lain Main Satu",
+                        "idSubDetail": "PS820022024TW3260312093209C007",
                         "idSubKpi": "27",
                         "subKpi": "Rp Performing Loan Mikro",
                         "otomatis": "1",
@@ -226,9 +221,7 @@
                         "deskripsiContext": null
                     },
                     {
-                        "idDetail": "PS820022025TW3260311113532P003",
-                        "idSubDetail": "PS820022025TW3260311113532C008",
-                        "namaKpi": "KPI Lain Main Satu",
+                        "idSubDetail": "PS820022024TW3260312093209C008",
                         "idSubKpi": "16023",
                         "subKpi": "LAR KPR CMT",
                         "otomatis": "1",
@@ -253,9 +246,7 @@
                         "deskripsiContext": null
                     },
                     {
-                        "idDetail": "PS820022025TW3260311113532P003",
-                        "idSubDetail": "PS820022025TW3260311113532C009",
-                        "namaKpi": "KPI Lain Main Satu",
+                        "idSubDetail": "PS820022024TW3260312093209C009",
                         "idSubKpi": "0",
                         "subKpi": "KPI lain tiga",
                         "otomatis": "0",

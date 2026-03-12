@@ -52,14 +52,18 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 	}
 
 	data = dto.ValidatePenyusunanKpiResponse{
-		IDPengajuan:   idPengajuan,
-		Tahun:         req.Tahun,
-		Triwulan:      req.Triwulan,
-		Kostl:         req.Kostl,
-		KostlTx:       req.KostlTx,
-		EntryUser:     req.EntryUser,
-		EntryName:     req.EntryName,
-		EntryTime:     req.EntryTime,
+		IDPengajuan: idPengajuan,
+		Tahun:       req.Tahun,
+		Triwulan:    req.Triwulan,
+		Divisi: dto.DivisiResponse{
+			Kostl:   req.Divisi.Kostl,
+			KostlTx: req.Divisi.KostlTx,
+		},
+		Entry: dto.EntryResponse{
+			EntryUser: req.EntryUser,
+			EntryName: req.EntryName,
+			EntryTime: req.EntryTime,
+		},
 		TotalKpi:      len(req.Kpi),
 		Kpi:           buildKpiResponse(idPengajuan, req.Kpi, kpiSubDetails),
 		ChallengeList: req.ChallengeList,
@@ -70,7 +74,7 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 }
 
 // =============================================================================
-// SUBMIT (CREATE)
+// CREATE
 // =============================================================================
 
 func (s *penyusunanKpiService) CreatePenyusunanKpi(
@@ -122,9 +126,7 @@ func buildKpiResponse(
 			}
 
 			subDetails = append(subDetails, dto.PenyusunanKpiSubDetailResponse{
-				IdDetail:                  idDetail,
 				IdSubDetail:               idSubDetail,
-				NamaKpi:                   subRow.KPI,
 				IdSubKpi:                  subRow.IdSubKpi,
 				SubKpi:                    subRow.SubKPI,
 				Otomatis:                  subRow.Otomatis,
@@ -151,10 +153,12 @@ func buildKpiResponse(
 		}
 
 		result = append(result, dto.PenyusunanKpiDetailResponse{
+			IdDetail:     idDetail,
 			IdKpi:        kpiItem.IdKpi,
 			Kpi:          kpiItem.Kpi,
 			Rumus:        kpiItem.Rumus,
 			Persfektif:   kpiItem.Persfektif,
+			TotalSubKpi:  len(rows),
 			KpiSubDetail: subDetails,
 		})
 	}

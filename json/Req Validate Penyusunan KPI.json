@@ -1,8 +1,7 @@
 {
     "Divisi": {"Kostl":"PS82002","KostlTx":"DIVISI TREASURY BUSINESS"},
-    "Tahun": "2025",
+    "Tahun": "2024",
     "Triwulan": "TW3",
-    "SaveAsDraft": "1",
     "Kpi": [
         {
             "idKpi": "3",

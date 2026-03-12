@@ -102,17 +102,26 @@ type PenyusunanKpiSubDetailRow struct {
 // RESPONSE DTO
 // =============================================================================
 
+// DivisiResponse digunakan di dalam ValidatePenyusunanKpiResponse.
+type DivisiResponse struct {
+	Kostl   string `json:"kostl"`
+	KostlTx string `json:"kostlTx"`
+}
+
+// EntryResponse digunakan di dalam ValidatePenyusunanKpiResponse.
+type EntryResponse struct {
+	EntryUser string `json:"entryUser"`
+	EntryName string `json:"entryName"`
+	EntryTime string `json:"entryTime"`
+}
+
 // ValidatePenyusunanKpiResponse adalah response untuk endpoint /validate.
 type ValidatePenyusunanKpiResponse struct {
 	IDPengajuan   string                        `json:"idPengajuan"`
 	Tahun         string                        `json:"tahun"`
 	Triwulan      string                        `json:"triwulan"`
-	Kostl         string                        `json:"kostl"`
-	KostlTx       string                        `json:"kostlTx"`
-	EntryUser     string                        `json:"entryUser"`
-	EntryName     string                        `json:"entryName"`
-	EntryTime     string                        `json:"entryTime"`
-	SaveAsDraft   string                        `json:"saveAsDraft"`
+	Divisi        DivisiResponse                `json:"divisi"`
+	Entry         EntryResponse                 `json:"entry"`
 	TotalKpi      int                           `json:"totalKpi"`
 	Kpi           []PenyusunanKpiDetailResponse `json:"kpi"`
 	ChallengeList []PenyusunanChallenge         `json:"challengeList"`
@@ -127,17 +136,17 @@ type CreatePenyusunanKpiResponse struct {
 }
 
 type PenyusunanKpiDetailResponse struct {
+	IdDetail     string                           `json:"idDetail"`
 	IdKpi        string                           `json:"idKpi"`
 	Kpi          string                           `json:"kpi"`
 	Rumus        string                           `json:"rumus"`
 	Persfektif   string                           `json:"persfektif"`
+	TotalSubKpi  int                              `json:"totalSubKpi"`
 	KpiSubDetail []PenyusunanKpiSubDetailResponse `json:"kpiSubDetail"`
 }
 
 type PenyusunanKpiSubDetailResponse struct {
-	IdDetail                  string  `json:"idDetail"`
 	IdSubDetail               string  `json:"idSubDetail"`
-	NamaKpi                   string  `json:"namaKpi"`
 	IdSubKpi                  string  `json:"idSubKpi"`
 	SubKpi                    string  `json:"subKpi"`
 	Otomatis                  string  `json:"otomatis"`
