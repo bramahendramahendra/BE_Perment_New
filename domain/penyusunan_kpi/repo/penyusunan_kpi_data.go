@@ -9,6 +9,7 @@ import (
 	"time"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
+	"permen_api/domain/penyusunan_kpi/utils"
 	customErrors "permen_api/errors"
 )
 
@@ -155,7 +156,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 ) (string, error) {
 
-	idPengajuan := generateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
+	idPengajuan := utils.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
 
 	var countExist int
 	if err := r.db.Raw(queryCheckExistKpi, req.Tahun, req.Triwulan, req.Kostl).
@@ -182,7 +183,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	idDetailMap := make(map[int]string)
 
 	for i, kpiItem := range req.Kpi {
-		idDetail := generateIDDetail(idPengajuan, i)
+		idDetail := utils.GenerateIDDetail(idPengajuan, i)
 		idDetailMap[i] = idDetail
 
 		kpiDetailPlaceholders = append(kpiDetailPlaceholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
@@ -212,7 +213,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		idDetail := idDetailMap[i]
 
 		for _, subRow := range rows {
-			idSubDetail := generateIDSubDetail(idPengajuan, subCounter)
+			idSubDetail := utils.GenerateIDSubDetail(idPengajuan, subCounter)
 			subCounter++
 
 			itemQualifier, deskripsiQualifier, targetQualifier := "", "", ""
@@ -309,7 +310,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		return "", fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
 	}
 
-	// approval_posisi dan approval_list dikosongkan — diisi saat SubmitPenyusunanKpi
+	// approval_posisi dan approval_list dikosongkan — diisi saat CreatePenyusunanKpi
 	if err := tx.Exec(queryInsertKpi,
 		idPengajuan, req.Tahun, req.Triwulan, req.Kostl, req.KostlTx,
 		orgeh, orgehTx, req.EntryUser, req.EntryName, req.EntryTime,

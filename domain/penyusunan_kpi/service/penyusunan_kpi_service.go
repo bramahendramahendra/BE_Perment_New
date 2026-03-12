@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
+	"permen_api/domain/penyusunan_kpi/utils"
 	customErrors "permen_api/errors"
 )
 
@@ -33,7 +34,7 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 	}
 
 	// User error: isi Excel tidak valid (kolom salah, bobot salah, KPI tidak cocok, dll)
-	kpiSubDetails, err := ParseAndValidateExcel(file, req.Triwulan, req.Kpi)
+	kpiSubDetails, err := utils.ParseAndValidateExcel(file, req.Triwulan, req.Kpi)
 	if err != nil {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("validasi file Excel '%s' gagal: %s", file.Filename, err.Error()),
@@ -65,7 +66,7 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 			EntryTime: req.EntryTime,
 		},
 		TotalKpi:      len(req.Kpi),
-		Kpi:           buildKpiResponse(idPengajuan, req.Kpi, kpiSubDetails),
+		Kpi:           utils.BuildKpiResponse(idPengajuan, req.Kpi, kpiSubDetails),
 		ChallengeList: req.ChallengeList,
 		MethodList:    req.MethodList,
 	}
