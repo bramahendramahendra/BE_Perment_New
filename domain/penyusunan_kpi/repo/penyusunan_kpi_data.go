@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
 	"permen_api/domain/penyusunan_kpi/utils"
@@ -87,31 +86,6 @@ const (
 		WHERE LOWER(polarisasi) = LOWER(?)
 		LIMIT 1`
 )
-
-// =============================================================================
-// HELPER
-// =============================================================================
-
-func generateIDPengajuan(kostl, tahun, triwulan string) string {
-	t := time.Now()
-	timestamp := fmt.Sprintf("%02d%02d%02d%02d%02d%02d",
-		t.Year()%100,
-		int(t.Month()),
-		t.Day(),
-		t.Hour(),
-		t.Minute(),
-		t.Second(),
-	)
-	return kostl + tahun + triwulan + timestamp
-}
-
-func generateIDDetail(idPengajuan string, index int) string {
-	return fmt.Sprintf("%sP%03d", idPengajuan, index+1)
-}
-
-func generateIDSubDetail(idPengajuan string, globalIndex int) string {
-	return fmt.Sprintf("%sC%03d", idPengajuan, globalIndex)
-}
 
 // =============================================================================
 // LOOKUP

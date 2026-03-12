@@ -184,12 +184,14 @@ func parseAndValidateExcelInternal(
 		if colC == "" {
 			return nil, fmt.Errorf("baris %d, Kolom C (Sub KPI): tidak boleh kosong", displayRow)
 		}
+
 		if colD == "" {
 			return nil, fmt.Errorf("baris %d, Kolom D (Polarisasi): tidak boleh kosong", displayRow)
 		}
 		if colD != PolarisasiMaximize && colD != PolarisasiMinimize {
 			return nil, fmt.Errorf("baris %d, Kolom D (Polarisasi): nilai '%s' tidak valid. Gunakan '%s' atau '%s'", displayRow, colD, PolarisasiMaximize, PolarisasiMinimize)
 		}
+
 		if colE == "" {
 			return nil, fmt.Errorf("baris %d, Kolom E (Capping): tidak boleh kosong", displayRow)
 		}
@@ -197,27 +199,42 @@ func parseAndValidateExcelInternal(
 			return nil, fmt.Errorf("baris %d, Kolom E (Capping): nilai '%s' tidak valid. Gunakan '%s' atau '%s'", displayRow, colE, CappingOption1, CappingOption2)
 		}
 
-		bobot, err := ParseFloat2Decimal(colF)
-		if err != nil {
-			return nil, fmt.Errorf("baris %d, Kolom F (Bobot): %w", displayRow, err)
+		if colF == "" {
+			return nil, fmt.Errorf("baris %d, Kolom F (Bobot %%): tidak boleh kosong", displayRow)
 		}
-		if bobot <= 0 {
-			return nil, fmt.Errorf("baris %d, Kolom F (Bobot): harus lebih dari 0", displayRow)
+		bobot, errBobot := ParseFloat2Decimal(colF)
+		if errBobot != nil {
+			return nil, fmt.Errorf("baris %d, Kolom F (Bobot %%): harus berupa angka 2 desimal tanpa simbol persen, nilai saat ini: '%s'", displayRow, colF)
+		}
+		bobotPerKpi[kpiIdx] += bobot
+
+		if colG == "" {
+			return nil, fmt.Errorf("baris %d, Kolom G (Glossary): tidak boleh kosong", displayRow)
 		}
 
-		targetKuantitatifTriwulan, err := ParseFloat2Decimal(colI)
-		if err != nil {
-			return nil, fmt.Errorf("baris %d, Kolom I (Target Kuantitatif Triwulan): %w", displayRow, err)
+		if colH == "" {
+			return nil, fmt.Errorf("baris %d, Kolom H (Target Triwulanan): tidak boleh kosong", displayRow)
 		}
 
-		targetKuantitatifTahunan, err := ParseFloat2Decimal(colK)
-		if err != nil {
-			return nil, fmt.Errorf("baris %d, Kolom K (Target Kuantitatif Tahunan): %w", displayRow, err)
+		targetKuantitatifTriwulan, errI := ParseFloat2Decimal(colI)
+		if errI != nil {
+			return nil, fmt.Errorf("baris %d, Kolom I (Target Kuantitatif Triwulanan): harus berupa angka 2 desimal, nilai saat ini: '%s'", displayRow, colI)
+		}
+
+		if colJ == "" {
+			return nil, fmt.Errorf("baris %d, Kolom J (Target Tahunan): tidak boleh kosong", displayRow)
+		}
+
+		targetKuantitatifTahunan, errK := ParseFloat2Decimal(colK)
+		if errK != nil {
+			return nil, fmt.Errorf("baris %d, Kolom K (Target Kuantitatif Tahunan): harus berupa angka 2 desimal, nilai saat ini: '%s'", displayRow, colK)
 		}
 
 		if colL == "" {
 			return nil, fmt.Errorf("baris %d, Kolom L (Terdapat Qualifier): tidak boleh kosong", displayRow)
 		}
+
+		// if colL != QualifierYa && colL != QualifierTidak {
 		if !strings.EqualFold(colL, QualifierYa) && !strings.EqualFold(colL, QualifierTidak) {
 			return nil, fmt.Errorf("baris %d, Kolom L (Terdapat Qualifier): nilai '%s' tidak valid. Gunakan '%s' atau '%s'", displayRow, colL, QualifierYa, QualifierTidak)
 		}
@@ -287,10 +304,7 @@ func parseAndValidateExcelInternal(
 			DeskripsiContext:          NullableString(colU, isTW4),
 		}
 
-		bobotPerKpi[kpiIdx] += bobot
 		kpiSubDetails[kpiIdx] = append(kpiSubDetails[kpiIdx], subRow)
-
-		_ = no // used for validation only
 	}
 
 	for i, kpiItem := range kpiList {
