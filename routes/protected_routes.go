@@ -21,9 +21,14 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.PenyusunanKpiRoutes(r)
 
 	// =============================================
+	// DOMAIN: MASTER TRIWULAN
+	// =============================================
+	segment.MasterTriwulanRoutes(r)
+
+	// =============================================
 	// ENDPOINT TESTING — hapus setelah verified ✅
 	// =============================================
-	r.POST("/ping", func(c *gin.Context) {
+	r.POST("/health", func(c *gin.Context) {
 		// c.JSON(200, gin.H{
 		// 	"message":      "pong - protected route berhasil",
 		// 	"header_user":  c.GetHeader("User"),  // hasil dari Prioritas 6

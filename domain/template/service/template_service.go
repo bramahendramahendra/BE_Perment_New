@@ -190,9 +190,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		Operator:         "greaterThan",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       excelize.Ptr("stop"),
-		ErrorTitle:       excelize.Ptr("Input Tidak Valid"),
-		Error:            excelize.Ptr("Kolom No. harus berupa angka bulat positif."),
+		ErrorStyle:       strPtr("stop"),
+		ErrorTitle:       strPtr("Input Tidak Valid"),
+		Error:            strPtr("Kolom No. harus berupa angka bulat positif."),
 		Sqref:            sqrefDataRange("A"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom A: %v", err)}
@@ -205,9 +205,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Polarisasi: %v", err)}
 	}
 	dvPolarisasi.ShowErrorMessage = true
-	dvPolarisasi.ErrorStyle = excelize.Ptr("stop")
-	dvPolarisasi.ErrorTitle = excelize.Ptr("Input Tidak Valid")
-	dvPolarisasi.Error = excelize.Ptr("Pilih salah satu: Maximize atau Minimize.")
+	dvPolarisasi.ErrorStyle = strPtr("stop")
+	dvPolarisasi.ErrorTitle = strPtr("Input Tidak Valid")
+	dvPolarisasi.Error = strPtr("Pilih salah satu: Maximize atau Minimize.")
 	if err := f.AddDataValidation(sheetName, dvPolarisasi); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Polarisasi: %v", err)}
 	}
@@ -219,9 +219,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Capping: %v", err)}
 	}
 	dvCapping.ShowErrorMessage = true
-	dvCapping.ErrorStyle = excelize.Ptr("stop")
-	dvCapping.ErrorTitle = excelize.Ptr("Input Tidak Valid")
-	dvCapping.Error = excelize.Ptr("Pilih salah satu: 100% atau 110%.")
+	dvCapping.ErrorStyle = strPtr("stop")
+	dvCapping.ErrorTitle = strPtr("Input Tidak Valid")
+	dvCapping.Error = strPtr("Pilih salah satu: 100% atau 110%.")
 	if err := f.AddDataValidation(sheetName, dvCapping); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Capping: %v", err)}
 	}
@@ -233,9 +233,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		Formula1:         "0",
 		Formula2:         "100",
 		ShowErrorMessage: true,
-		ErrorStyle:       excelize.Ptr("stop"),
-		ErrorTitle:       excelize.Ptr("Input Tidak Valid"),
-		Error:            excelize.Ptr("Bobot harus berupa angka antara 0 s.d. 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
+		ErrorStyle:       strPtr("stop"),
+		ErrorTitle:       strPtr("Input Tidak Valid"),
+		Error:            strPtr("Bobot harus berupa angka antara 0 s.d. 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
 		Sqref:            sqrefDataRange("F"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Bobot: %v", err)}
@@ -247,9 +247,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       excelize.Ptr("stop"),
-		ErrorTitle:       excelize.Ptr("Input Tidak Valid"),
-		Error:            excelize.Ptr("Target Kuantitatif Triwulanan harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       strPtr("stop"),
+		ErrorTitle:       strPtr("Input Tidak Valid"),
+		Error:            strPtr("Target Kuantitatif Triwulanan harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("I"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom I: %v", err)}
@@ -261,9 +261,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       excelize.Ptr("stop"),
-		ErrorTitle:       excelize.Ptr("Input Tidak Valid"),
-		Error:            excelize.Ptr("Target Kuantitatif Tahunan harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       strPtr("stop"),
+		ErrorTitle:       strPtr("Input Tidak Valid"),
+		Error:            strPtr("Target Kuantitatif Tahunan harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("K"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom K: %v", err)}
@@ -276,9 +276,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Terdapat Qualifier: %v", err)}
 	}
 	dvQualifier.ShowErrorMessage = true
-	dvQualifier.ErrorStyle = excelize.Ptr("stop")
-	dvQualifier.ErrorTitle = excelize.Ptr("Input Tidak Valid")
-	dvQualifier.Error = excelize.Ptr("Pilih salah satu: Ya atau Tidak.")
+	dvQualifier.ErrorStyle = strPtr("stop")
+	dvQualifier.ErrorTitle = strPtr("Input Tidak Valid")
+	dvQualifier.Error = strPtr("Pilih salah satu: Ya atau Tidak.")
 	if err := f.AddDataValidation(sheetName, dvQualifier); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Terdapat Qualifier: %v", err)}
 	}
@@ -342,13 +342,18 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal write file Excel: %v", err)}
 	}
 
-	filename := fmt.Sprintf("Template_Penyusunan_KPI_%s.xlsx", req.Triwulan)
+	filename := fmt.Sprintf("Format Penyusunan KPI Aplikasi Performance Management %s.xlsx", req.Triwulan)
 	return buf.Bytes(), filename, nil
 }
 
 // =============================================================================
 // Helper
 // =============================================================================
+
+// strPtr mengembalikan pointer ke string — pengganti excelize.Ptr yang tidak tersedia di v2.10.1.
+func strPtr(s string) *string {
+	return &s
+}
 
 // borderStyle mengembalikan konfigurasi border tipis untuk semua sisi cell.
 func borderStyle() []excelize.Border {

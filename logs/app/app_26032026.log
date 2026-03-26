@@ -1,0 +1,1 @@
+{"level":"INFO","time":"2026-03-26T10:29:29.115+0700","caller":"logger/zap.go:82","message":"Read request body","method":"POST","endpoint":"localhost:8006/api/master-triwulan/get-all","context":"Internal Log","scope":"Auth middleware","requestId":"9304f5d4-912c-4824-9950-943fac4763ad","startTime":"2026-03-26 10:29:29","endTime":"2026-03-26 10:29:29","additional_data":""}
