@@ -1,7 +1,7 @@
 package repo
 
 import (
-	model "permen_api/domain/master_triwulan/model"
+	"permen_api/domain/master_triwulan/model"
 
 	"gorm.io/gorm"
 )
