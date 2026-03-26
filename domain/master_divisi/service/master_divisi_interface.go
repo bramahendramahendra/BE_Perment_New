@@ -1,20 +1,20 @@
 package service
 
 import (
-	dto "permen_api/domain/sample/dto"
-	repo "permen_api/domain/sample/repo"
+	dto "permen_api/domain/master_divisi/dto"
+	repo "permen_api/domain/master_divisi/repo"
 )
 
 type (
-	UserIntegrationServiceInterface interface {
-		GetAllUserIntegrations() (data []dto.UserIntegrationResponse, err error)
+	MasterDivisiServiceInterface interface {
+		GetAllMasterDivisi() (data []dto.MasterDivisiResponse, err error)
 	}
 
-	userIntegrationService struct {
-		repo repo.UserIntegrationRepoInterface
+	masterDivisiService struct {
+		repo repo.MasterDivisiRepoInterface
 	}
 )
 
-func NewUserIntegrationService(repo repo.UserIntegrationRepoInterface) *userIntegrationService {
-	return &userIntegrationService{repo: repo}
+func NewMasterDivisiService(repo repo.MasterDivisiRepoInterface) *masterDivisiService {
+	return &masterDivisiService{repo: repo}
 }

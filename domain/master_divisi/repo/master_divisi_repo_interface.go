@@ -1,25 +1,26 @@
 package repo
 
 import (
-	model "permen_api/domain/sample/model"
+	model "permen_api/domain/master_divisi/model"
 
 	"gorm.io/gorm"
 )
 
 type (
-	UserIntegrationRepoInterface interface {
-		GetAllUserIntegrations() ([]*model.UserIntegration, error)
+	MasterDivisiRepoInterface interface {
+		GetAllMasterDivisi() ([]*model.MstDivisi, error)
+		GetDB() *gorm.DB
 	}
 
-	userIntegrationRepo struct {
+	masterDivisiRepo struct {
 		db *gorm.DB
 	}
 )
 
-func NewUserIntegrationRepo(db *gorm.DB) *userIntegrationRepo {
-	return &userIntegrationRepo{db: db}
+func NewMasterDivisiRepo(db *gorm.DB) *masterDivisiRepo {
+	return &masterDivisiRepo{db: db}
 }
 
-func (r *userIntegrationRepo) GetDB() *gorm.DB {
+func (r *masterDivisiRepo) GetDB() *gorm.DB {
 	return r.db
 }
