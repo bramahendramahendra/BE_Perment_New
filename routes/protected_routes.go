@@ -31,6 +31,11 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.MasterPerspektifRoutes(r)
 
 	// =============================================
+	// DOMAIN: MASTER TAHUN
+	// =============================================
+	segment.MasterTahunRoutes(r)
+
+	// =============================================
 	// ENDPOINT TESTING — hapus setelah verified ✅
 	// =============================================
 	r.POST("/health", func(c *gin.Context) {

@@ -1,23 +1,23 @@
 package handler
 
 import (
-	service "permen_api/domain/sample/service"
+	service "permen_api/domain/master_tahun/service"
 	globalDTO "permen_api/dto"
 	response_helper "permen_api/helper/response"
 
 	"github.com/gin-gonic/gin"
 )
 
-type SampleHandler struct {
-	service service.UserIntegrationServiceInterface
+type MasterTahunHandler struct {
+	service service.MasterTahunServiceInterface
 }
 
-func NewSampleHandler(service service.UserIntegrationServiceInterface) *SampleHandler {
-	return &SampleHandler{service: service}
+func NewMasterTahunHandler(service service.MasterTahunServiceInterface) *MasterTahunHandler {
+	return &MasterTahunHandler{service: service}
 }
 
-func (h *SampleHandler) GetAllUserIntegrations(c *gin.Context) {
-	data, err := h.service.GetAllUserIntegrations()
+func (h *MasterTahunHandler) GetAllMasterTahun(c *gin.Context) {
+	data, err := h.service.GetAllMasterTahun()
 	if err != nil {
 		c.Error(err)
 		return
@@ -26,7 +26,7 @@ func (h *SampleHandler) GetAllUserIntegrations(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
 		Status:  true,
-		Message: "All user integrations retrieved successfully",
+		Message: "Data Tahun berhasil diambil",
 		Data:    data,
 	})
 }
