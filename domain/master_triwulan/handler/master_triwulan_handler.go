@@ -16,8 +16,8 @@ func NewMasterTriwulanHandler(service service.MasterTriwulanServiceInterface) *M
 	return &MasterTriwulanHandler{service: service}
 }
 
-func (h *MasterTriwulanHandler) GetAllTriwulan(c *gin.Context) {
-	data, err := h.service.GetAllTriwulan()
+func (h *MasterTriwulanHandler) GetAllMasterTriwulan(c *gin.Context) {
+	data, err := h.service.GetAllMasterTriwulan()
 	if err != nil {
 		c.Error(err)
 		return
@@ -26,7 +26,7 @@ func (h *MasterTriwulanHandler) GetAllTriwulan(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
 		Status:  true,
-		Message: "Data master triwulan berhasil diambil",
+		Message: "Data Triwulan berhasil diambil",
 		Data:    data,
 	})
 }

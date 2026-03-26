@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// MasterTriwulanRoutes mendaftarkan semua endpoint untuk domain master triwulan.
+// MasterTriwulanRoutes mendaftarkan semua endpoint untuk domain Master Triwulan.
 // Endpoint ini berada di bawah protected route (memerlukan Bearer Auth).
 //
 // Daftar endpoint:
@@ -21,5 +21,5 @@ func MasterTriwulanRoutes(r *gin.RouterGroup) {
 	masterTriwulanHandler := handler.NewMasterTriwulanHandler(masterTriwulanService)
 
 	masterTriwulanGroup := r.Group("master-triwulan")
-	masterTriwulanGroup.POST("/get-all", masterTriwulanHandler.GetAllTriwulan)
+	masterTriwulanGroup.POST("/get-all", masterTriwulanHandler.GetAllMasterTriwulan)
 }

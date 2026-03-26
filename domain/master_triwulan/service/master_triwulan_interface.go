@@ -7,7 +7,7 @@ import (
 
 type (
 	MasterTriwulanServiceInterface interface {
-		GetAllTriwulan() (data []dto.TriwulanResponse, err error)
+		GetAllMasterTriwulan() (data []dto.MasterTriwulanResponse, err error)
 	}
 
 	masterTriwulanService struct {

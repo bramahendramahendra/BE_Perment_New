@@ -1,14 +1,14 @@
 package repo
 
 import (
-	"permen_api/domain/master_triwulan/model"
+	model "permen_api/domain/master_triwulan/model"
 
 	"gorm.io/gorm"
 )
 
 type (
 	MasterTriwulanRepoInterface interface {
-		GetAllTriwulan() ([]*model.MstTriwulan, error)
+		GetAllMasterTriwulan() ([]*model.MstTriwulan, error)
 		GetDB() *gorm.DB
 	}
 
