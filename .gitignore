@@ -1,3 +1,5 @@
 /vendor
 /tmp
 /.scannerwork
+/logs
+/json
