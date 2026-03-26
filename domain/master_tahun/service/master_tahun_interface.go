@@ -2,6 +2,7 @@ package service
 
 import (
 	dto "permen_api/domain/master_tahun/dto"
+	repo "permen_api/domain/master_tahun/repo"
 )
 
 type (
@@ -9,9 +10,11 @@ type (
 		GetAllMasterTahun() (data []dto.MasterTahunResponse, err error)
 	}
 
-	masterTahunService struct{}
+	masterTahunService struct {
+		repo repo.MasterTahunRepoInterface
+	}
 )
 
-func NewMasterTahunService() *masterTahunService {
-	return &masterTahunService{}
+func NewMasterTahunService(repo repo.MasterTahunRepoInterface) *masterTahunService {
+	return &masterTahunService{repo: repo}
 }

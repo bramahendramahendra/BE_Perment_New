@@ -2,7 +2,9 @@ package segment
 
 import (
 	handler "permen_api/domain/master_tahun/handler"
+	repo "permen_api/domain/master_tahun/repo"
 	service "permen_api/domain/master_tahun/service"
+	db "permen_api/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +16,8 @@ import (
 //
 //	POST /master-tahun/get-all → GetAllMasterTahun
 func MasterTahunRoutes(r *gin.RouterGroup) {
-	masterTahunService := service.NewMasterTahunService()
+	masterTahunRepo := repo.NewMasterTahunRepo(db.DB)
+	masterTahunService := service.NewMasterTahunService(masterTahunRepo)
 	masterTahunHandler := handler.NewMasterTahunHandler(masterTahunService)
 
 	masterTahunGroup := r.Group("master-tahun")
