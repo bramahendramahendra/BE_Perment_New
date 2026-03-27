@@ -8,7 +8,7 @@ import (
 func (s *masterTahunService) GetAllMasterTahun() (data []dto.MasterTahunResponse, err error) {
 	config, err := s.repo.GetMasterTahunConfig()
 	if err != nil {
-		return nil, err
+		return data, err
 	}
 
 	thisYear := time.Now().Year()

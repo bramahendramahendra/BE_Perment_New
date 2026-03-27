@@ -1,39 +1,25 @@
 package service
 
 import (
-	dto "permen_api/domain/sample/dto"
+	dto "permen_api/domain/master_challenge/dto"
 )
 
-func (s *userIntegrationService) GetUserIntegrationByUsername(username string) (data dto.UserIntegrationResponse, err error) {
-	dataDB, err := s.repo.GetUserIntegrationByUsername(username)
-	if err != nil {
-		return data, err
-	}
-
-	data = dto.UserIntegrationResponse{
-		Username:    dataDB.Username,
-		Credentials: dataDB.Credentials,
-		ChannelName: dataDB.ChannelName,
-		CreatedBy:   dataDB.CreatedBy,
-		IsActive:    dataDB.IsActive,
-	}
-
-	return data, nil
-}
-
-func (s *userIntegrationService) GetAllUserIntegrations() (data []dto.UserIntegrationResponse, err error) {
-	dataDB, err := s.repo.GetAllUserIntegrations()
+func (s *masterChallengeService) GetAllMasterChallenge(req *dto.GetAllMasterChallengeRequest) (data []dto.MasterChallengeResponse, err error) {
+	dataDB, err := s.repo.GetAllMasterChallenge(req)
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, dto.UserIntegrationResponse{
-			Username:    v.Username,
-			Credentials: v.Credentials,
-			ChannelName: v.ChannelName,
-			CreatedBy:   v.CreatedBy,
-			IsActive:    v.IsActive,
+		data = append(data, dto.MasterChallengeResponse{
+			IdChallenge:   v.IdChallenge,
+			NamaChallenge: v.NamaChallenge,
+			DescChallenge: v.DescChallenge,
+			Tahun:         v.Tahun,
+			Triwulan:      v.Triwulan,
+			EntryUser:     v.EntryUser,
+			EntryName:     v.EntryName,
+			EntryTime:     v.EntryTime,
 		})
 	}
 

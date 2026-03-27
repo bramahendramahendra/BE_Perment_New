@@ -1,33 +1,32 @@
 package handler
 
 import (
-	dto "permen_api/domain/sample/dto"
-	service "permen_api/domain/sample/service"
+	dto "permen_api/domain/master_challenge/dto"
+	service "permen_api/domain/master_challenge/service"
 	globalDTO "permen_api/dto"
-	errors "permen_api/errors"
+	"permen_api/errors"
 	response_helper "permen_api/helper/response"
 	binder "permen_api/pkg/binder"
-	validator "permen_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
 
-type SampleHandler struct {
-	service service.UserIntegrationServiceInterface
+type MasterChallengeHandler struct {
+	service service.MasterChallengeServiceInterface
 }
 
-func NewSampleHandler(service service.UserIntegrationServiceInterface) *SampleHandler {
-	return &SampleHandler{service: service}
+func NewMasterChallengeHandler(service service.MasterChallengeServiceInterface) *MasterChallengeHandler {
+	return &MasterChallengeHandler{service: service}
 }
 
-func (h *SampleHandler) GetUserIntegrationByUsername(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetUserIntegrationByUsernameRequest](c)
+func (h *MasterChallengeHandler) GetAllMasterChallenge(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllMasterChallengeRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	data, err := h.service.GetUserIntegrationByUsername(req.Username)
+	data, err := h.service.GetAllMasterChallenge(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -36,52 +35,7 @@ func (h *SampleHandler) GetUserIntegrationByUsername(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
 		Status:  true,
-		Message: "User integration retrieved successfully",
-		Data:    data,
-	})
-}
-
-func (h *SampleHandler) GetAllUserIntegrations(c *gin.Context) {
-	data, err := h.service.GetAllUserIntegrations()
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
-		Code:    "00",
-		Status:  true,
-		Message: "All user integrations retrieved successfully",
-		Data:    data,
-	})
-}
-
-func (h *SampleHandler) InquiryCASAVA(c *gin.Context) {
-	req, err := binder.BindJSON[dto.InquiryCASAVARequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, err := h.service.InquiryAccountCASAVA(c, req.AccountNo)
-	if err != nil {
-		errMessage := err.Error()
-		if data.ResponseMessage != "" {
-			errMessage = data.ResponseMessage
-		}
-		c.Error(&errors.BadRequestError{Message: errMessage})
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
-		Code:    "00",
-		Status:  true,
-		Message: "CASAVA inquiry successful",
+		Message: "Data Challenge berhasil diambil",
 		Data:    data,
 	})
 }

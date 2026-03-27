@@ -1,27 +1,27 @@
 package repo
 
 import (
-	model "permen_api/domain/sample/model"
+	dto "permen_api/domain/master_challenge/dto"
+	model "permen_api/domain/master_challenge/model"
 
 	"gorm.io/gorm"
 )
 
 type (
-	UserIntegrationRepoInterface interface {
-		GetUserIntegrationByUsername(username string) (*model.UserIntegration, error)
-		GetAllUserIntegrations() ([]*model.UserIntegration, error)
+	MasterChallengeRepoInterface interface {
+		GetAllMasterChallenge(req *dto.GetAllMasterChallengeRequest) ([]*model.MstChallenge, error)
 		GetDB() *gorm.DB
 	}
 
-	userIntegrationRepo struct {
+	masterChallengeRepo struct {
 		db *gorm.DB
 	}
 )
 
-func NewUserIntegrationRepo(db *gorm.DB) *userIntegrationRepo {
-	return &userIntegrationRepo{db: db}
+func NewMasterChallengeRepo(db *gorm.DB) *masterChallengeRepo {
+	return &masterChallengeRepo{db: db}
 }
 
-func (r *userIntegrationRepo) GetDB() *gorm.DB {
+func (r *masterChallengeRepo) GetDB() *gorm.DB {
 	return r.db
 }

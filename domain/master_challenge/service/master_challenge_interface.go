@@ -1,23 +1,20 @@
 package service
 
 import (
-	dto "permen_api/domain/sample/dto"
-	repo "permen_api/domain/sample/repo"
-	transport "permen_api/pkg/transport"
+	dto "permen_api/domain/master_challenge/dto"
+	repo "permen_api/domain/master_challenge/repo"
 )
 
 type (
-	UserIntegrationServiceInterface interface {
-		GetUserIntegrationByUsername(username string) (data dto.UserIntegrationResponse, err error)
-		GetAllUserIntegrations() (data []dto.UserIntegrationResponse, err error)
+	MasterChallengeServiceInterface interface {
+		GetAllMasterChallenge(req *dto.GetAllMasterChallengeRequest) (data []dto.MasterChallengeResponse, err error)
 	}
 
-	userIntegrationService struct {
-		repo repo.UserIntegrationRepoInterface
-		esb  *transport.RestClient
+	masterChallengeService struct {
+		repo repo.MasterChallengeRepoInterface
 	}
 )
 
-func NewUserIntegrationService(repo repo.UserIntegrationRepoInterface, esb *transport.RestClient) *userIntegrationService {
-	return &userIntegrationService{repo: repo, esb: esb}
+func NewMasterChallengeService(repo repo.MasterChallengeRepoInterface) *masterChallengeService {
+	return &masterChallengeService{repo: repo}
 }

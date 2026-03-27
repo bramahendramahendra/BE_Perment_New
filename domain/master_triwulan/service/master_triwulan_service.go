@@ -7,7 +7,7 @@ import (
 func (s *masterTriwulanService) GetAllMasterTriwulan() (data []dto.MasterTriwulanResponse, err error) {
 	dataDB, err := s.repo.GetAllMasterTriwulan()
 	if err != nil {
-		return nil, err
+		return data, err
 	}
 
 	for _, V := range dataDB {

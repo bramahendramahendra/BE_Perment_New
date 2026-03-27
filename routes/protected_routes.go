@@ -41,6 +41,11 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.MasterDivisiRoutes(r)
 
 	// =============================================
+	// DOMAIN: MASTER CHALLENGE
+	// =============================================
+	segment.MasterChallengeRoutes(r)
+
+	// =============================================
 	// ENDPOINT TESTING — hapus setelah verified ✅
 	// =============================================
 	r.POST("/health", func(c *gin.Context) {
