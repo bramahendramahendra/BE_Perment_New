@@ -1,11 +1,12 @@
 package model
 
-type (
-	UserIntegration struct {
-		Username    string `gorm:"column:username"`
-		Credentials string `gorm:"column:credentials"`
-		ChannelName string `gorm:"column:channel_name"`
-		CreatedBy   string `gorm:"column:created_by"`
-		IsActive    bool   `gorm:"column:is_active"`
-	}
-)
+type MstChallenge struct {
+	IdChallenge   string `gorm:"column:id_challenge"`
+	NamaChallenge string `gorm:"column:nama_challenge"`
+	DescChallenge string `gorm:"column:desc_challenge"`
+	Tahun         string `gorm:"column:tahun"`
+	Triwulan      string `gorm:"column:triwulan"`
+	EntryUser     string `gorm:"column:entry_user"`
+	EntryName     string `gorm:"column:entry_name"`
+	EntryTime     string `gorm:"column:entry_time"`
+}

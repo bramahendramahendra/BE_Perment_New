@@ -2,26 +2,7 @@ package service
 
 import (
 	dto "permen_api/domain/sample/dto"
-	bycrypt "permen_api/pkg/bcrypt"
 )
-
-func (s *userIntegrationService) CreateUserIntegration(req *dto.CreateUserIntegrationRequest) (data dto.CreateUserIntegrationResponse, err error) {
-	hashedCreds, err := bycrypt.HashPassword(req.Creds)
-	if err != nil {
-		return data, err
-	}
-	req.Creds = hashedCreds
-	err = s.repo.CreateUserIntegration(req)
-	if err != nil {
-		return data, err
-	}
-
-	data = dto.CreateUserIntegrationResponse{
-		Username: req.Username,
-	}
-
-	return data, nil
-}
 
 func (s *userIntegrationService) GetUserIntegrationByUsername(username string) (data dto.UserIntegrationResponse, err error) {
 	dataDB, err := s.repo.GetUserIntegrationByUsername(username)

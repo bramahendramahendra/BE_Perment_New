@@ -1,19 +1,21 @@
 package dto
 
-type (
-	GetUserIntegrationByUsernameRequest struct {
-		Username string `uri:"username" validate:"required,alphanum"`
-	}
+// GetAllMasterChallengeRequest adalah request body untuk endpoint GET-ALL master challenge.
+// Semua field bersifat opsional — digunakan sebagai filter.
+type GetAllMasterChallengeRequest struct {
+	Search   string `json:"search"`
+	Triwulan string `json:"triwulan"`
+	Tahun    string `json:"tahun"`
+}
 
-	UserIntegrationResponse struct {
-		Username    string `gorm:"column:username"`
-		Credentials string `gorm:"column:credentials"`
-		ChannelName string `gorm:"column:channel_name"`
-		CreatedBy   string `gorm:"column:created_by"`
-		IsActive    bool   `gorm:"column:is_active"`
-	}
-
-	CreateUserIntegrationResponse struct {
-		Username string `json:"username"`
-	}
-)
+// MasterChallengeResponse adalah response data per item challenge.
+type MasterChallengeResponse struct {
+	IdChallenge   string `json:"idChallenge"`
+	NamaChallenge string `json:"namaChallenge"`
+	DescChallenge string `json:"descChallenge"`
+	Tahun         string `json:"tahun"`
+	Triwulan      string `json:"triwulan"`
+	EntryUser     string `json:"entryUser"`
+	EntryName     string `json:"entryName"`
+	EntryTime     string `json:"entryTime"`
+}
