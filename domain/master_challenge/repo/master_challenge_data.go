@@ -11,6 +11,11 @@ const (
 	GetAllMasterChallengeBaseQuery = `
 		SELECT id_challenge, nama_challenge, desc_challenge, tahun, triwulan, entry_user, entry_name, entry_time
 		FROM mst_challenge`
+
+	CheckTriwulanExistsQuery = `
+		SELECT COUNT(1)
+		FROM mst_triwulan
+		WHERE id_triwulan = ?`
 )
 
 func (r *masterChallengeRepo) GetAllMasterChallenge(req *dto.GetAllMasterChallengeRequest) ([]*model.MstChallenge, error) {
@@ -48,4 +53,13 @@ func (r *masterChallengeRepo) GetAllMasterChallenge(req *dto.GetAllMasterChallen
 	}
 
 	return challenges, nil
+}
+
+func (r *masterChallengeRepo) CheckTriwulanExists(idTriwulan string) (bool, error) {
+	var count int
+	err := r.db.Raw(CheckTriwulanExistsQuery, idTriwulan).Scan(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

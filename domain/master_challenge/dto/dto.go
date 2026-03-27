@@ -4,7 +4,7 @@ package dto
 // Search bersifat opsional, Triwulan dan Tahun wajib diisi.
 type GetAllMasterChallengeRequest struct {
 	Search   string `json:"search"`
-	Triwulan string `json:"triwulan" validate:"required,oneof=TW1 TW2 TW3 TW4"`
+	Triwulan string `json:"triwulan" validate:"required"`
 	Tahun    string `json:"tahun"     validate:"required,numeric,len=4"`
 }
 

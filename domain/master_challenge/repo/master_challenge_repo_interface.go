@@ -10,6 +10,7 @@ import (
 type (
 	MasterChallengeRepoInterface interface {
 		GetAllMasterChallenge(req *dto.GetAllMasterChallengeRequest) ([]*model.MstChallenge, error)
+		CheckTriwulanExists(idTriwulan string) (bool, error)
 		GetDB() *gorm.DB
 	}
 
