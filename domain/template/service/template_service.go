@@ -35,11 +35,11 @@ var columnsBase = []string{
 	"Target Triwulanan (text)",
 	"Target Kuantitatif Triwulanan (angka)",
 	"Target Tahunan (text)",
-	"Target Kuantitatif Tahunan (Text)",
+	"Target Kuantitatif Tahunan (angka)",
 	"Terdapat Qualifier (Ya/Tidak)",
 	"Qualifier (text)",
-	"Deskripsi Qualifier (Text)",
-	"Target Qualifier (Text)",
+	"Deskripsi Qualifier (text)",
+	"Target Qualifier (text)",
 }
 
 // columnsTW4Extra adalah header kolom tambahan P–U khusus sheet TW4.
