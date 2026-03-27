@@ -7,6 +7,7 @@ import (
 	"permen_api/errors"
 	response_helper "permen_api/helper/response"
 	binder "permen_api/pkg/binder"
+	validator "permen_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,6 +24,11 @@ func (h *MasterChallengeHandler) GetAllMasterChallenge(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllMasterChallengeRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 

@@ -7,7 +7,7 @@ import (
 func (s *masterChallengeService) GetAllMasterChallenge(req *dto.GetAllMasterChallengeRequest) (data []dto.MasterChallengeResponse, err error) {
 	dataDB, err := s.repo.GetAllMasterChallenge(req)
 	if err != nil {
-		return data, err
+		return nil, err
 	}
 
 	for _, v := range dataDB {
@@ -15,11 +15,6 @@ func (s *masterChallengeService) GetAllMasterChallenge(req *dto.GetAllMasterChal
 			IdChallenge:   v.IdChallenge,
 			NamaChallenge: v.NamaChallenge,
 			DescChallenge: v.DescChallenge,
-			Tahun:         v.Tahun,
-			Triwulan:      v.Triwulan,
-			EntryUser:     v.EntryUser,
-			EntryName:     v.EntryName,
-			EntryTime:     v.EntryTime,
 		})
 	}
 
