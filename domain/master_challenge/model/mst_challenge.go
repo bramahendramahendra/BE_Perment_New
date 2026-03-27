@@ -1,7 +1,7 @@
 package model
 
 type MstChallenge struct {
-	IdChallenge   string `gorm:"column:id_challenge"`
+	IdChallenge   int    `gorm:"column:id_challenge"`
 	NamaChallenge string `gorm:"column:nama_challenge"`
 	DescChallenge string `gorm:"column:desc_challenge"`
 	Tahun         string `gorm:"column:tahun"`
