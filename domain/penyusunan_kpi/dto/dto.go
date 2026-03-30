@@ -65,12 +65,15 @@ type PenyusunanMethod struct {
 }
 
 type GetAllDraftPenyusunanKpiRequest struct {
-	Tahun    string `form:"tahun"`
-	Triwulan string `form:"triwulan"`
-	Kostl    string `form:"kostl"`
-	Status   string `form:"status"`
-	Page     int    `form:"page"`
-	Limit    int    `form:"limit"`
+	Divisi   string `json:"divisi"` // mapped ke a.kostl
+	Tahun    string `json:"tahun"`
+	Triwulan string `json:"triwulan"`
+	Status   string `json:"status"`
+	Page     int    `json:"page"`
+	Limit    int    `json:"limit"`
+
+	// Field ini diisi oleh handler dari header 'userq', BUKAN dari body request.
+	EntryUser string `json:"-"`
 }
 
 // =============================================================================

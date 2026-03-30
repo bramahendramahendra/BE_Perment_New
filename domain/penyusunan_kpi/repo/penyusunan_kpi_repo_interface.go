@@ -8,6 +8,10 @@ import (
 
 type (
 	PenyusunanKpiRepoInterface interface {
+		LookupSubKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error)
+
+		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
+
 		// Digunakan oleh endpoint POST /penyusunan-kpi/validate.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,
@@ -19,11 +23,7 @@ type (
 			req *dto.CreatePenyusunanKpiRequest,
 		) error
 
-		LookupSubKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error)
-
-		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
-
-		// Digunakan oleh endpoint GET /penyusunan-kpi/get-all.
+		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-draft.
 		GetAllDraftPenyusunanKpi(
 			req *dto.GetAllDraftPenyusunanKpiRequest,
 		) ([]*dto.GetAllDraftPenyusunanKpiResponse, int64, error)

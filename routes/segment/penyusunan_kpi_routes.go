@@ -14,8 +14,9 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /penyusunan-kpi/validate → ValidatePenyusunanKpi  (multipart/form-data + file Excel)
-//	POST /penyusunan-kpi/create   → SubmitPenyusunanKpi    (application/json)
+//	POST /penyusunan-kpi/validate 		→ ValidatePenyusunanKpi  	(multipart/form-data + file Excel)
+//	POST /penyusunan-kpi/create   		→ SubmitPenyusunanKpi    	(application/json)
+//	POST /penyusunan-kpi/get-all-draft 	→ GetAllDraftPenyusunanKpi	(application/json)
 func PenyusunanKpiRoutes(r *gin.RouterGroup) {
 	penyusunanKpiRepo := repo.NewPenyusunanKpiRepo(db.DB)
 	penyusunanKpiService := service.NewPenyusunanKpiService(penyusunanKpiRepo)
@@ -24,5 +25,5 @@ func PenyusunanKpiRoutes(r *gin.RouterGroup) {
 	penyusunanKpiGroup := r.Group("penyusunan-kpi")
 	penyusunanKpiGroup.POST("/validate", penyusunanKpiHandler.ValidatePenyusunanKpi)
 	penyusunanKpiGroup.POST("/create", penyusunanKpiHandler.CreatePenyusunanKpi)
-	penyusunanKpiGroup.GET("/get-all", penyusunanKpiHandler.GetAllDraftPenyusunanKpi)
+	penyusunanKpiGroup.POST("/get-all-draft", penyusunanKpiHandler.GetAllDraftPenyusunanKpi)
 }

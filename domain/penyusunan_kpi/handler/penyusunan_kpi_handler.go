@@ -97,14 +97,31 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 	})
 }
 
-// GetAllDraftPenyusunanKpi handles GET /penyusunan-kpi/get-all
-// Mendukung filter opsional via query params: tahun, triwulan, kostl, status, page, limit.
+// GetAllDraftPenyusunanKpi handles POST /penyusunan-kpi/get-all-draft
+// Filter opsional: divisi, tahun, triwulan, status, page, limit.
+// entry_user diambil otomatis dari header 'userq'.
 func (h *PenyusunanKpiHandler) GetAllDraftPenyusunanKpi(c *gin.Context) {
-	req, err := binder.BindQuery[dto.GetAllDraftPenyusunanKpiRequest](c)
+	req, err := binder.BindJSON[dto.GetAllDraftPenyusunanKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
+
+	// Ambil entry_user dari header 'userq' (format: "userId | userName")
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+
+	// Inject entry_user ke request — tidak boleh dari body (security)
+	req.EntryUser = strings.TrimSpace(parts[0])
 
 	data, total, err := h.service.GetAllDraftPenyusunanKpi(&req)
 	if err != nil {
