@@ -1,26 +1,26 @@
 package repo
 
 import (
-	model "permen_api/domain/master_perspektif/model"
+	model "permen_api/domain/master_kpi/model"
 
 	"gorm.io/gorm"
 )
 
 type (
-	MasterPerspektifRepoInterface interface {
-		GetAllMasterPerspektif() ([]*model.MstPerspektif, error)
+	MasterKpiRepoInterface interface {
+		GetAllMasterKpi() ([]*model.MstKpi, error)
 		GetDB() *gorm.DB
 	}
 
-	masterPerspektifRepo struct {
+	masterKpiRepo struct {
 		db *gorm.DB
 	}
 )
 
-func NewMasterPerspektifRepo(db *gorm.DB) *masterPerspektifRepo {
-	return &masterPerspektifRepo{db: db}
+func NewMasterKpiRepo(db *gorm.DB) *masterKpiRepo {
+	return &masterKpiRepo{db: db}
 }
 
-func (r *masterPerspektifRepo) GetDB() *gorm.DB {
+func (r *masterKpiRepo) GetDB() *gorm.DB {
 	return r.db
 }

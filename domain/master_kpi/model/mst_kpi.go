@@ -1,8 +1,9 @@
 package model
 
 type (
-	MstPerspektif struct {
-		IdPerspektif int    `gorm:"column:id_perspektif"`
-		Perspektif   string `gorm:"column:perspektif"`
+	MstKpi struct {
+		IdKpi int    `gorm:"column:id_kpi"`
+		Kpi   string `gorm:"column:kpi"`
+		Rumus string `gorm:"column:rumus"`
 	}
 )

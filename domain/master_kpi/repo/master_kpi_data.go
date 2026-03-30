@@ -1,18 +1,18 @@
 package repo
 
 import (
-	model "permen_api/domain/master_perspektif/model"
+	model "permen_api/domain/master_kpi/model"
 )
 
 const (
-	GetAllMasterPerspektifQuery = `SELECT id_perspektif, perspektif FROM mst_perspektif`
+	GetAllMasterKpiQuery = `SELECT id_kpi, kpi, rumus FROM mst_kpi ORDER BY id_kpi ASC`
 )
 
-func (r *masterPerspektifRepo) GetAllMasterPerspektif() ([]*model.MstPerspektif, error) {
-	var masterperspektifs []*model.MstPerspektif
-	err := r.db.Raw(GetAllMasterPerspektifQuery).Scan(&masterperspektifs).Error
+func (r *masterKpiRepo) GetAllMasterKpi() ([]*model.MstKpi, error) {
+	var masterkpis []*model.MstKpi
+	err := r.db.Raw(GetAllMasterKpiQuery).Scan(&masterkpis).Error
 	if err != nil {
 		return nil, err
 	}
-	return masterperspektifs, nil
+	return masterkpis, nil
 }

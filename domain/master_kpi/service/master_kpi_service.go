@@ -1,19 +1,20 @@
 package service
 
 import (
-	dto "permen_api/domain/master_perspektif/dto"
+	dto "permen_api/domain/master_kpi/dto"
 )
 
-func (s *masterPerspektifService) GetAllMasterPerspektif() (data []dto.MasterPerspektifResponse, err error) {
-	dataDB, err := s.repo.GetAllMasterPerspektif()
+func (s *masterKpiService) GetAllMasterKpi() (data []dto.MasterKpiResponse, err error) {
+	dataDB, err := s.repo.GetAllMasterKpi()
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, dto.MasterPerspektifResponse{
-			IdPerspektif: v.IdPerspektif,
-			Perspektif:   v.Perspektif,
+		data = append(data, dto.MasterKpiResponse{
+			IdKpi: v.IdKpi,
+			Kpi:   v.Kpi,
+			Rumus: v.Rumus,
 		})
 	}
 
