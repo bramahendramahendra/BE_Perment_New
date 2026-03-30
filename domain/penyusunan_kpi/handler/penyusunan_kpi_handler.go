@@ -96,3 +96,32 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 		Data:    data,
 	})
 }
+
+// GetAllDraftPenyusunanKpi handles GET /penyusunan-kpi/get-all
+// Mendukung filter opsional via query params: tahun, triwulan, kostl, status, page, limit.
+func (h *PenyusunanKpiHandler) GetAllDraftPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindQuery[dto.GetAllDraftPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	data, total, err := h.service.GetAllDraftPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	pagination := response_helper.SetPagination(&globalDTO.FilterRequestParams{
+		Page:  req.Page,
+		Limit: req.Limit,
+	}, total)
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:       "00",
+		Status:     true,
+		Message:    "Data KPI berhasil diambil",
+		Data:       data,
+		Pagination: pagination,
+	})
+}

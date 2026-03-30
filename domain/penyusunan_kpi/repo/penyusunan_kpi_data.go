@@ -85,6 +85,34 @@ const (
 		FROM mst_polarisasi
 		WHERE LOWER(polarisasi) = LOWER(?)
 		LIMIT 1`
+
+	queryGetAllDraftKpi = `
+        SELECT
+            a.id_pengajuan, a.tahun, a.triwulan, a.kostl, a.kostl_tx,
+            a.orgeh, a.orgeh_tx, a.entry_user, a.entry_name, a.entry_time,
+            a.approval_posisi, a.approval_list, a.status, b.status_desc,
+            IFNULL(a.entry_user_realisasi, '') entry_user_realisasi,
+            IFNULL(a.entry_name_realisasi, '') entry_name_realisasi,
+            IFNULL(a.entry_time_realisasi, '') entry_time_realisasi,
+            IFNULL(a.approval_list_realisasi, '') approval_list_realisasi,
+            IFNULL(a.catatan_tolakan, '') catatan_tolakan,
+            IFNULL(a.total_bobot, '') total_bobot,
+            IFNULL(a.total_pencapaian, '') total_pencapaian,
+            IFNULL(a.entry_user_validasi, '') entry_user_validasi,
+            IFNULL(a.entry_name_validasi, '') entry_name_validasi,
+            IFNULL(a.entry_time_validasi, '') entry_time_validasi,
+            IFNULL(a.approval_list_validasi, '') approval_list_validasi,
+            IFNULL(a.lampiran_validasi, '') lampiran_validasi,
+            IFNULL(a.total_bobot_pengurang, '') total_bobot_pengurang,
+            IFNULL(a.total_pencapaian_post, '') total_pencapaian_post,
+            IFNULL(a.qualifier_overall_validasi, '') qualifier_overall_validasi
+        FROM data_kpi a
+        INNER JOIN mst_status b ON a.status = b.id_status`
+
+	queryCountAllKpi = `
+        SELECT COUNT(1)
+        FROM data_kpi a
+        INNER JOIN mst_status b ON a.status = b.id_status`
 )
 
 // =============================================================================
@@ -381,4 +409,64 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 	}
 
 	return nil
+}
+
+func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
+	req *dto.GetAllDraftPenyusunanKpiRequest,
+) ([]*dto.GetAllDraftPenyusunanKpiResponse, int64, error) {
+
+	// --- Build dynamic WHERE ---
+	var conditions []string
+	var args []interface{}
+
+	if req.Tahun != "" {
+		conditions = append(conditions, "a.tahun = ?")
+		args = append(args, req.Tahun)
+	}
+	if req.Triwulan != "" {
+		conditions = append(conditions, "a.triwulan = ?")
+		args = append(args, req.Triwulan)
+	}
+	if req.Kostl != "" {
+		conditions = append(conditions, "a.kostl = ?")
+		args = append(args, req.Kostl)
+	}
+	if req.Status != "" {
+		conditions = append(conditions, "a.status = ?")
+		args = append(args, req.Status)
+	}
+
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// --- Count total records ---
+	var total int64
+	countQuery := queryCountAllKpi + whereClause
+	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
+	}
+
+	// --- Pagination ---
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// --- Main query ---
+	mainQuery := queryGetAllDraftKpi + whereClause + " ORDER BY a.id_pengajuan DESC LIMIT ? OFFSET ?"
+	queryArgs := append(args, limit, offset)
+
+	var results []*dto.GetAllDraftPenyusunanKpiResponse
+	if err := r.db.Raw(mainQuery, queryArgs...).Scan(&results).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal mengambil data KPI: %w", err)
+	}
+
+	return results, total, nil
 }

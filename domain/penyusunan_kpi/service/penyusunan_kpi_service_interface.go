@@ -19,6 +19,11 @@ type (
 		CreatePenyusunanKpi(
 			req *dto.CreatePenyusunanKpiRequest,
 		) (data dto.CreatePenyusunanKpiResponse, err error)
+
+		// Digunakan oleh endpoint GET /penyusunan-kpi/get-all-draft.
+		GetAllDraftPenyusunanKpi(
+			req *dto.GetAllDraftPenyusunanKpiRequest,
+		) (data []*dto.GetAllDraftPenyusunanKpiResponse, total int64, err error)
 	}
 
 	penyusunanKpiService struct {

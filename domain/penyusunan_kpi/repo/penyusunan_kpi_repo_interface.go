@@ -23,6 +23,11 @@ type (
 
 		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
 
+		// Digunakan oleh endpoint GET /penyusunan-kpi/get-all.
+		GetAllDraftPenyusunanKpi(
+			req *dto.GetAllDraftPenyusunanKpiRequest,
+		) ([]*dto.GetAllDraftPenyusunanKpiResponse, int64, error)
+
 		GetDB() *gorm.DB
 	}
 

@@ -24,4 +24,5 @@ func PenyusunanKpiRoutes(r *gin.RouterGroup) {
 	penyusunanKpiGroup := r.Group("penyusunan-kpi")
 	penyusunanKpiGroup.POST("/validate", penyusunanKpiHandler.ValidatePenyusunanKpi)
 	penyusunanKpiGroup.POST("/create", penyusunanKpiHandler.CreatePenyusunanKpi)
+	penyusunanKpiGroup.GET("/get-all", penyusunanKpiHandler.GetAllDraftPenyusunanKpi)
 }

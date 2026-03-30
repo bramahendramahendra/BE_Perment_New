@@ -64,6 +64,15 @@ type PenyusunanMethod struct {
 	DeskripsiMethod string `json:"deskripsiMethod" validate:"required"`
 }
 
+type GetAllDraftPenyusunanKpiRequest struct {
+	Tahun    string `form:"tahun"`
+	Triwulan string `form:"triwulan"`
+	Kostl    string `form:"kostl"`
+	Status   string `form:"status"`
+	Page     int    `form:"page"`
+	Limit    int    `form:"limit"`
+}
+
 // =============================================================================
 // EXCEL ROW DTO
 // =============================================================================
@@ -168,4 +177,36 @@ type PenyusunanKpiSubDetailResponse struct {
 	DeskripsiProcess          *string `json:"deskripsiProcess"`
 	Context                   *string `json:"context"`
 	DeskripsiContext          *string `json:"deskripsiContext"`
+}
+
+type GetAllDraftPenyusunanKpiResponse struct {
+	IdPengajuan              string `json:"id_pengajuan"`
+	Tahun                    string `json:"tahun"`
+	Triwulan                 string `json:"triwulan"`
+	Kostl                    string `json:"kostl"`
+	KostlTx                  string `json:"kostl_tx"`
+	Orgeh                    string `json:"orgeh"`
+	OrgehTx                  string `json:"orgeh_tx"`
+	EntryUser                string `json:"entry_user"`
+	EntryName                string `json:"entry_name"`
+	EntryTime                string `json:"entry_time"`
+	ApprovalPosisi           string `json:"approval_posisi"`
+	ApprovalList             string `json:"approval_list"`
+	Status                   *int   `json:"status"`
+	StatusDesc               string `json:"status_desc"`
+	EntryUserRealisasi       string `json:"entry_user_realisasi"`
+	EntryNameRealisasi       string `json:"entry_name_realisasi"`
+	EntryTimeRealisasi       string `json:"entry_time_realisasi"`
+	ApprovalListRealisasi    string `json:"approval_list_realisasi"`
+	CatatanTolakan           string `json:"catatan_tolakan"`
+	TotalBobot               string `json:"total_bobot"`
+	TotalPencapaian          string `json:"total_pencapaian"`
+	EntryUserValidasi        string `json:"entry_user_validasi"`
+	EntryNameValidasi        string `json:"entry_name_validasi"`
+	EntryTimeValidasi        string `json:"entry_time_validasi"`
+	ApprovalListValidasi     string `json:"approval_list_validasi"`
+	LampiranValidasi         string `json:"lampiran_validasi"`
+	TotalBobotPengurang      string `json:"total_bobot_pengurang"`
+	TotalPencapaianPost      string `json:"total_pencapaian_post"`
+	QualifierOverallValidasi string `json:"qualifier_overall_validasi"`
 }

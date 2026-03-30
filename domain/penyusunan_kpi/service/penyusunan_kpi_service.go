@@ -158,3 +158,17 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 	}
 	return nil
 }
+
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+func (s *penyusunanKpiService) GetAllDraftPenyusunanKpi(
+	req *dto.GetAllDraftPenyusunanKpiRequest,
+) (data []*dto.GetAllDraftPenyusunanKpiResponse, total int64, err error) {
+	data, total, err = s.repo.GetAllDraftPenyusunanKpi(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	return data, total, nil
+}
