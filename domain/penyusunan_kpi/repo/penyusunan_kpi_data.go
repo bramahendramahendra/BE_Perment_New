@@ -115,64 +115,66 @@ const (
         INNER JOIN mst_status b ON a.status = b.id_status`
 
 	queryGetKpiDetail = `
-        SELECT
-            a.id_pengajuan, a.id_detail, a.tahun, a.triwulan,
-            a.id_kpi, a.kpi, a.rumus, a.id_perspektif, b.perspektif,
-            a.id_keterangan_project,
-            IFNULL(c.keterangan_project, '') keterangan_project,
-            IFNULL(a.lampiran_file, '')       lampiran_file
-        FROM data_kpi_detail a
-        INNER JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
-        LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
-        WHERE a.id_pengajuan = ?`
+		SELECT
+			a.id_detail,
+			a.id_kpi, a.kpi, a.rumus,
+			a.id_perspektif, b.perspektif,
+			a.id_keterangan_project,
+			IFNULL(c.keterangan_project, '') keterangan_project,
+			IFNULL(a.lampiran_file, '')       lampiran_file
+		FROM data_kpi_detail a
+		INNER JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
+		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
+		WHERE a.id_pengajuan = ?`
 
 	queryGetKpiSubDetail = `
-        SELECT
-            a.id_pengajuan, a.id_detail, a.id_sub_detail, a.tahun, a.triwulan,
-            a.id_kpi, a.kpi, a.rumus, a.otomatis,
-            a.bobot, a.capping,
-            a.target_triwulan, a.target_kuantitatif_triwulan,
-            a.target_tahunan, a.target_kuantitatif_tahunan,
-            IFNULL(a.realisasi, '')                           realisasi,
-            IFNULL(a.realisasi_kuantitatif, '')               realisasi_kuantitatif,
-            IFNULL(a.realisasi_keterangan, '')                realisasi_keterangan,
-            IFNULL(a.realisasi_validated, '')                 realisasi_validated,
-            IFNULL(a.realisasi_kuantitatif_validated, '')     realisasi_kuantitatif_validated,
-            IFNULL(a.validasi_keterangan, '')                 validasi_keterangan,
-            IFNULL(a.pencapaian, '')                          pencapaian,
-            IFNULL(a.skor, '')                                skor,
-            IFNULL(a.deskripsi_glossary, '')                  deskripsi_glossary,
-            IFNULL(a.item_qualifier, '')                      item_qualifier,
-            IFNULL(a.deskripsi_qualifier, '')                 deskripsi_qualifier,
-            IFNULL(a.target_qualifier, '')                    target_qualifier,
-            IFNULL(a.id_keterangan_project, '')               id_keterangan_project,
-            IFNULL(a.id_qualifier, '')                        id_qualifier,
-            IFNULL(a.realisasi_qualifier, '')                 realisasi_qualifier,
-            IFNULL(a.realisasi_kuantitatif_qualifier, '')     realisasi_kuantitatif_qualifier,
-            IFNULL(a.pencapaian_qualifier_validated, '')      pencapaian_qualifier_validated,
-            IFNULL(a.pencapaian_post_qualifier_validated, '') pencapaian_post_qualifier_validated,
-            IFNULL(c.keterangan_project, '')                  keterangan_project
-        FROM data_kpi_subdetail a
-        LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
-        WHERE a.id_detail = ?`
+		SELECT
+			a.id_sub_detail,
+			a.id_kpi, a.kpi, a.rumus,
+			a.otomatis,
+			a.bobot, a.capping,
+			a.target_triwulan, a.target_kuantitatif_triwulan,
+			a.target_tahunan, a.target_kuantitatif_tahunan,
+			IFNULL(a.realisasi, '')                           realisasi,
+			IFNULL(a.realisasi_kuantitatif, '')               realisasi_kuantitatif,
+			IFNULL(a.realisasi_keterangan, '')                realisasi_keterangan,
+			IFNULL(a.realisasi_validated, '')                 realisasi_validated,
+			IFNULL(a.realisasi_kuantitatif_validated, '')     realisasi_kuantitatif_validated,
+			IFNULL(a.validasi_keterangan, '')                 validasi_keterangan,
+			IFNULL(a.pencapaian, '')                          pencapaian,
+			IFNULL(a.skor, '')                                skor,
+			IFNULL(a.deskripsi_glossary, '')                  deskripsi_glossary,
+			IFNULL(a.item_qualifier, '')                      item_qualifier,
+			IFNULL(a.deskripsi_qualifier, '')                 deskripsi_qualifier,
+			IFNULL(a.target_qualifier, '')                    target_qualifier,
+			IFNULL(a.id_keterangan_project, '')               id_keterangan_project,
+			IFNULL(a.id_qualifier, '')                        id_qualifier,
+			IFNULL(a.realisasi_qualifier, '')                 realisasi_qualifier,
+			IFNULL(a.realisasi_kuantitatif_qualifier, '')     realisasi_kuantitatif_qualifier,
+			IFNULL(a.pencapaian_qualifier_validated, '')      pencapaian_qualifier_validated,
+			IFNULL(a.pencapaian_post_qualifier_validated, '') pencapaian_post_qualifier_validated,
+			IFNULL(c.keterangan_project, '')                  keterangan_project
+		FROM data_kpi_subdetail a
+		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
+		WHERE a.id_detail = ?`
 
 	queryGetChallengeDetail = `
-        SELECT
-            id_pengajuan, id_detail_challenge, tahun, triwulan,
-            nama_challenge, deskripsi_challenge,
-            IFNULL(realisasi_challenge, '')  realisasi_challenge,
-            IFNULL(lampiran_evidence, '')    lampiran_evidence
-        FROM data_challenge_detail
-        WHERE id_pengajuan = ?`
+		SELECT
+			id_detail_challenge, tahun, triwulan,
+			nama_challenge, deskripsi_challenge,
+			IFNULL(realisasi_challenge, '')  realisasi_challenge,
+			IFNULL(lampiran_evidence, '')    lampiran_evidence
+		FROM data_challenge_detail
+		WHERE id_pengajuan = ?`
 
 	queryGetMethodDetail = `
-        SELECT
-            id_pengajuan, id_detail_method, tahun, triwulan,
-            nama_method, deskripsi_method,
-            IFNULL(realisasi_method, '')   realisasi_method,
-            IFNULL(lampiran_evidence, '')  lampiran_evidence
-        FROM data_method_detail
-        WHERE id_pengajuan = ?`
+		SELECT
+			id_detail_method, tahun, triwulan,
+			nama_method, deskripsi_method,
+			IFNULL(realisasi_method, '')   realisasi_method,
+			IFNULL(lampiran_evidence, '')  lampiran_evidence
+		FROM data_method_detail
+		WHERE id_pengajuan = ?`
 )
 
 // =============================================================================
@@ -475,15 +477,18 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 	req *dto.GetAllDraftPenyusunanKpiRequest,
 ) ([]*dto.GetAllDraftPenyusunanKpiResponse, int64, error) {
 
-	// --- Build dynamic WHERE ---
-	// Kondisi hardcoded: hanya data draft milik user login
+	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
 	conditions := []string{
 		"a.status IN (70, 71)",
 		"a.entry_user = ?",
 	}
 	args := []interface{}{req.EntryUser}
 
+	// =========================================================================
 	// Kondisi opsional dari request body
+	// =========================================================================
 	if req.Divisi != "" {
 		conditions = append(conditions, "a.kostl = ?")
 		args = append(args, req.Divisi)
@@ -503,13 +508,17 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 
 	whereClause := " WHERE " + strings.Join(conditions, " AND ")
 
-	// --- Count total records ---
+	// =========================================================================
+	// COUNT TOTAL RECORDS
+	// =========================================================================
 	var total int64
 	if err := r.db.Raw(queryCountAllDraftKpi+whereClause, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
 
-	// --- Pagination ---
+	// =========================================================================
+	// PAGINATION
+	// =========================================================================
 	page, limit := req.Page, req.Limit
 	if page <= 0 {
 		page = 1
@@ -519,54 +528,71 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 	}
 	offset := (page - 1) * limit
 
-	// --- Query header ---
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
 	mainQuery := queryGetAllDraftKpiHeader + whereClause +
 		" ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	headerArgs := append(args, limit, offset)
 
-	rows, err := r.db.Raw(mainQuery, headerArgs...).Rows()
+	headerRows, err := r.db.Raw(mainQuery, headerArgs...).Rows()
 	if err != nil {
 		return nil, 0, fmt.Errorf("gagal mengambil data header KPI: %w", err)
 	}
-	defer rows.Close()
+	defer headerRows.Close()
 
 	var results []*dto.GetAllDraftPenyusunanKpiResponse
 
-	for rows.Next() {
+	for headerRows.Next() {
 		var h dto.GetAllDraftPenyusunanKpiResponse
-		if err := rows.Scan(
-			&h.IdPengajuan, &h.Tahun, &h.Triwulan, &h.Kostl, &h.KostlTx,
-			&h.Orgeh, &h.OrgehTx, &h.EntryUser, &h.EntryName, &h.EntryTime,
-			&h.ApprovalPosisi, &h.ApprovalList, &h.Status, &h.StatusDesc,
+
+		if err := headerRows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.EntryUser, &h.EntryName, &h.EntryTime,
+			&h.ApprovalPosisi, &h.ApprovalList,
+			&h.Status, &h.StatusDesc,
 			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
-			&h.ApprovalListRealisasi, &h.CatatanTolakan,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
 			&h.TotalBobot, &h.TotalPencapaian,
 			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
 			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
-			&h.ApprovalListValidasi, &h.LampiranValidasi, &h.QualifierOverallValidasi,
+			&h.ApprovalListValidasi,
+			&h.LampiranValidasi,
+			&h.QualifierOverallValidasi,
 		); err != nil {
 			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
 		}
 
-		// --- Query KpiDetail per id_pengajuan ---
+		// =====================================================================
+		// QUERY KPI DETAIL per id_pengajuan
+		// =====================================================================
 		detailRows, err := r.db.Raw(queryGetKpiDetail, h.IdPengajuan).Rows()
 		if err != nil {
 			return nil, 0, fmt.Errorf("gagal mengambil kpi detail [%s]: %w", h.IdPengajuan, err)
 		}
 
 		var kpiDetails []dto.GetAllDraftKpiDetailResponse
+
 		for detailRows.Next() {
 			var d dto.GetAllDraftKpiDetailResponse
+
 			if err := detailRows.Scan(
-				&d.IdPengajuan, &d.IdDetail, &d.Tahun, &d.Triwulan,
-				&d.IdKpi, &d.Kpi, &d.Rumus, &d.IdPerspektif, &d.Perspektif,
-				&d.IdKeteranganProject, &d.KeteranganProject, &d.LampiranFile,
+				&d.IdDetail,
+				&d.IdKpi, &d.Kpi, &d.Rumus,
+				&d.IdPerspektif, &d.Perspektif,
+				&d.IdKeteranganProject, &d.KeteranganProject,
+				&d.LampiranFile,
 			); err != nil {
 				detailRows.Close()
 				return nil, 0, fmt.Errorf("gagal scan kpi detail: %w", err)
 			}
 
-			// --- Query KpiSubDetail per id_detail ---
+			// =================================================================
+			// QUERY KPI SUB DETAIL per id_detail
+			// =================================================================
 			subDetailRows, err := r.db.Raw(queryGetKpiSubDetail, d.IdDetail).Rows()
 			if err != nil {
 				detailRows.Close()
@@ -574,20 +600,25 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 			}
 
 			var subDetails []dto.GetAllDraftKpiSubDetailResponse
+
 			for subDetailRows.Next() {
 				var s dto.GetAllDraftKpiSubDetailResponse
+
 				if err := subDetailRows.Scan(
-					&s.IdPengajuan, &s.IdDetail, &s.IdSubDetail, &s.Tahun, &s.Triwulan,
-					&s.IdKpi, &s.Kpi, &s.Rumus, &s.Otomatis,
+					&s.IdSubDetail,
+					&s.IdKpi, &s.Kpi, &s.Rumus,
+					&s.Otomatis,
 					&s.Bobot, &s.Capping,
 					&s.TargetTriwulan, &s.TargetKuantitatifTriwulan,
 					&s.TargetTahunan, &s.TargetKuantitatifTahunan,
 					&s.Realisasi, &s.RealisasiKuantitatif, &s.RealisasiKeterangan,
 					&s.RealisasiValidated, &s.RealisasiKuantitatifValidated,
-					&s.ValidasiKeterangan, &s.Pencapaian, &s.Skor,
-					&s.DeskripsiGlossary, &s.ItemQualifier,
-					&s.DeskripsiQualifier, &s.TargetQualifier,
-					&s.IdKeteranganProject, &s.IdQualifier,
+					&s.ValidasiKeterangan,
+					&s.Pencapaian, &s.Skor,
+					&s.DeskripsiGlossary,
+					&s.ItemQualifier, &s.DeskripsiQualifier, &s.TargetQualifier,
+					&s.IdKeteranganProject,
+					&s.IdQualifier,
 					&s.RealisasiQualifier, &s.RealisasiKuantitatifQualifier,
 					&s.PencapaianQualifierValidated, &s.PencapaianPostQualifierValidated,
 					&s.KeteranganProject,
@@ -596,6 +627,7 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 					detailRows.Close()
 					return nil, 0, fmt.Errorf("gagal scan kpi sub detail: %w", err)
 				}
+
 				subDetails = append(subDetails, s)
 			}
 			subDetailRows.Close()
@@ -604,50 +636,63 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 			kpiDetails = append(kpiDetails, d)
 		}
 		detailRows.Close()
+
 		h.KpiDetail = kpiDetails
 
-		// --- Query ChallengeDetail per id_pengajuan ---
+		// =====================================================================
+		// QUERY CHALLENGE DETAIL per id_pengajuan
+		// =====================================================================
 		challengeRows, err := r.db.Raw(queryGetChallengeDetail, h.IdPengajuan).Rows()
 		if err != nil {
 			return nil, 0, fmt.Errorf("gagal mengambil challenge detail [%s]: %w", h.IdPengajuan, err)
 		}
 
 		var challengeDetails []dto.GetAllDraftChallengeDetailResponse
+
 		for challengeRows.Next() {
 			var ch dto.GetAllDraftChallengeDetailResponse
+
 			if err := challengeRows.Scan(
-				&ch.IdPengajuan, &ch.IdDetailChallenge, &ch.Tahun, &ch.Triwulan,
+				&ch.IdDetailChallenge, &ch.Tahun, &ch.Triwulan,
 				&ch.NamaChallenge, &ch.DeskripsiChallenge,
 				&ch.RealisasiChallenge, &ch.LampiranEvidence,
 			); err != nil {
 				challengeRows.Close()
 				return nil, 0, fmt.Errorf("gagal scan challenge detail: %w", err)
 			}
+
 			challengeDetails = append(challengeDetails, ch)
 		}
 		challengeRows.Close()
+
 		h.ChallengeDetail = challengeDetails
 
-		// --- Query MethodDetail per id_pengajuan ---
+		// =====================================================================
+		// QUERY METHOD DETAIL per id_pengajuan
+		// =====================================================================
 		methodRows, err := r.db.Raw(queryGetMethodDetail, h.IdPengajuan).Rows()
 		if err != nil {
 			return nil, 0, fmt.Errorf("gagal mengambil method detail [%s]: %w", h.IdPengajuan, err)
 		}
 
 		var methodDetails []dto.GetAllDraftMethodDetailResponse
+
 		for methodRows.Next() {
 			var mt dto.GetAllDraftMethodDetailResponse
+
 			if err := methodRows.Scan(
-				&mt.IdPengajuan, &mt.IdDetailMethod, &mt.Tahun, &mt.Triwulan,
+				&mt.IdDetailMethod, &mt.Tahun, &mt.Triwulan,
 				&mt.NamaMethod, &mt.DeskripsiMethod,
 				&mt.RealisasiMethod, &mt.LampiranEvidence,
 			); err != nil {
 				methodRows.Close()
 				return nil, 0, fmt.Errorf("gagal scan method detail: %w", err)
 			}
+
 			methodDetails = append(methodDetails, mt)
 		}
 		methodRows.Close()
+
 		h.MethodDetail = methodDetails
 
 		results = append(results, &h)

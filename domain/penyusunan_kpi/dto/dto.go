@@ -219,12 +219,9 @@ type GetAllDraftPenyusunanKpiResponse struct {
 	MethodDetail             []GetAllDraftMethodDetailResponse    `json:"MethodDetail"`
 }
 
+// GetAllDraftKpiSubDetailResponse — IdPengajuan, IdDetail, Tahun, Triwulan dihapus (redundan)
 type GetAllDraftKpiSubDetailResponse struct {
-	IdPengajuan                      string `json:"IdPengajuan"`
-	IdDetail                         string `json:"IdDetail"`
 	IdSubDetail                      string `json:"IdSubDetail"`
-	Tahun                            string `json:"Tahun"`
-	Triwulan                         string `json:"Triwulan"`
 	IdKpi                            string `json:"IdKpi"`
 	Kpi                              string `json:"Kpi"`
 	Rumus                            string `json:"Rumus"`
@@ -256,11 +253,9 @@ type GetAllDraftKpiSubDetailResponse struct {
 	PencapaianPostQualifierValidated string `json:"PencapaianPostQualifierValidated"`
 }
 
+// GetAllDraftKpiDetailResponse — IdPengajuan, Tahun, Triwulan dihapus (redundan)
 type GetAllDraftKpiDetailResponse struct {
-	IdPengajuan         string                            `json:"IdPengajuan"`
 	IdDetail            string                            `json:"IdDetail"`
-	Tahun               string                            `json:"Tahun"`
-	Triwulan            string                            `json:"Triwulan"`
 	IdKpi               string                            `json:"IdKpi"`
 	Kpi                 string                            `json:"Kpi"`
 	Rumus               string                            `json:"Rumus"`
@@ -272,8 +267,8 @@ type GetAllDraftKpiDetailResponse struct {
 	KpiSubDetail        []GetAllDraftKpiSubDetailResponse `json:"KpiSubDetail"`
 }
 
+// GetAllDraftChallengeDetailResponse — IdPengajuan dihapus (redundan)
 type GetAllDraftChallengeDetailResponse struct {
-	IdPengajuan        string `json:"IdPengajuan"`
 	IdDetailChallenge  string `json:"IdDetailChallenge"`
 	Tahun              string `json:"Tahun"`
 	Triwulan           string `json:"Triwulan"`
@@ -283,8 +278,8 @@ type GetAllDraftChallengeDetailResponse struct {
 	LampiranEvidence   string `json:"LampiranEvidence"`
 }
 
+// GetAllDraftMethodDetailResponse — IdPengajuan dihapus (redundan)
 type GetAllDraftMethodDetailResponse struct {
-	IdPengajuan      string `json:"IdPengajuan"`
 	IdDetailMethod   string `json:"IdDetailMethod"`
 	Tahun            string `json:"Tahun"`
 	Triwulan         string `json:"Triwulan"`
