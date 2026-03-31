@@ -64,15 +64,16 @@ type PenyusunanMethod struct {
 	DeskripsiMethod string `json:"deskripsiMethod" validate:"required"`
 }
 
+// GetAllDraftPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-draft.
 type GetAllDraftPenyusunanKpiRequest struct {
-	Divisi   string `json:"divisi"` // mapped ke a.kostl
+	Divisi   string `json:"divisi"`
 	Tahun    string `json:"tahun"`
 	Triwulan string `json:"triwulan"`
 	Status   string `json:"status"`
 	Page     int    `json:"page"`
 	Limit    int    `json:"limit"`
 
-	// Field ini diisi oleh handler dari header 'userq', BUKAN dari body request.
+	// Diisi handler dari header 'userq', tidak boleh dari body.
 	EntryUser string `json:"-"`
 }
 
@@ -182,34 +183,113 @@ type PenyusunanKpiSubDetailResponse struct {
 	DeskripsiContext          *string `json:"deskripsiContext"`
 }
 
+// GetAllDraftPenyusunanKpiResponse adalah satu record lengkap (header + nested detail).
 type GetAllDraftPenyusunanKpiResponse struct {
-	IdPengajuan              string `json:"id_pengajuan"`
-	Tahun                    string `json:"tahun"`
-	Triwulan                 string `json:"triwulan"`
-	Kostl                    string `json:"kostl"`
-	KostlTx                  string `json:"kostl_tx"`
-	Orgeh                    string `json:"orgeh"`
-	OrgehTx                  string `json:"orgeh_tx"`
-	EntryUser                string `json:"entry_user"`
-	EntryName                string `json:"entry_name"`
-	EntryTime                string `json:"entry_time"`
-	ApprovalPosisi           string `json:"approval_posisi"`
-	ApprovalList             string `json:"approval_list"`
-	Status                   *int   `json:"status"`
-	StatusDesc               string `json:"status_desc"`
-	EntryUserRealisasi       string `json:"entry_user_realisasi"`
-	EntryNameRealisasi       string `json:"entry_name_realisasi"`
-	EntryTimeRealisasi       string `json:"entry_time_realisasi"`
-	ApprovalListRealisasi    string `json:"approval_list_realisasi"`
-	CatatanTolakan           string `json:"catatan_tolakan"`
-	TotalBobot               string `json:"total_bobot"`
-	TotalPencapaian          string `json:"total_pencapaian"`
-	EntryUserValidasi        string `json:"entry_user_validasi"`
-	EntryNameValidasi        string `json:"entry_name_validasi"`
-	EntryTimeValidasi        string `json:"entry_time_validasi"`
-	ApprovalListValidasi     string `json:"approval_list_validasi"`
-	LampiranValidasi         string `json:"lampiran_validasi"`
-	TotalBobotPengurang      string `json:"total_bobot_pengurang"`
-	TotalPencapaianPost      string `json:"total_pencapaian_post"`
-	QualifierOverallValidasi string `json:"qualifier_overall_validasi"`
+	IdPengajuan              string                               `json:"IdPengajuan"`
+	Tahun                    string                               `json:"Tahun"`
+	Triwulan                 string                               `json:"Triwulan"`
+	Kostl                    string                               `json:"Kostl"`
+	KostlTx                  string                               `json:"Kostl_tx"`
+	Orgeh                    string                               `json:"Orgeh"`
+	OrgehTx                  string                               `json:"Orgeh_tx"`
+	EntryUser                string                               `json:"Entry_user"`
+	EntryName                string                               `json:"Entry_name"`
+	EntryTime                string                               `json:"Entry_time"`
+	ApprovalPosisi           string                               `json:"Approval_posisi"`
+	ApprovalList             string                               `json:"Approval_list"`
+	Status                   string                               `json:"Status"`
+	StatusDesc               string                               `json:"StatusDesc"`
+	EntryUserRealisasi       string                               `json:"EntryUserRealisasi"`
+	EntryNameRealisasi       string                               `json:"EntryNameRealisasi"`
+	EntryTimeRealisasi       string                               `json:"EntryTimeRealisasi"`
+	ApprovalListRealisasi    string                               `json:"ApprovalListRealisasi"`
+	CatatanTolakan           string                               `json:"CatatanTolakan"`
+	TotalBobot               string                               `json:"TotalBobot"`
+	TotalPencapaian          string                               `json:"TotalPencapaian"`
+	TotalBobotPengurang      string                               `json:"TotalBobotPengurang"`
+	TotalPencapaianPost      string                               `json:"TotalPencapaianPost"`
+	EntryUserValidasi        string                               `json:"EntryUserValidasi"`
+	EntryNameValidasi        string                               `json:"EntryNameValidasi"`
+	EntryTimeValidasi        string                               `json:"EntryTimeValidasi"`
+	ApprovalListValidasi     string                               `json:"ApprovalListValidasi"`
+	LampiranValidasi         string                               `json:"LampiranValidasi"`
+	QualifierOverallValidasi string                               `json:"QualifierOverallValidasi"`
+	KpiDetail                []GetAllDraftKpiDetailResponse       `json:"KpiDetail"`
+	ChallengeDetail          []GetAllDraftChallengeDetailResponse `json:"ChallengeDetail"`
+	MethodDetail             []GetAllDraftMethodDetailResponse    `json:"MethodDetail"`
+}
+
+type GetAllDraftKpiSubDetailResponse struct {
+	IdPengajuan                      string `json:"IdPengajuan"`
+	IdDetail                         string `json:"IdDetail"`
+	IdSubDetail                      string `json:"IdSubDetail"`
+	Tahun                            string `json:"Tahun"`
+	Triwulan                         string `json:"Triwulan"`
+	IdKpi                            string `json:"IdKpi"`
+	Kpi                              string `json:"Kpi"`
+	Rumus                            string `json:"Rumus"`
+	Otomatis                         string `json:"Otomatis"`
+	Bobot                            string `json:"Bobot"`
+	Capping                          string `json:"Capping"`
+	TargetTriwulan                   string `json:"TargetTriwulan"`
+	TargetKuantitatifTriwulan        string `json:"TargetKuantitatifTriwulan"`
+	TargetTahunan                    string `json:"TargetTahunan"`
+	TargetKuantitatifTahunan         string `json:"TargetKuantitatifTahunan"`
+	Realisasi                        string `json:"Realisasi"`
+	RealisasiKuantitatif             string `json:"RealisasiKuantitatif"`
+	RealisasiKeterangan              string `json:"RealisasiKeterangan"`
+	RealisasiValidated               string `json:"RealisasiValidated"`
+	RealisasiKuantitatifValidated    string `json:"RealisasiKuantitatifValidated"`
+	ValidasiKeterangan               string `json:"ValidasiKeterangan"`
+	Pencapaian                       string `json:"Pencapaian"`
+	Skor                             string `json:"Skor"`
+	DeskripsiGlossary                string `json:"DeskripsiGlossary"`
+	ItemQualifier                    string `json:"ItemQualifier"`
+	DeskripsiQualifier               string `json:"DeskripsiQualifier"`
+	TargetQualifier                  string `json:"TargetQualifier"`
+	IdKeteranganProject              string `json:"IdKeteranganProject"`
+	KeteranganProject                string `json:"KeteranganProject"`
+	IdQualifier                      string `json:"IdQualifier"`
+	RealisasiQualifier               string `json:"RealisasiQualifier"`
+	RealisasiKuantitatifQualifier    string `json:"RealisasiKuantitatifQualifier"`
+	PencapaianQualifierValidated     string `json:"PencapaianQualifierValidated"`
+	PencapaianPostQualifierValidated string `json:"PencapaianPostQualifierValidated"`
+}
+
+type GetAllDraftKpiDetailResponse struct {
+	IdPengajuan         string                            `json:"IdPengajuan"`
+	IdDetail            string                            `json:"IdDetail"`
+	Tahun               string                            `json:"Tahun"`
+	Triwulan            string                            `json:"Triwulan"`
+	IdKpi               string                            `json:"IdKpi"`
+	Kpi                 string                            `json:"Kpi"`
+	Rumus               string                            `json:"Rumus"`
+	IdPerspektif        string                            `json:"IdPerspektif"`
+	Perspektif          string                            `json:"Perspektif"`
+	IdKeteranganProject string                            `json:"IdKeteranganProject"`
+	KeteranganProject   string                            `json:"KeteranganProject"`
+	LampiranFile        string                            `json:"LampiranFile"`
+	KpiSubDetail        []GetAllDraftKpiSubDetailResponse `json:"KpiSubDetail"`
+}
+
+type GetAllDraftChallengeDetailResponse struct {
+	IdPengajuan        string `json:"IdPengajuan"`
+	IdDetailChallenge  string `json:"IdDetailChallenge"`
+	Tahun              string `json:"Tahun"`
+	Triwulan           string `json:"Triwulan"`
+	NamaChallenge      string `json:"NamaChallenge"`
+	DeskripsiChallenge string `json:"DeskripsiChallenge"`
+	RealisasiChallenge string `json:"RealisasiChallenge"`
+	LampiranEvidence   string `json:"LampiranEvidence"`
+}
+
+type GetAllDraftMethodDetailResponse struct {
+	IdPengajuan      string `json:"IdPengajuan"`
+	IdDetailMethod   string `json:"IdDetailMethod"`
+	Tahun            string `json:"Tahun"`
+	Triwulan         string `json:"Triwulan"`
+	NamaMethod       string `json:"NamaMethod"`
+	DeskripsiMethod  string `json:"DeskripsiMethod"`
+	RealisasiMethod  string `json:"RealisasiMethod"`
+	LampiranEvidence string `json:"LampiranEvidence"`
 }
