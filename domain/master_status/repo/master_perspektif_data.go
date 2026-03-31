@@ -1,18 +1,18 @@
 package repo
 
 import (
-	model "permen_api/domain/master_perspektif/model"
+	model "permen_api/domain/master_status/model"
 )
 
 const (
-	GetAllMasterPerspektifQuery = `SELECT id_perspektif, perspektif FROM mst_perspektif`
+	GetAllMasterStatusQuery = `SELECT id_status, status_desc FROM mst_status`
 )
 
-func (r *masterPerspektifRepo) GetAllMasterPerspektif() ([]*model.MstPerspektif, error) {
-	var masterperspektifs []*model.MstPerspektif
-	err := r.db.Raw(GetAllMasterPerspektifQuery).Scan(&masterperspektifs).Error
+func (r *masterStatusRepo) GetAllMasterStatus() ([]*model.MstStatus, error) {
+	var masterstatuss []*model.MstStatus
+	err := r.db.Raw(GetAllMasterStatusQuery).Scan(&masterstatuss).Error
 	if err != nil {
 		return nil, err
 	}
-	return masterperspektifs, nil
+	return masterstatuss, nil
 }

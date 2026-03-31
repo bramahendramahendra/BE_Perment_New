@@ -1,20 +1,20 @@
 package service
 
 import (
-	dto "permen_api/domain/master_perspektif/dto"
-	repo "permen_api/domain/master_perspektif/repo"
+	dto "permen_api/domain/master_status/dto"
+	repo "permen_api/domain/master_status/repo"
 )
 
 type (
-	MasterPerspektifServiceInterface interface {
-		GetAllMasterPerspektif() (data []dto.MasterPerspektifResponse, err error)
+	MasterStatusServiceInterface interface {
+		GetAllMasterStatus() (data []dto.MasterStatusResponse, err error)
 	}
 
-	masterPerspektifService struct {
-		repo repo.MasterPerspektifRepoInterface
+	masterStatusService struct {
+		repo repo.MasterStatusRepoInterface
 	}
 )
 
-func NewMasterPerspektifService(repo repo.MasterPerspektifRepoInterface) *masterPerspektifService {
-	return &masterPerspektifService{repo: repo}
+func NewMasterStatusService(repo repo.MasterStatusRepoInterface) *masterStatusService {
+	return &masterStatusService{repo: repo}
 }

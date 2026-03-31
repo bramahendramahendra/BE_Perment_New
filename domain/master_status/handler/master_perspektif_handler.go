@@ -1,23 +1,23 @@
 package handler
 
 import (
-	service "permen_api/domain/master_perspektif/service"
+	service "permen_api/domain/master_status/service"
 	globalDTO "permen_api/dto"
 	response_helper "permen_api/helper/response"
 
 	"github.com/gin-gonic/gin"
 )
 
-type MasterPerspektifHandler struct {
-	service service.MasterPerspektifServiceInterface
+type MasterStatusHandler struct {
+	service service.MasterStatusServiceInterface
 }
 
-func NewMasterPerspektifHandler(service service.MasterPerspektifServiceInterface) *MasterPerspektifHandler {
-	return &MasterPerspektifHandler{service: service}
+func NewMasterStatusHandler(service service.MasterStatusServiceInterface) *MasterStatusHandler {
+	return &MasterStatusHandler{service: service}
 }
 
-func (h *MasterPerspektifHandler) GetAllMasterPerspektif(c *gin.Context) {
-	data, err := h.service.GetAllMasterPerspektif()
+func (h *MasterStatusHandler) GetAllMasterStatus(c *gin.Context) {
+	data, err := h.service.GetAllMasterStatus()
 	if err != nil {
 		c.Error(err)
 		return
@@ -26,7 +26,7 @@ func (h *MasterPerspektifHandler) GetAllMasterPerspektif(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
 		Status:  true,
-		Message: "Data Perspektif berhasil diambil",
+		Message: "Data Status berhasil diambil",
 		Data:    data,
 	})
 }

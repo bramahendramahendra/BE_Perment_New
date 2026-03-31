@@ -26,6 +26,11 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.MasterTriwulanRoutes(r)
 
 	// =============================================
+	// DOMAIN: MASTER STATUS
+	// =============================================
+	segment.MasterStatusRoutes(r)
+
+	// =============================================
 	// DOMAIN: MASTER PERSPEKTIF
 	// =============================================
 	segment.MasterPerspektifRoutes(r)
