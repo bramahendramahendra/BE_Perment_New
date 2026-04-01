@@ -28,6 +28,18 @@ type (
 			req *dto.GetAllDraftPenyusunanKpiRequest,
 		) ([]*dto.GetAllDraftPenyusunanKpiResponse, int64, error)
 
+		// Digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
+		// Mengembalikan 1 record lengkap (header + KpiDetail + ChallengeDetail + MethodDetail)
+		// berdasarkan id_pengajuan, tanpa filter status maupun entry_user.
+		GetDetailPenyusunanKpi(
+			req *dto.GetDetailPenyusunanKpiRequest,
+		) (*dto.GetAllDraftPenyusunanKpiResponse, error)
+
+		// Digunakan oleh endpoint POST /penyusunan-kpi/get-csv dan /get-pdf.
+		// Mengambil data header (nama divisi, tahun, triwulan) dan baris sub KPI
+		// dari data_kpi_subdetail untuk keperluan ekspor dokumen.
+		GetKpiExportData(idPengajuan string) (*dto.KpiExportData, error)
+
 		GetDB() *gorm.DB
 	}
 

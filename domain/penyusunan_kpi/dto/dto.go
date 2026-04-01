@@ -77,6 +77,21 @@ type GetAllDraftPenyusunanKpiRequest struct {
 	EntryUser string `json:"-"`
 }
 
+// GetDetailPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-detail.
+type GetDetailPenyusunanKpiRequest struct {
+	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+}
+
+// GetCsvPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-csv.
+type GetCsvPenyusunanKpiRequest struct {
+	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+}
+
+// GetPdfPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-pdf.
+type GetPdfPenyusunanKpiRequest struct {
+	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+}
+
 // =============================================================================
 // EXCEL ROW DTO
 // =============================================================================
@@ -219,6 +234,20 @@ type GetAllDraftPenyusunanKpiResponse struct {
 	MethodDetail             []GetAllDraftMethodDetailResponse    `json:"MethodDetail"`
 }
 
+// GetAllDraftKpiDetailResponse — IdPengajuan, Tahun, Triwulan dihapus (redundan)
+type GetAllDraftKpiDetailResponse struct {
+	IdDetail            string                            `json:"IdDetail"`
+	IdKpi               string                            `json:"IdKpi"`
+	Kpi                 string                            `json:"Kpi"`
+	Rumus               string                            `json:"Rumus"`
+	IdPerspektif        string                            `json:"IdPerspektif"`
+	Perspektif          string                            `json:"Perspektif"`
+	IdKeteranganProject string                            `json:"IdKeteranganProject"`
+	KeteranganProject   string                            `json:"KeteranganProject"`
+	LampiranFile        string                            `json:"LampiranFile"`
+	KpiSubDetail        []GetAllDraftKpiSubDetailResponse `json:"KpiSubDetail"`
+}
+
 // GetAllDraftKpiSubDetailResponse — IdPengajuan, IdDetail, Tahun, Triwulan dihapus (redundan)
 type GetAllDraftKpiSubDetailResponse struct {
 	IdSubDetail                      string `json:"IdSubDetail"`
@@ -253,20 +282,6 @@ type GetAllDraftKpiSubDetailResponse struct {
 	PencapaianPostQualifierValidated string `json:"PencapaianPostQualifierValidated"`
 }
 
-// GetAllDraftKpiDetailResponse — IdPengajuan, Tahun, Triwulan dihapus (redundan)
-type GetAllDraftKpiDetailResponse struct {
-	IdDetail            string                            `json:"IdDetail"`
-	IdKpi               string                            `json:"IdKpi"`
-	Kpi                 string                            `json:"Kpi"`
-	Rumus               string                            `json:"Rumus"`
-	IdPerspektif        string                            `json:"IdPerspektif"`
-	Perspektif          string                            `json:"Perspektif"`
-	IdKeteranganProject string                            `json:"IdKeteranganProject"`
-	KeteranganProject   string                            `json:"KeteranganProject"`
-	LampiranFile        string                            `json:"LampiranFile"`
-	KpiSubDetail        []GetAllDraftKpiSubDetailResponse `json:"KpiSubDetail"`
-}
-
 // GetAllDraftChallengeDetailResponse — IdPengajuan dihapus (redundan)
 type GetAllDraftChallengeDetailResponse struct {
 	IdDetailChallenge  string `json:"IdDetailChallenge"`
@@ -287,4 +302,26 @@ type GetAllDraftMethodDetailResponse struct {
 	DeskripsiMethod  string `json:"DeskripsiMethod"`
 	RealisasiMethod  string `json:"RealisasiMethod"`
 	LampiranEvidence string `json:"LampiranEvidence"`
+}
+
+// =============================================================================
+// EXPORT DTO (digunakan oleh get-csv dan get-pdf)
+// =============================================================================
+
+// KpiSubDetailExportRow merepresentasikan 1 baris data sub KPI untuk keperluan
+// ekspor CSV dan PDF. Kolom sesuai tampilan: No, KPI, Bobot(%), Target Tahunan, Capping.
+type KpiSubDetailExportRow struct {
+	No            int
+	KpiNama       string
+	Bobot         string
+	TargetTahunan string
+	Capping       string
+}
+
+// KpiExportData berisi header dokumen + daftar baris sub KPI untuk ekspor.
+type KpiExportData struct {
+	NamaDivisi string // kostl_tx dari data_kpi
+	Tahun      string
+	Triwulan   string
+	Rows       []KpiSubDetailExportRow
 }

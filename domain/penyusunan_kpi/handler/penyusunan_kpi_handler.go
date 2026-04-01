@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -141,4 +143,89 @@ func (h *PenyusunanKpiHandler) GetAllDraftPenyusunanKpi(c *gin.Context) {
 		Data:       data,
 		Pagination: pagination,
 	})
+}
+
+// GetDetailPenyusunanKpi handles POST /penyusunan-kpi/get-detail
+// Menerima JSON { "id_pengajuan": "..." } dan mengembalikan 1 record KPI lengkap
+// beserta KpiDetail, ChallengeDetail, dan MethodDetail.
+func (h *PenyusunanKpiHandler) GetDetailPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetDetailPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetDetailPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:    "00",
+		Status:  true,
+		Message: "Detail KPI berhasil diambil",
+		Data:    data,
+	})
+}
+
+// GetCsvPenyusunanKpi handles POST /penyusunan-kpi/get-csv
+// Menerima JSON { "id_pengajuan": "..." } dan mengembalikan file CSV untuk diunduh.
+func (h *PenyusunanKpiHandler) GetCsvPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetCsvPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	fileBytes, filename, err := h.service.GetCsvPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Cache-Control", "no-cache")
+	c.Data(http.StatusOK, "text/csv", fileBytes)
+}
+
+// GetPdfPenyusunanKpi handles POST /penyusunan-kpi/get-pdf
+// Menerima JSON { "id_pengajuan": "..." } dan mengembalikan file PDF untuk diunduh.
+func (h *PenyusunanKpiHandler) GetPdfPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetPdfPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	fileBytes, filename, err := h.service.GetPdfPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.Header("Content-Description", "File Transfer")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Type", "application/pdf")
+	c.Header("Content-Transfer-Encoding", "binary")
+	c.Header("Cache-Control", "no-cache")
+	c.Data(http.StatusOK, "application/pdf", fileBytes)
 }
