@@ -16,6 +16,7 @@ localhost:8006/api/master-tahun/get-all
 localhost:8006/api/master-divisi/get-all
 localhost:8006/api/master-kpi/get-all 
 localhost:8006/api/master-status/get-all
+localhost:8006/api/master-status/get-draft
 localhost:8006/api/user/get-all 
 
 localhost:8006/api/master-challenge/get-all

@@ -15,6 +15,7 @@ import (
 // Daftar endpoint:
 //
 //	POST /master-status/get-all → GetAllMasterStatus
+//	POST /master-status/get-draft → GetDraftMasterStatus
 func MasterStatusRoutes(r *gin.RouterGroup) {
 	masterStatusRepo := repo.NewMasterStatusRepo(db.DB)
 	masterStatusService := service.NewMasterStatusService(masterStatusRepo)
@@ -22,4 +23,5 @@ func MasterStatusRoutes(r *gin.RouterGroup) {
 
 	masterStatusGroup := r.Group("master-status")
 	masterStatusGroup.POST("/get-all", masterStatusHandler.GetAllMasterStatus)
+	masterStatusGroup.POST("/get-draft", masterStatusHandler.GetDraftMasterStatus)
 }
