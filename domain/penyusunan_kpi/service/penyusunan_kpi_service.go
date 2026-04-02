@@ -38,21 +38,40 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		}
 	}
 
-	// User error: isi Excel tidak valid (kolom salah, bobot salah, KPI tidak cocok, dll)
-	kpiSubDetails, err := utils.ParseAndValidateExcel(file, req.Triwulan, req.Kpi)
+	// Parse dan validasi file Excel.
+	kpiRows, kpiSubDetails, err := utils.ParseAndValidateExcel(file, req.Triwulan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("validasi file Excel '%s' gagal: %s", file.Filename, err.Error()),
 		}
 	}
 
-	// User error: polarisasi tidak sesuai master, lookup gagal karena data tidak valid
+	// Lookup mst_kpi untuk setiap KPI unik dari kolom B Excel.
+	// Jika tidak ditemukan: idKpi = "0", rumus = "0".
+	if err := s.resolveKpiMasterLookup(kpiRows); err != nil {
+		return data, err
+	}
+
+	// Lookup mst_kpi dan mst_polarisasi untuk setiap baris sub KPI (kolom C).
+	// Validasi polarisasi vs rumus mst_kpi juga dilakukan di sini.
 	if err := s.resolveMasterLookup(kpiSubDetails); err != nil {
 		return data, err
 	}
 
+	// Bangun idPengajuan di service agar bisa digunakan untuk build response sebelum repo insert.
+	idPengajuan := utils.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
+
+	// Build ChallengeList dan MethodList dari data Excel (kolom R,S,T,U).
+	// Hanya diisi untuk TW2 dan TW4; untuk TW1 dan TW3 list kosong (tidak diinsert ke DB).
+	challengeList := []dto.PenyusunanChallenge{}
+	methodList := []dto.PenyusunanMethod{}
+	if utils.IsTriwulanWithChallengeMethod(req.Triwulan) {
+		challengeList = utils.BuildChallengeList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+		methodList = utils.BuildMethodList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+	}
+
 	// System error: gagal simpan ke DB — biarkan naik apa adanya
-	idPengajuan, err := s.repo.ValidatePenyusunanKpi(req, kpiSubDetails)
+	idPengajuan, err = s.repo.ValidatePenyusunanKpi(req, kpiRows, kpiSubDetails, challengeList, methodList)
 	if err != nil {
 		return data, err
 	}
@@ -70,10 +89,10 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 			EntryName: req.EntryName,
 			EntryTime: req.EntryTime,
 		},
-		TotalKpi:      len(req.Kpi),
-		Kpi:           utils.BuildKpiResponse(idPengajuan, req.Kpi, kpiSubDetails),
-		ChallengeList: req.ChallengeList,
-		MethodList:    req.MethodList,
+		TotalKpi:      len(kpiRows),
+		Kpi:           utils.BuildKpiResponse(idPengajuan, kpiRows, kpiSubDetails),
+		ChallengeList: challengeList,
+		MethodList:    methodList,
 	}
 
 	return data, nil
@@ -100,6 +119,38 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 }
 
 // =============================================================================
+// HELPER — resolveKpiMasterLookup
+// =============================================================================
+
+// resolveKpiMasterLookup melakukan lookup mst_kpi untuk setiap KPI unik dari kolom B Excel.
+// Aturan:
+//   - Jika ditemukan → idKpi dan rumus dari DB
+//   - Jika tidak ditemukan → idKpi = "0", rumus = "0"
+func (s *penyusunanKpiService) resolveKpiMasterLookup(
+	kpiRows []dto.PenyusunanKpiRow,
+) error {
+	for i := range kpiRows {
+		idKpi, _, rumus, err := s.repo.LookupKpiMaster(kpiRows[i].Kpi)
+		if err != nil {
+			return fmt.Errorf(
+				"KPI '%s': gagal lookup master KPI: %w",
+				kpiRows[i].Kpi, err,
+			)
+		}
+
+		if idKpi == "0" {
+			// Tidak ditemukan di mst_kpi → idKpi = "0", rumus = "0"
+			kpiRows[i].IdKpi = "0"
+			kpiRows[i].Rumus = "0"
+		} else {
+			kpiRows[i].IdKpi = idKpi
+			kpiRows[i].Rumus = rumus
+		}
+	}
+	return nil
+}
+
+// =============================================================================
 // HELPER — resolveMasterLookup
 // =============================================================================
 
@@ -112,7 +163,7 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 		for j := range rows {
 			subRow := &kpiSubDetails[i][j]
 
-			idKpi, kpiFromDB, rumusMstKpi, err := s.repo.LookupSubKpiMaster(subRow.SubKPI)
+			idKpi, kpiFromDB, rumusMstKpi, err := s.repo.LookupKpiMaster(subRow.SubKPI)
 			if err != nil {
 				// System error: query DB gagal
 				return fmt.Errorf(

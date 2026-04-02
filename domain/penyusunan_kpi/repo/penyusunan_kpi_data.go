@@ -43,6 +43,7 @@ const (
 		FROM data_kpi 
 		WHERE id_pengajuan = ?`
 
+	// queryInsertKpiDetail: id_perspektif diisi NULL karena sudah tidak digunakan.
 	queryInsertKpiDetail = `
 		INSERT INTO data_kpi_detail 
 			(id_pengajuan, id_detail, tahun, triwulan, id_kpi, kpi, rumus, 
@@ -86,8 +87,7 @@ const (
 		WHERE LOWER(polarisasi) = LOWER(?)
 		LIMIT 1`
 
-	// queryGetAllDraftKpiHeader digunakan oleh GetAllDraftPenyusunanKpi dan GetDetailPenyusunanKpi
-	// untuk mengambil baris header data_kpi.
+	// queryGetAllDraftKpiHeader digunakan oleh GetAllDraftPenyusunanKpi dan GetDetailPenyusunanKpi.
 	queryGetAllDraftKpiHeader = `
         SELECT
             a.id_pengajuan, a.tahun, a.triwulan, a.kostl, a.kostl_tx,
@@ -201,14 +201,14 @@ const (
 // LOOKUP
 // =============================================================================
 
-func (r *penyusunanKpiRepo) LookupSubKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error) {
+func (r *penyusunanKpiRepo) LookupKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error) {
 	row := r.db.Raw(queryLookupSubKpi, subKpiText).Row()
 	if scanErr := row.Scan(&idKpi, &kpiFromDB, &rumus); scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
-			// Sub KPI tidak ditemukan di master → dianggap KPI lain (id = "0")
+			// KPI/Sub KPI tidak ditemukan di master → dianggap KPI lain (id = "0"), teks asli dikembalikan
 			return "0", subKpiText, "", nil
 		}
-		return "0", subKpiText, "", fmt.Errorf("gagal lookup mst_kpi untuk Sub KPI '%s': %w", subKpiText, scanErr)
+		return "0", subKpiText, "", fmt.Errorf("gagal lookup mst_kpi untuk '%s': %w", subKpiText, scanErr)
 	}
 	return idKpi, kpiFromDB, rumus, nil
 }
@@ -235,9 +235,20 @@ func (r *penyusunanKpiRepo) LookupPolarisasi(polarisasiText string) (idPolarisas
 // VALIDATE — simpan data KPI tanpa approval
 // =============================================================================
 
+// ValidatePenyusunanKpi menyimpan data KPI, SubKPI, ChallengeList, dan MethodList ke DB.
+//
+// Perubahan dari versi sebelumnya:
+//   - Parameter req tidak lagi memiliki Kpi[], ChallengeList[], MethodList[]
+//   - kpiRows: daftar KPI unik dari kolom B Excel (sudah dilookup ke mst_kpi oleh service)
+//   - challengeList: dibangun dari kolom T/U Excel oleh service (hanya TW2 & TW4)
+//   - methodList: dibangun dari kolom R/S Excel oleh service (hanya TW2 & TW4)
+//   - Persfektif (id_perspektif) diisi NULL di DB karena sudah tidak digunakan
 func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	req *dto.ValidatePenyusunanKpiRequest,
+	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
+	challengeList []dto.PenyusunanChallenge,
+	methodList []dto.PenyusunanMethod,
 ) (string, error) {
 
 	idPengajuan := utils.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
@@ -262,13 +273,17 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	// status 70 = draft
 	var statusKpi interface{} = 70
 
+	// =========================================================================
+	// Build INSERT data_kpi_detail
+	// Perubahan: id_perspektif diisi NULL (sudah tidak digunakan)
+	// =========================================================================
 	kpiDetailPlaceholders := []string{}
 	kpiDetailArgs := []interface{}{}
-	idDetailMap := make(map[int]string)
+	idDetailMap := make(map[int]string) // kpiIndex → idDetail
 
-	for i, kpiItem := range req.Kpi {
+	for i, kpiRow := range kpiRows {
 		idDetail := utils.GenerateIDDetail(idPengajuan, i)
-		idDetailMap[i] = idDetail
+		idDetailMap[kpiRow.KpiIndex] = idDetail
 
 		kpiDetailPlaceholders = append(kpiDetailPlaceholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
 		kpiDetailArgs = append(kpiDetailArgs,
@@ -276,25 +291,28 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 			idDetail,
 			req.Tahun,
 			req.Triwulan,
-			kpiItem.IdKpi,
-			kpiItem.Kpi,
-			kpiItem.Rumus,
-			kpiItem.Persfektif,
-			"",
+			kpiRow.IdKpi,
+			kpiRow.Kpi,
+			kpiRow.Rumus,
+			nil, // id_perspektif = NULL (sudah tidak digunakan)
+			nil, // id_keterangan_project
 		)
 	}
 
+	// =========================================================================
+	// Build INSERT data_kpi_subdetail
+	// =========================================================================
 	subDetailPlaceholders := []string{}
 	subDetailArgs := []interface{}{}
 	subCounter := 1
 
-	for i := range req.Kpi {
-		rows, ok := kpiSubDetails[i]
+	for _, kpiRow := range kpiRows {
+		rows, ok := kpiSubDetails[kpiRow.KpiIndex]
 		if !ok {
 			continue
 		}
 
-		idDetail := idDetailMap[i]
+		idDetail := idDetailMap[kpiRow.KpiIndex]
 
 		for _, subRow := range rows {
 			idSubDetail := utils.GenerateIDSubDetail(idPengajuan, subCounter)
@@ -361,9 +379,14 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		}
 	}
 
+	// =========================================================================
+	// Build INSERT data_challenge_detail
+	// challengeList sudah dibangun oleh service dari kolom T/U Excel.
+	// Hanya berisi data jika triwulan TW2 atau TW4.
+	// =========================================================================
 	challengePlaceholders := []string{}
 	challengeArgs := []interface{}{}
-	for _, ch := range req.ChallengeList {
+	for _, ch := range challengeList {
 		challengePlaceholders = append(challengePlaceholders, "(?, ?, ?, ?, ?, ?)")
 		challengeArgs = append(challengeArgs,
 			idPengajuan,
@@ -375,9 +398,14 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		)
 	}
 
+	// =========================================================================
+	// Build INSERT data_method_detail
+	// methodList sudah dibangun oleh service dari kolom R/S Excel.
+	// Hanya berisi data jika triwulan TW2 atau TW4.
+	// =========================================================================
 	methodPlaceholders := []string{}
 	methodArgs := []interface{}{}
-	for _, mt := range req.MethodList {
+	for _, mt := range methodList {
 		methodPlaceholders = append(methodPlaceholders, "(?, ?, ?, ?, ?, ?)")
 		methodArgs = append(methodArgs,
 			idPengajuan,
@@ -389,6 +417,9 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		)
 	}
 
+	// =========================================================================
+	// Eksekusi semua INSERT dalam satu transaksi
+	// =========================================================================
 	tx := r.db.Begin()
 	if tx.Error != nil {
 		return "", fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
@@ -493,9 +524,7 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 }
 
 // =============================================================================
-// scanNestedKpi adalah helper yang digunakan oleh GetAllDraftPenyusunanKpi
-// dan GetDetailPenyusunanKpi untuk mengisi KpiDetail, ChallengeDetail,
-// dan MethodDetail ke dalam header record h.
+// scanNestedKpi — helper untuk GetAllDraftPenyusunanKpi dan GetDetailPenyusunanKpi
 // =============================================================================
 
 func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDraftPenyusunanKpiResponse) error {
@@ -542,8 +571,11 @@ func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDraftPenyusunanKpiRespons
 				&s.Bobot, &s.Capping,
 				&s.TargetTriwulan, &s.TargetKuantitatifTriwulan,
 				&s.TargetTahunan, &s.TargetKuantitatifTahunan,
-				&s.Realisasi, &s.RealisasiKuantitatif, &s.RealisasiKeterangan,
-				&s.RealisasiValidated, &s.RealisasiKuantitatifValidated,
+				&s.Realisasi,
+				&s.RealisasiKuantitatif,
+				&s.RealisasiKeterangan,
+				&s.RealisasiValidated,
+				&s.RealisasiKuantitatifValidated,
 				&s.ValidasiKeterangan,
 				&s.Pencapaian, &s.Skor,
 				&s.DeskripsiGlossary,
@@ -569,7 +601,7 @@ func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDraftPenyusunanKpiRespons
 	h.KpiDetail = kpiDetails
 
 	// =====================================================================
-	// QUERY CHALLENGE DETAIL per id_pengajuan
+	// QUERY CHALLENGE DETAIL
 	// =====================================================================
 	challengeRows, err := r.db.Raw(queryGetChallengeDetail, h.IdPengajuan).Rows()
 	if err != nil {
@@ -593,7 +625,7 @@ func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDraftPenyusunanKpiRespons
 	h.ChallengeDetail = challengeDetails
 
 	// =====================================================================
-	// QUERY METHOD DETAIL per id_pengajuan
+	// QUERY METHOD DETAIL
 	// =====================================================================
 	methodRows, err := r.db.Raw(queryGetMethodDetail, h.IdPengajuan).Rows()
 	if err != nil {
@@ -656,13 +688,13 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 		args = append(args, req.Status)
 	}
 
-	whereClause := " WHERE " + strings.Join(conditions, " AND ")
+	where := " WHERE " + strings.Join(conditions, " AND ")
 
 	// =========================================================================
 	// COUNT TOTAL RECORDS
 	// =========================================================================
 	var total int64
-	countQuery := queryCountAllDraftKpi + whereClause
+	countQuery := queryCountAllDraftKpi + where
 	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
@@ -683,21 +715,21 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 	// =========================================================================
 	// QUERY HEADER
 	// =========================================================================
-	mainQuery := queryGetAllDraftKpiHeader + whereClause + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
-	headerArgs := append(args, limit, offset)
+	listQuery := queryGetAllDraftKpiHeader + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listArgs := append(args, limit, offset)
 
-	headerRows, err := r.db.Raw(mainQuery, headerArgs...).Rows()
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
 	if err != nil {
-		return nil, 0, fmt.Errorf("gagal mengambil data header KPI: %w", err)
+		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
 	}
-	defer headerRows.Close()
+	defer rows.Close()
 
 	var results []*dto.GetAllDraftPenyusunanKpiResponse
 
-	for headerRows.Next() {
+	for rows.Next() {
 		var h dto.GetAllDraftPenyusunanKpiResponse
 
-		if err := headerRows.Scan(
+		if err := rows.Scan(
 			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
 			&h.Kostl, &h.KostlTx,
 			&h.Orgeh, &h.OrgehTx,
@@ -728,14 +760,14 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 }
 
 // =============================================================================
-// GET DETAIL — 1 record berdasarkan id_pengajuan (tanpa filter status/entry_user)
+// GET DETAIL
 // =============================================================================
 
 func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
 ) (*dto.GetAllDraftPenyusunanKpiResponse, error) {
 
-	detailQuery := queryGetAllDraftKpiHeader + " WHERE a.id_pengajuan = ?"
+	detailQuery := queryGetAllDraftKpiHeader + " WHERE a.id_pengajuan = ? LIMIT 1"
 
 	headerRows, err := r.db.Raw(detailQuery, req.IdPengajuan).Rows()
 	if err != nil {

@@ -21,6 +21,7 @@ const (
 	SheetSelainTW4 = "Selain TW 4"
 
 	TriwulanTW4 = "TW4"
+	TriwulanTW2 = "TW2"
 
 	PolarisasiMaximize = "Maximize"
 	PolarisasiMinimize = "Minimize"
@@ -47,46 +48,65 @@ func GetMaxRowsFromEnv() int {
 	return n
 }
 
+// IsTriwulanWithChallengeMethod mengembalikan true jika triwulan adalah TW2 atau TW4,
+// yaitu triwulan yang memerlukan insert ChallengeList dan MethodList ke DB.
+func IsTriwulanWithChallengeMethod(triwulan string) bool {
+	upper := strings.ToUpper(strings.TrimSpace(triwulan))
+	return upper == strings.ToUpper(TriwulanTW2) || upper == strings.ToUpper(TriwulanTW4)
+}
+
+// ParseAndValidateExcel membaca file Excel, memvalidasi isi, dan mengembalikan:
+//   - kpiRows     : slice KPI unik dari kolom B (urutan kemunculan pertama)
+//   - kpiSubDetails : map[kpiIndex] -> []PenyusunanKpiSubDetailRow
+//
+// Perubahan dari versi sebelumnya:
+//  1. Tidak lagi menerima kpiList dari REQUEST — KPI diambil langsung dari kolom B Excel.
+//  2. Validasi bobot: total akumulasi SEMUA baris kolom F harus tepat 100% (bukan per KPI).
+//  3. Kolom R,S,T,U (Process/Deskripsi Process/Context/Deskripsi Context) hanya diparse
+//     pada TW2 dan TW4 (bukan hanya TW4 seperti sebelumnya).
 func ParseAndValidateExcel(
 	file *multipart.FileHeader,
 	triwulan string,
-	kpiList []dto.PenyusunanKpiDetailRequest,
-) (map[int][]dto.PenyusunanKpiSubDetailRow, error) {
+) ([]dto.PenyusunanKpiRow, map[int][]dto.PenyusunanKpiSubDetailRow, error) {
 	maxRows := GetMaxRowsFromEnv()
-	return parseAndValidateExcelInternal(file, triwulan, kpiList, maxRows)
+	return parseAndValidateExcelInternal(file, triwulan, maxRows)
 }
 
 func parseAndValidateExcelInternal(
 	file *multipart.FileHeader,
 	triwulan string,
-	kpiList []dto.PenyusunanKpiDetailRequest,
 	maxRows int,
-) (map[int][]dto.PenyusunanKpiSubDetailRow, error) {
+) ([]dto.PenyusunanKpiRow, map[int][]dto.PenyusunanKpiSubDetailRow, error) {
 	if maxRows <= 0 {
-		return nil, fmt.Errorf("maxRows harus lebih dari 0, nilai saat ini: %d", maxRows)
+		return nil, nil, fmt.Errorf("maxRows harus lebih dari 0, nilai saat ini: %d", maxRows)
 	}
 
 	src, err := file.Open()
 	if err != nil {
-		return nil, fmt.Errorf("gagal membuka file Excel '%s': %w", file.Filename, err)
+		return nil, nil, fmt.Errorf("gagal membuka file Excel '%s': %w", file.Filename, err)
 	}
 	defer src.Close()
 
 	xlsx, err := excelize.OpenReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("gagal membaca file Excel '%s': %w", file.Filename, err)
+		return nil, nil, fmt.Errorf("gagal membaca file Excel '%s': %w", file.Filename, err)
 	}
 	defer xlsx.Close()
 
+	// Tentukan sheet berdasarkan triwulan.
+	// TW2 dan TW4 menggunakan sheet TW4 (karena kolom R,S,T,U tersedia).
+	// TW1 dan TW3 menggunakan sheet Selain TW4.
+	isChallengeMethodTriwulan := IsTriwulanWithChallengeMethod(triwulan)
 	isTW4 := strings.EqualFold(triwulan, TriwulanTW4)
+
 	targetSheet := SheetSelainTW4
-	if isTW4 {
+	if isChallengeMethodTriwulan {
 		targetSheet = SheetTW4
 	}
 
 	sheetIndex, err := xlsx.GetSheetIndex(targetSheet)
 	if err != nil || sheetIndex < 0 {
-		return nil, fmt.Errorf(
+		return nil, nil, fmt.Errorf(
 			"file Excel '%s' tidak memiliki sheet '%s'. Pastikan file memiliki sheet '%s' dan '%s'",
 			file.Filename, targetSheet, SheetTW4, SheetSelainTW4,
 		)
@@ -94,11 +114,11 @@ func parseAndValidateExcelInternal(
 
 	allRows, err := xlsx.GetRows(targetSheet)
 	if err != nil {
-		return nil, fmt.Errorf("gagal membaca baris sheet '%s': %w", targetSheet, err)
+		return nil, nil, fmt.Errorf("gagal membaca baris sheet '%s': %w", targetSheet, err)
 	}
 
 	if len(allRows) < ExcelDataStartRow {
-		return nil, fmt.Errorf(
+		return nil, nil, fmt.Errorf(
 			"file Excel '%s' sheet '%s' tidak memiliki data (data dimulai dari baris %d)",
 			file.Filename, targetSheet, ExcelDataStartRow,
 		)
@@ -111,16 +131,18 @@ func parseAndValidateExcelInternal(
 	}
 	limitedRows := allRows[dataStartIdx:dataEndIdx]
 
-	kpiIndexMap := make(map[string]int, len(kpiList))
-	for i, kpiItem := range kpiList {
-		kpiIndexMap[strings.ToLower(strings.TrimSpace(kpiItem.Kpi))] = i
-	}
+	// kpiIndexMap: lowercase nama KPI kolom B → indeks urutan kemunculan pertama
+	kpiIndexMap := make(map[string]int)
+	// kpiRows: daftar KPI unik sesuai urutan kemunculan di Excel
+	kpiRows := []dto.PenyusunanKpiRow{}
 
 	kpiSubDetails := make(map[int][]dto.PenyusunanKpiSubDetailRow)
-	bobotPerKpi := make(map[int]float64)
+
+	// totalBobot: akumulasi seluruh bobot semua baris (perubahan utama — tidak lagi per KPI)
+	totalBobot := 0.0
 
 	expectedCols := 15
-	if isTW4 {
+	if isChallengeMethodTriwulan {
 		expectedCols = 21
 	}
 
@@ -148,7 +170,7 @@ func parseAndValidateExcelInternal(
 		colO := strings.TrimSpace(row[14])
 
 		var colP, colQ, colR, colS, colT, colU string
-		if isTW4 {
+		if isChallengeMethodTriwulan {
 			colP = strings.TrimSpace(row[15])
 			colQ = strings.TrimSpace(row[16])
 			colR = strings.TrimSpace(row[17])
@@ -157,118 +179,157 @@ func parseAndValidateExcelInternal(
 			colU = strings.TrimSpace(row[20])
 		}
 
+		// Lewati baris kosong
 		if colA == "" && colB == "" && colC == "" {
 			continue
 		}
 
+		// Kolom A: No (harus angka)
 		no, errNo := strconv.Atoi(colA)
 		if errNo != nil {
-			return nil, fmt.Errorf("baris %d, Kolom A (NO): harus berupa angka, nilai saat ini: '%s'", displayRow, colA)
+			return nil, nil, fmt.Errorf("baris %d, Kolom A (NO): harus berupa angka, nilai saat ini: '%s'", displayRow, colA)
 		}
 
+		// Kolom B: KPI — registrasi sebagai KPI unik jika belum ada
 		if colB == "" {
-			return nil, fmt.Errorf("baris %d, Kolom B (KPI): tidak boleh kosong", displayRow)
+			return nil, nil, fmt.Errorf("baris %d, Kolom B (KPI): tidak boleh kosong", displayRow)
 		}
-		kpiIdx, found := kpiIndexMap[strings.ToLower(colB)]
+		kpiKey := strings.ToLower(strings.TrimSpace(colB))
+		kpiIdx, found := kpiIndexMap[kpiKey]
 		if !found {
-			kpiNames := make([]string, len(kpiList))
-			for i, k := range kpiList {
-				kpiNames[i] = "'" + k.Kpi + "'"
-			}
-			return nil, fmt.Errorf(
-				"baris %d, Kolom B (KPI): nilai '%s' tidak cocok dengan KPI manapun di REQUEST. KPI yang valid: %s",
-				displayRow, colB, strings.Join(kpiNames, ", "),
+			kpiIdx = len(kpiRows)
+			kpiIndexMap[kpiKey] = kpiIdx
+			// IdKpi dan Rumus akan diisi oleh service saat lookup mst_kpi.
+			// Untuk sementara diisi string asli dari kolom B.
+			kpiRows = append(kpiRows, dto.PenyusunanKpiRow{
+				KpiIndex: kpiIdx,
+				IdKpi:    "",
+				Kpi:      colB,
+				Rumus:    "",
+			})
+		}
+
+		// Kolom C: Sub KPI
+		if colC == "" {
+			return nil, nil, fmt.Errorf("baris %d, Kolom C (Sub KPI): tidak boleh kosong", displayRow)
+		}
+
+		// Kolom D: Polarisasi
+		if colD == "" {
+			return nil, nil, fmt.Errorf("baris %d, Kolom D (Polarisasi): tidak boleh kosong", displayRow)
+		}
+		if colD != PolarisasiMaximize && colD != PolarisasiMinimize {
+			return nil, nil, fmt.Errorf(
+				"baris %d, Kolom D (Polarisasi): nilai '%s' tidak valid. Gunakan '%s' atau '%s'",
+				displayRow, colD, PolarisasiMaximize, PolarisasiMinimize,
 			)
 		}
 
-		if colC == "" {
-			return nil, fmt.Errorf("baris %d, Kolom C (Sub KPI): tidak boleh kosong", displayRow)
-		}
-
-		if colD == "" {
-			return nil, fmt.Errorf("baris %d, Kolom D (Polarisasi): tidak boleh kosong", displayRow)
-		}
-		if colD != PolarisasiMaximize && colD != PolarisasiMinimize {
-			return nil, fmt.Errorf("baris %d, Kolom D (Polarisasi): nilai '%s' tidak valid. Gunakan '%s' atau '%s'", displayRow, colD, PolarisasiMaximize, PolarisasiMinimize)
-		}
-
+		// Kolom E: Capping
 		if colE == "" {
-			return nil, fmt.Errorf("baris %d, Kolom E (Capping): tidak boleh kosong", displayRow)
+			return nil, nil, fmt.Errorf("baris %d, Kolom E (Capping): tidak boleh kosong", displayRow)
 		}
 		if colE != CappingOption1 && colE != CappingOption2 {
-			return nil, fmt.Errorf("baris %d, Kolom E (Capping): nilai '%s' tidak valid. Gunakan '%s' atau '%s'", displayRow, colE, CappingOption1, CappingOption2)
+			return nil, nil, fmt.Errorf(
+				"baris %d, Kolom E (Capping): nilai '%s' tidak valid. Gunakan '%s' atau '%s'",
+				displayRow, colE, CappingOption1, CappingOption2,
+			)
 		}
 
+		// Kolom F: Bobot — akumulasikan ke totalBobot (perubahan: tidak lagi per KPI)
 		if colF == "" {
-			return nil, fmt.Errorf("baris %d, Kolom F (Bobot %%): tidak boleh kosong", displayRow)
+			return nil, nil, fmt.Errorf("baris %d, Kolom F (Bobot %%): tidak boleh kosong", displayRow)
 		}
 		bobot, errBobot := ParseFloat2Decimal(colF)
 		if errBobot != nil {
-			return nil, fmt.Errorf("baris %d, Kolom F (Bobot %%): harus berupa angka 2 desimal tanpa simbol persen, nilai saat ini: '%s'", displayRow, colF)
+			return nil, nil, fmt.Errorf(
+				"baris %d, Kolom F (Bobot %%): harus berupa angka 2 desimal tanpa simbol persen, nilai saat ini: '%s'",
+				displayRow, colF,
+			)
 		}
-		bobotPerKpi[kpiIdx] += bobot
+		totalBobot += bobot
 
+		// Kolom G: Glossary
 		if colG == "" {
-			return nil, fmt.Errorf("baris %d, Kolom G (Glossary): tidak boleh kosong", displayRow)
+			return nil, nil, fmt.Errorf("baris %d, Kolom G (Glossary): tidak boleh kosong", displayRow)
 		}
 
+		// Kolom H: Target Triwulanan
 		if colH == "" {
-			return nil, fmt.Errorf("baris %d, Kolom H (Target Triwulanan): tidak boleh kosong", displayRow)
+			return nil, nil, fmt.Errorf("baris %d, Kolom H (Target Triwulanan): tidak boleh kosong", displayRow)
 		}
 
+		// Kolom I: Target Kuantitatif Triwulanan
 		targetKuantitatifTriwulan, errI := ParseFloat2Decimal(colI)
 		if errI != nil {
-			return nil, fmt.Errorf("baris %d, Kolom I (Target Kuantitatif Triwulanan): harus berupa angka 2 desimal, nilai saat ini: '%s'", displayRow, colI)
+			return nil, nil, fmt.Errorf(
+				"baris %d, Kolom I (Target Kuantitatif Triwulanan): harus berupa angka 2 desimal, nilai saat ini: '%s'",
+				displayRow, colI,
+			)
 		}
 
+		// Kolom J: Target Tahunan
 		if colJ == "" {
-			return nil, fmt.Errorf("baris %d, Kolom J (Target Tahunan): tidak boleh kosong", displayRow)
+			return nil, nil, fmt.Errorf("baris %d, Kolom J (Target Tahunan): tidak boleh kosong", displayRow)
 		}
 
+		// Kolom K: Target Kuantitatif Tahunan
 		targetKuantitatifTahunan, errK := ParseFloat2Decimal(colK)
 		if errK != nil {
-			return nil, fmt.Errorf("baris %d, Kolom K (Target Kuantitatif Tahunan): harus berupa angka 2 desimal, nilai saat ini: '%s'", displayRow, colK)
+			return nil, nil, fmt.Errorf(
+				"baris %d, Kolom K (Target Kuantitatif Tahunan): harus berupa angka 2 desimal, nilai saat ini: '%s'",
+				displayRow, colK,
+			)
 		}
 
+		// Kolom L: Terdapat Qualifier
 		if colL == "" {
-			return nil, fmt.Errorf("baris %d, Kolom L (Terdapat Qualifier): tidak boleh kosong", displayRow)
+			return nil, nil, fmt.Errorf("baris %d, Kolom L (Terdapat Qualifier): tidak boleh kosong", displayRow)
 		}
 
 		// if colL != QualifierYa && colL != QualifierTidak {
 		if !strings.EqualFold(colL, QualifierYa) && !strings.EqualFold(colL, QualifierTidak) {
-			return nil, fmt.Errorf("baris %d, Kolom L (Terdapat Qualifier): nilai '%s' tidak valid. Gunakan '%s' atau '%s'", displayRow, colL, QualifierYa, QualifierTidak)
+			return nil, nil, fmt.Errorf(
+				"baris %d, Kolom L (Terdapat Qualifier): nilai '%s' tidak valid. Gunakan '%s' atau '%s'",
+				displayRow, colL, QualifierYa, QualifierTidak,
+			)
 		}
 
 		if strings.EqualFold(colL, QualifierYa) {
 			if colM == "" {
-				return nil, fmt.Errorf("baris %d, Kolom M (Qualifier): tidak boleh kosong jika Terdapat Qualifier = 'Ya'", displayRow)
+				return nil, nil, fmt.Errorf("baris %d, Kolom M (Qualifier): tidak boleh kosong jika Terdapat Qualifier = 'Ya'", displayRow)
 			}
 			if colN == "" {
-				return nil, fmt.Errorf("baris %d, Kolom N (Deskripsi Qualifier): tidak boleh kosong jika Terdapat Qualifier = 'Ya'", displayRow)
+				return nil, nil, fmt.Errorf("baris %d, Kolom N (Deskripsi Qualifier): tidak boleh kosong jika Terdapat Qualifier = 'Ya'", displayRow)
 			}
 			if colO == "" {
-				return nil, fmt.Errorf("baris %d, Kolom O (Target Qualifier): tidak boleh kosong jika Terdapat Qualifier = 'Ya'", displayRow)
+				return nil, nil, fmt.Errorf("baris %d, Kolom O (Target Qualifier): tidak boleh kosong jika Terdapat Qualifier = 'Ya'", displayRow)
 			}
 		}
 
-		if isTW4 {
-			if colP == "" {
-				return nil, fmt.Errorf("baris %d, Kolom P (Result): tidak boleh kosong", displayRow)
+		// Kolom P-U: hanya divalidasi pada TW2 dan TW4
+		if isChallengeMethodTriwulan {
+			// Kolom P,Q (Result) hanya wajib pada TW4
+			if isTW4 {
+				if colP == "" {
+					return nil, nil, fmt.Errorf("baris %d, Kolom P (Result): tidak boleh kosong", displayRow)
+				}
+				if colQ == "" {
+					return nil, nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Result): tidak boleh kosong", displayRow)
+				}
 			}
-			if colQ == "" {
-				return nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Result): tidak boleh kosong", displayRow)
-			}
+			// Kolom R,S,T,U (Process & Context) wajib pada TW2 dan TW4
 			if colR == "" {
-				return nil, fmt.Errorf("baris %d, Kolom R (Process): tidak boleh kosong", displayRow)
+				return nil, nil, fmt.Errorf("baris %d, Kolom R (Process): tidak boleh kosong", displayRow)
 			}
 			if colS == "" {
-				return nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Process): tidak boleh kosong", displayRow)
+				return nil, nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Process): tidak boleh kosong", displayRow)
 			}
 			if colT == "" {
-				return nil, fmt.Errorf("baris %d, Kolom T (Context): tidak boleh kosong", displayRow)
+				return nil, nil, fmt.Errorf("baris %d, Kolom T (Context): tidak boleh kosong", displayRow)
 			}
 			if colU == "" {
-				return nil, fmt.Errorf("baris %d, Kolom U (Deskripsi Context): tidak boleh kosong", displayRow)
+				return nil, nil, fmt.Errorf("baris %d, Kolom U (Deskripsi Context): tidak boleh kosong", displayRow)
 			}
 		}
 
@@ -298,37 +359,40 @@ func parseAndValidateExcelInternal(
 			IsTW4:                     isTW4,
 			Result:                    NullableString(colP, isTW4),
 			DeskripsiResult:           NullableString(colQ, isTW4),
-			Process:                   NullableString(colR, isTW4),
-			DeskripsiProcess:          NullableString(colS, isTW4),
-			Context:                   NullableString(colT, isTW4),
-			DeskripsiContext:          NullableString(colU, isTW4),
+			// Process dan Context diisi untuk TW2 dan TW4
+			Process:          NullableString(colR, isChallengeMethodTriwulan),
+			DeskripsiProcess: NullableString(colS, isChallengeMethodTriwulan),
+			Context:          NullableString(colT, isChallengeMethodTriwulan),
+			DeskripsiContext: NullableString(colU, isChallengeMethodTriwulan),
 		}
 
 		kpiSubDetails[kpiIdx] = append(kpiSubDetails[kpiIdx], subRow)
 	}
 
-	for i, kpiItem := range kpiList {
-		if _, ok := kpiSubDetails[i]; !ok {
-			return nil, fmt.Errorf(
-				"KPI '%s' (index %d) tidak memiliki data sub KPI di file Excel '%s'. Pastikan kolom B berisi nama KPI yang sesuai dengan REQUEST",
-				kpiItem.Kpi, i+1, file.Filename,
+	// Validasi: minimal harus ada 1 KPI
+	if len(kpiRows) == 0 {
+		return nil, nil, fmt.Errorf("file Excel '%s' tidak memiliki data yang valid", file.Filename)
+	}
+
+	// Validasi: setiap KPI unik harus memiliki minimal 1 sub KPI
+	for _, kpiRow := range kpiRows {
+		if _, ok := kpiSubDetails[kpiRow.KpiIndex]; !ok {
+			return nil, nil, fmt.Errorf(
+				"KPI '%s' tidak memiliki data sub KPI di file Excel '%s'",
+				kpiRow.Kpi, file.Filename,
 			)
 		}
 	}
 
-	for i, kpiItem := range kpiList {
-		totalBobot := math.Round(bobotPerKpi[i]*100) / 100
-		if math.Abs(totalBobot-TotalBobotExpected) > BobotTolerance {
-			return nil, fmt.Errorf(
-				"KPI '%s': total Bobot (Kolom F) = %.2f%%, harus tepat 100%%",
-				kpiItem.Kpi, totalBobot,
-			)
-		}
+	// Validasi bobot: akumulasi TOTAL semua baris harus tepat 100%
+	// (perubahan utama: sebelumnya per KPI, sekarang akumulasi semua baris)
+	roundedTotal := math.Round(totalBobot*100) / 100
+	if math.Abs(roundedTotal-TotalBobotExpected) > BobotTolerance {
+		return nil, nil, fmt.Errorf(
+			"total Bobot (Kolom F) semua KPI = %.2f%%, harus tepat 100%%",
+			roundedTotal,
+		)
 	}
 
-	if len(kpiSubDetails) == 0 {
-		return nil, fmt.Errorf("file Excel '%s' tidak memiliki data yang valid", file.Filename)
-	}
-
-	return kpiSubDetails, nil
+	return kpiRows, kpiSubDetails, nil
 }

@@ -72,7 +72,7 @@ func (h *PenyusunanKpiHandler) ValidatePenyusunanKpi(c *gin.Context) {
 }
 
 // CreatePenyusunanKpi handles POST /penyusunan-kpi/create
-// Menerima JSON biasa (bukan multipart) dengan idPengajuan, ApprovalList, dan SaveAsDraft.
+// Menerima JSON biasa (bukan multipart) dengan idPengajuan dan ApprovalList.
 func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreatePenyusunanKpiRequest](c)
 	if err != nil {
@@ -100,8 +100,6 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 }
 
 // GetAllDraftPenyusunanKpi handles POST /penyusunan-kpi/get-all-draft
-// Filter opsional: divisi, tahun, triwulan, status, page, limit.
-// entry_user diambil otomatis dari header 'userq'.
 func (h *PenyusunanKpiHandler) GetAllDraftPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllDraftPenyusunanKpiRequest](c)
 	if err != nil {
@@ -109,7 +107,6 @@ func (h *PenyusunanKpiHandler) GetAllDraftPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	// Ambil entry_user dari header 'userq' (format: "userId | userName")
 	userq := c.GetHeader("userq")
 	if userq == "" {
 		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
@@ -122,7 +119,6 @@ func (h *PenyusunanKpiHandler) GetAllDraftPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	// Inject entry_user ke request — tidak boleh dari body (security)
 	req.EntryUser = strings.TrimSpace(parts[0])
 
 	data, total, err := h.service.GetAllDraftPenyusunanKpi(&req)
@@ -146,8 +142,6 @@ func (h *PenyusunanKpiHandler) GetAllDraftPenyusunanKpi(c *gin.Context) {
 }
 
 // GetDetailPenyusunanKpi handles POST /penyusunan-kpi/get-detail
-// Menerima JSON { "id_pengajuan": "..." } dan mengembalikan 1 record KPI lengkap
-// beserta KpiDetail, ChallengeDetail, dan MethodDetail.
 func (h *PenyusunanKpiHandler) GetDetailPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetDetailPenyusunanKpiRequest](c)
 	if err != nil {
@@ -175,7 +169,6 @@ func (h *PenyusunanKpiHandler) GetDetailPenyusunanKpi(c *gin.Context) {
 }
 
 // GetCsvPenyusunanKpi handles POST /penyusunan-kpi/get-csv
-// Menerima JSON { "id_pengajuan": "..." } dan mengembalikan file CSV untuk diunduh.
 func (h *PenyusunanKpiHandler) GetCsvPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetCsvPenyusunanKpiRequest](c)
 	if err != nil {
@@ -203,7 +196,6 @@ func (h *PenyusunanKpiHandler) GetCsvPenyusunanKpi(c *gin.Context) {
 }
 
 // GetPdfPenyusunanKpi handles POST /penyusunan-kpi/get-pdf
-// Menerima JSON { "id_pengajuan": "..." } dan mengembalikan file PDF untuk diunduh.
 func (h *PenyusunanKpiHandler) GetPdfPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetPdfPenyusunanKpiRequest](c)
 	if err != nil {

@@ -11,30 +11,20 @@ type DivisiItem struct {
 
 // ValidatePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/validate.
 type ValidatePenyusunanKpiRequest struct {
-	Divisi        DivisiItem                   `json:"Divisi"        validate:"required"`
-	Tahun         string                       `json:"Tahun"         validate:"required"`
-	Triwulan      string                       `json:"Triwulan"      validate:"required"`
-	Kostl         string                       `json:"Kostl"`
-	KostlTx       string                       `json:"KostlTx"`
-	EntryUser     string                       `json:"EntryUser"`
-	EntryName     string                       `json:"EntryName"`
-	EntryTime     string                       `json:"EntryTime"`
-	Kpi           []PenyusunanKpiDetailRequest `json:"Kpi"           validate:"required,min=1,dive"`
-	ChallengeList []PenyusunanChallenge        `json:"ChallengeList" validate:"required,min=1,dive"`
-	MethodList    []PenyusunanMethod           `json:"MethodList"    validate:"required,min=1,dive"`
+	Divisi    DivisiItem `json:"Divisi"    validate:"required"`
+	Tahun     string     `json:"Tahun"     validate:"required"`
+	Triwulan  string     `json:"Triwulan"  validate:"required"`
+	Kostl     string     `json:"Kostl"`
+	KostlTx   string     `json:"KostlTx"`
+	EntryUser string     `json:"EntryUser"`
+	EntryName string     `json:"EntryName"`
+	EntryTime string     `json:"EntryTime"`
 }
 
 // CreatePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/create.
 type CreatePenyusunanKpiRequest struct {
 	IdPengajuan  string     `json:"idPengajuan"  validate:"required"`
 	ApprovalList []Approval `json:"ApprovalList" validate:"required,min=1,dive"`
-}
-
-type PenyusunanKpiDetailRequest struct {
-	IdKpi      string `json:"idKpi"      validate:"required"`
-	Kpi        string `json:"kpi"        validate:"required"`
-	Rumus      string `json:"rumus"      validate:"required"`
-	Persfektif string `json:"persfektif" validate:"required"`
 }
 
 type Approval struct {
@@ -49,19 +39,19 @@ type Approval struct {
 }
 
 type PenyusunanChallenge struct {
-	IdDetailChallenge  string `json:"idDetailChallenge"  validate:"required"`
-	Tahun              string `json:"tahun"              validate:"required"`
-	Triwulan           string `json:"triwulan"           validate:"required"`
-	NamaChallenge      string `json:"namaChallenge"      validate:"required"`
-	DeskripsiChallenge string `json:"deskripsiChallenge" validate:"required"`
+	IdDetailChallenge  string `json:"idDetailChallenge"`
+	Tahun              string `json:"tahun"`
+	Triwulan           string `json:"triwulan"`
+	NamaChallenge      string `json:"namaChallenge"`
+	DeskripsiChallenge string `json:"deskripsiChallenge"`
 }
 
 type PenyusunanMethod struct {
-	IdDetailMethod  string `json:"idDetailMethod"  validate:"required"`
-	Tahun           string `json:"tahun"           validate:"required"`
-	Triwulan        string `json:"triwulan"        validate:"required"`
-	NamaMethod      string `json:"namaMethod"      validate:"required"`
-	DeskripsiMethod string `json:"deskripsiMethod" validate:"required"`
+	IdDetailMethod  string `json:"idDetailMethod"`
+	Tahun           string `json:"tahun"`
+	Triwulan        string `json:"triwulan"`
+	NamaMethod      string `json:"namaMethod"`
+	DeskripsiMethod string `json:"deskripsiMethod"`
 }
 
 // GetAllDraftPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-draft.
@@ -95,6 +85,19 @@ type GetPdfPenyusunanKpiRequest struct {
 // =============================================================================
 // EXCEL ROW DTO
 // =============================================================================
+
+// PenyusunanKpiRow merepresentasikan 1 KPI unik yang ditemukan dari kolom B Excel,
+// beserta hasil lookup ke tabel mst_kpi.
+type PenyusunanKpiRow struct {
+	// KpiIndex adalah urutan KPI unik (0-based) dari kolom B Excel.
+	KpiIndex int
+	// IdKpi adalah id_kpi dari mst_kpi. Jika tidak ditemukan, bernilai "0".
+	IdKpi string
+	// Kpi adalah nama KPI dari kolom B Excel (persis seperti yang diinput user).
+	Kpi string
+	// Rumus dari mst_kpi. Jika tidak ditemukan, bernilai "0".
+	Rumus string
+}
 
 // PenyusunanKpiSubDetailRow merepresentasikan 1 baris data dari file Excel
 // yang sudah diparse dan divalidasi.
@@ -204,14 +207,14 @@ type GetAllDraftPenyusunanKpiResponse struct {
 	Tahun                    string                               `json:"Tahun"`
 	Triwulan                 string                               `json:"Triwulan"`
 	Kostl                    string                               `json:"Kostl"`
-	KostlTx                  string                               `json:"Kostl_tx"`
+	KostlTx                  string                               `json:"KostlTx"`
 	Orgeh                    string                               `json:"Orgeh"`
-	OrgehTx                  string                               `json:"Orgeh_tx"`
-	EntryUser                string                               `json:"Entry_user"`
-	EntryName                string                               `json:"Entry_name"`
-	EntryTime                string                               `json:"Entry_time"`
-	ApprovalPosisi           string                               `json:"Approval_posisi"`
-	ApprovalList             string                               `json:"Approval_list"`
+	OrgehTx                  string                               `json:"OrgehTx"`
+	EntryUser                string                               `json:"EntryUser"`
+	EntryName                string                               `json:"EntryName"`
+	EntryTime                string                               `json:"EntryTime"`
+	ApprovalPosisi           string                               `json:"ApprovalPosisi"`
+	ApprovalList             string                               `json:"ApprovalList"`
 	Status                   string                               `json:"Status"`
 	StatusDesc               string                               `json:"StatusDesc"`
 	EntryUserRealisasi       string                               `json:"EntryUserRealisasi"`

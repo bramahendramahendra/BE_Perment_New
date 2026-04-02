@@ -8,14 +8,18 @@ import (
 
 type (
 	PenyusunanKpiRepoInterface interface {
-		LookupSubKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error)
+		// LookupKpiMaster mencari id_kpi, kpi, dan rumus dari mst_kpi.
+		LookupKpiMaster(kpiText string) (idKpi, kpiFromDB, rumus string, err error)
 
+		// LookupPolarisasi mencari id_polarisasi dari mst_polarisasi.
 		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
-
 		// Digunakan oleh endpoint POST /penyusunan-kpi/validate.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,
+			kpiRows []dto.PenyusunanKpiRow,
 			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
+			challengeList []dto.PenyusunanChallenge,
+			methodList []dto.PenyusunanMethod,
 		) (string, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
@@ -29,15 +33,11 @@ type (
 		) ([]*dto.GetAllDraftPenyusunanKpiResponse, int64, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
-		// Mengembalikan 1 record lengkap (header + KpiDetail + ChallengeDetail + MethodDetail)
-		// berdasarkan id_pengajuan, tanpa filter status maupun entry_user.
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
 		) (*dto.GetAllDraftPenyusunanKpiResponse, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-csv dan /get-pdf.
-		// Mengambil data header (nama divisi, tahun, triwulan) dan baris sub KPI
-		// dari data_kpi_subdetail untuk keperluan ekspor dokumen.
 		GetKpiExportData(idPengajuan string) (*dto.KpiExportData, error)
 
 		GetDB() *gorm.DB
