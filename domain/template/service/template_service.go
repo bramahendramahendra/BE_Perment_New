@@ -17,13 +17,7 @@ import (
 // headerRow adalah nomor baris header kolom (row ke-2 di Excel, index 1-based).
 const headerRow = 2
 
-// sheetSelainTW4 adalah nama sheet untuk TW1/TW2/TW3.
-const sheetSelainTW4 = "Selain TW 4"
-
-// sheetTW4 adalah nama sheet untuk TW4.
-const sheetTW4 = "TW 4"
-
-// columnsBase adalah header kolom A–O (untuk Selain TW 4).
+// columnsBase adalah header kolom A–O (untuk TW1 dan TW3).
 var columnsBase = []string{
 	"No.",
 	"KPI (text)",
@@ -42,8 +36,8 @@ var columnsBase = []string{
 	"Target Qualifier (text)",
 }
 
-// columnsTW4Extra adalah header kolom tambahan P–U khusus sheet TW4.
-var columnsTW4Extra = []string{
+// columnsExtended adalah header kolom tambahan P–U khusus TW2 dan TW4.
+var columnsExtended = []string{
 	"Result (text)",
 	"Deskripsi Result (text)",
 	"Process (text)",
@@ -57,16 +51,15 @@ var columnsTW4Extra = []string{
 // =============================================================================
 
 func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanKpiRequest) ([]byte, string, error) {
-	isTW4 := req.Triwulan == "TW4"
+	// TW2 dan TW4 menggunakan format kolom A–U (extended).
+	// TW1 dan TW3 menggunakan format kolom A–O (base).
+	useExtended := req.Triwulan == "TW2" || req.Triwulan == "TW4"
+
+	// Nama sheet mengikuti nilai triwulan dari request (TW1, TW2, TW3, TW4).
+	sheetName := req.Triwulan
 
 	f := excelize.NewFile()
 	defer f.Close()
-
-	// Tentukan nama sheet dan kolom yang digunakan
-	sheetName := sheetSelainTW4
-	if isTW4 {
-		sheetName = sheetTW4
-	}
 
 	// Rename default sheet "Sheet1" menjadi nama sheet yang sesuai
 	defaultSheet := f.GetSheetName(0)
@@ -77,8 +70,8 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 	// Gabungkan semua kolom header sesuai kondisi
 	allColumns := make([]string, len(columnsBase))
 	copy(allColumns, columnsBase)
-	if isTW4 {
-		allColumns = append(allColumns, columnsTW4Extra...)
+	if useExtended {
+		allColumns = append(allColumns, columnsExtended...)
 	}
 
 	// Buat style untuk row 1 (merge label qualifier) — background kuning
@@ -238,7 +231,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		Error:            strPtr("Bobot harus berupa angka antara 0 s.d. 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
 		Sqref:            sqrefDataRange("F"),
 	}); err != nil {
-		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Bobot: %v", err)}
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom F: %v", err)}
 	}
 
 	// Kolom I (Target Kuantitatif Triwulanan) → Angka desimal
@@ -303,7 +296,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		"N": 30, // Deskripsi Qualifier
 		"O": 25, // Target Qualifier
 	}
-	if isTW4 {
+	if useExtended {
 		colWidths["P"] = 25
 		colWidths["Q"] = 30
 		colWidths["R"] = 25

@@ -21,7 +21,7 @@ func NewTemplateHandler(service service.TemplateServiceInterface) *TemplateHandl
 	return &TemplateHandler{service: service}
 }
 
-// GetFormatPenyusunanKpi handles GET /template/format-penyusunan-kpi
+// GetFormatPenyusunanKpi handles POST /template/format-penyusunan-kpi
 // Menerima JSON body dengan field triwulan (TW1/TW2/TW3/TW4).
 // Menghasilkan file Excel template yang langsung diunduh oleh client.
 func (h *TemplateHandler) GetFormatPenyusunanKpi(c *gin.Context) {

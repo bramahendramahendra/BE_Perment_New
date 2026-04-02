@@ -12,11 +12,11 @@ import (
 //
 // Daftar endpoint:
 //
-//	GET /template/format-penyusunan-kpi → GetFormatPenyusunanKpi (application/json body + file download response)
+//	POST /template/format-penyusunan-kpi → GetFormatPenyusunanKpi (application/json body + file download response)
 func TemplateRoutes(r *gin.RouterGroup) {
 	templateService := service.NewTemplateService()
 	templateHandler := handler.NewTemplateHandler(templateService)
 
 	templateGroup := r.Group("template")
-	templateGroup.GET("/format-penyusunan-kpi", templateHandler.GetFormatPenyusunanKpi)
+	templateGroup.POST("/format-penyusunan-kpi", templateHandler.GetFormatPenyusunanKpi)
 }
