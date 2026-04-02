@@ -17,11 +17,16 @@ const (
 	ExcelDataStartRow = 3
 	ExcelMaxDataRows  = 13
 
-	SheetTW4       = "TW 4"
-	SheetSelainTW4 = "Selain TW 4"
+	// Nama sheet mengikuti nilai triwulan dari template (TW1, TW2, TW3, TW4).
+	SheetTW1 = "TW1"
+	SheetTW2 = "TW2"
+	SheetTW3 = "TW3"
+	SheetTW4 = "TW4"
 
-	TriwulanTW4 = "TW4"
+	TriwulanTW1 = "TW1"
 	TriwulanTW2 = "TW2"
+	TriwulanTW3 = "TW3"
+	TriwulanTW4 = "TW4"
 
 	PolarisasiMaximize = "Maximize"
 	PolarisasiMinimize = "Minimize"
@@ -94,21 +99,20 @@ func parseAndValidateExcelInternal(
 	defer xlsx.Close()
 
 	// Tentukan sheet berdasarkan triwulan.
-	// TW2 dan TW4 menggunakan sheet TW4 (karena kolom R,S,T,U tersedia).
-	// TW1 dan TW3 menggunakan sheet Selain TW4.
+	// Nama sheet mengikuti nilai triwulan: TW1, TW2, TW3, atau TW4.
+	// TW2 dan TW4 menggunakan kolom extended (R,S,T,U tersedia).
+	// TW1 dan TW3 menggunakan kolom base (A-O saja).
 	isChallengeMethodTriwulan := IsTriwulanWithChallengeMethod(triwulan)
 	isTW4 := strings.EqualFold(triwulan, TriwulanTW4)
 
-	targetSheet := SheetSelainTW4
-	if isChallengeMethodTriwulan {
-		targetSheet = SheetTW4
-	}
+	// targetSheet = nama sheet yang sesuai dengan triwulan yang dikirim
+	targetSheet := strings.ToUpper(strings.TrimSpace(triwulan))
 
 	sheetIndex, err := xlsx.GetSheetIndex(targetSheet)
 	if err != nil || sheetIndex < 0 {
 		return nil, nil, fmt.Errorf(
-			"file Excel '%s' tidak memiliki sheet '%s'. Pastikan file memiliki sheet '%s' dan '%s'",
-			file.Filename, targetSheet, SheetTW4, SheetSelainTW4,
+			"file Excel '%s' tidak memiliki sheet '%s'. Pastikan nama sheet di file sesuai dengan triwulan ('%s', '%s', '%s', atau '%s')",
+			file.Filename, targetSheet, SheetTW1, SheetTW2, SheetTW3, SheetTW4,
 		)
 	}
 
@@ -286,8 +290,6 @@ func parseAndValidateExcelInternal(
 		if colL == "" {
 			return nil, nil, fmt.Errorf("baris %d, Kolom L (Terdapat Qualifier): tidak boleh kosong", displayRow)
 		}
-
-		// if colL != QualifierYa && colL != QualifierTidak {
 		if !strings.EqualFold(colL, QualifierYa) && !strings.EqualFold(colL, QualifierTidak) {
 			return nil, nil, fmt.Errorf(
 				"baris %d, Kolom L (Terdapat Qualifier): nilai '%s' tidak valid. Gunakan '%s' atau '%s'",

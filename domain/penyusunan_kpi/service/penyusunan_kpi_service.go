@@ -222,11 +222,11 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 func (s *penyusunanKpiService) GetAllDraftPenyusunanKpi(
 	req *dto.GetAllDraftPenyusunanKpiRequest,
 ) (data []*dto.GetAllDraftPenyusunanKpiResponse, total int64, err error) {
-	data, total, err = s.repo.GetAllDraftPenyusunanKpi(req)
+	dataDB, total, err := s.repo.GetAllDraftPenyusunanKpi(req)
 	if err != nil {
 		return nil, 0, err
 	}
-	return data, total, nil
+	return dataDB, total, nil
 }
 
 // =============================================================================
@@ -235,12 +235,12 @@ func (s *penyusunanKpiService) GetAllDraftPenyusunanKpi(
 
 func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
-) (*dto.GetAllDraftPenyusunanKpiResponse, error) {
-	data, err := s.repo.GetDetailPenyusunanKpi(req)
+) (data *dto.GetAllDraftPenyusunanKpiResponse, err error) {
+	dataDB, err := s.repo.GetDetailPenyusunanKpi(req)
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+	return dataDB, nil
 }
 
 // =============================================================================
