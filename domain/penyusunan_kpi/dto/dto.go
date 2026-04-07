@@ -38,12 +38,12 @@ type Approval struct {
 	Waktu      string `json:"waktu"`
 }
 
-type PenyusunanChallenge struct {
-	IdDetailChallenge  string `json:"idDetailChallenge"`
-	Tahun              string `json:"tahun"`
-	Triwulan           string `json:"triwulan"`
-	NamaChallenge      string `json:"namaChallenge"`
-	DeskripsiChallenge string `json:"deskripsiChallenge"`
+type PenyusunanResult struct {
+	IdDetailResult  string `json:"idDetailResult"`
+	Tahun           string `json:"tahun"`
+	Triwulan        string `json:"triwulan"`
+	NamaResult      string `json:"namaResult"`
+	DeskripsiResult string `json:"deskripsiResult"`
 }
 
 type PenyusunanMethod struct {
@@ -52,6 +52,14 @@ type PenyusunanMethod struct {
 	Triwulan        string `json:"triwulan"`
 	NamaMethod      string `json:"namaMethod"`
 	DeskripsiMethod string `json:"deskripsiMethod"`
+}
+
+type PenyusunanChallenge struct {
+	IdDetailChallenge  string `json:"idDetailChallenge"`
+	Tahun              string `json:"tahun"`
+	Triwulan           string `json:"triwulan"`
+	NamaChallenge      string `json:"namaChallenge"`
+	DeskripsiChallenge string `json:"deskripsiChallenge"`
 }
 
 // GetAllDraftPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-draft.
@@ -155,8 +163,9 @@ type ValidatePenyusunanKpiResponse struct {
 	Entry         EntryResponse                 `json:"entry"`
 	TotalKpi      int                           `json:"totalKpi"`
 	Kpi           []PenyusunanKpiDetailResponse `json:"kpi"`
-	ChallengeList []PenyusunanChallenge         `json:"challengeList"`
+	ResultList    []PenyusunanResult            `json:"resultList"`
 	MethodList    []PenyusunanMethod            `json:"methodList"`
+	ChallengeList []PenyusunanChallenge         `json:"challengeList"`
 }
 
 // CreatePenyusunanKpiResponse adalah response untuk endpoint /create.

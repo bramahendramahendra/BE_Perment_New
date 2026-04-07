@@ -1,26 +1,28 @@
 package repo
 
 import (
-	model "permen_api/domain/sample/model"
+	model "permen_api/domain/template/model"
 
 	"gorm.io/gorm"
 )
 
 type (
-	UserIntegrationRepoInterface interface {
-		GetAllUserIntegrations() ([]*model.UserIntegration, error)
+	TemplateRepoInterface interface {
+		// GetKpiWithPolarisasi mengambil semua data mst_kpi beserta polarisasi-nya.
+		// Jika rumus pada mst_kpi tidak ditemukan di mst_polarisasi, kolom polarisasi dikosongkan.
+		GetKpiWithPolarisasi() ([]*model.MstKpiPolarisasi, error)
 		GetDB() *gorm.DB
 	}
 
-	userIntegrationRepo struct {
+	templateRepo struct {
 		db *gorm.DB
 	}
 )
 
-func NewUserIntegrationRepo(db *gorm.DB) *userIntegrationRepo {
-	return &userIntegrationRepo{db: db}
+func NewTemplateRepo(db *gorm.DB) *templateRepo {
+	return &templateRepo{db: db}
 }
 
-func (r *userIntegrationRepo) GetDB() *gorm.DB {
+func (r *templateRepo) GetDB() *gorm.DB {
 	return r.db
 }

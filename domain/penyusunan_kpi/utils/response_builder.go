@@ -80,21 +80,18 @@ func BuildKpiResponse(
 	return result
 }
 
-// BuildChallengeList membangun slice PenyusunanChallenge dari data sub KPI Excel.
-// ChallengeList diambil dari kolom T (Context) dan U (Deskripsi Context).
-// idDetailChallenge menggunakan GenerateIDSubDetail yang sama dengan id_sub_detail baris tersebut.
-//
-// subGlobalStartIndex adalah nilai subCounter sebelum iterasi kpiRows dimulai (biasanya 1),
-// digunakan untuk mereplikasi GenerateIDSubDetail yang sama persis dengan yang dipakai
-// saat membangun KpiResponse.
-func BuildChallengeList(
+// BuildResultList membangun slice PenyusunanResult dari data sub KPI Excel.
+// ResultList diambil dari kolom P (Result) dan Q (Deskripsi Result).
+// idDetailResult menggunakan GenerateIDSubDetail yang sama dengan id_sub_detail baris tersebut.
+// Hanya diisi untuk TW2 dan TW4 (isExtendedTriwulan).
+func BuildResultList(
 	idPengajuan string,
 	tahun string,
 	triwulan string,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) []dto.PenyusunanChallenge {
-	challenges := []dto.PenyusunanChallenge{}
+) []dto.PenyusunanResult {
+	results := []dto.PenyusunanResult{}
 
 	subCounter := 1
 	for _, kpiRow := range kpiRows {
@@ -103,26 +100,27 @@ func BuildChallengeList(
 			idSubDetail := GenerateIDSubDetail(idPengajuan, subCounter)
 			subCounter++
 
-			// Kolom T (Context) = namaChallenge, kolom U (Deskripsi Context) = deskripsiChallenge
-			// Hanya insert jika Context tidak kosong/nil
-			if subRow.Context != nil && *subRow.Context != "" {
-				challenges = append(challenges, dto.PenyusunanChallenge{
-					IdDetailChallenge:  idSubDetail,
-					Tahun:              tahun,
-					Triwulan:           triwulan,
-					NamaChallenge:      *subRow.Context,
-					DeskripsiChallenge: safeDeref(subRow.DeskripsiContext),
+			// Kolom P (Result) = namaResult, kolom Q (Deskripsi Result) = deskripsiResult
+			// Hanya insert jika Result tidak kosong/nil
+			if subRow.Result != nil && *subRow.Result != "" {
+				results = append(results, dto.PenyusunanResult{
+					IdDetailResult:  idSubDetail,
+					Tahun:           tahun,
+					Triwulan:        triwulan,
+					NamaResult:      *subRow.Result,
+					DeskripsiResult: safeDeref(subRow.DeskripsiResult),
 				})
 			}
 		}
 	}
 
-	return challenges
+	return results
 }
 
 // BuildMethodList membangun slice PenyusunanMethod dari data sub KPI Excel.
 // MethodList diambil dari kolom R (Process) dan S (Deskripsi Process).
 // idDetailMethod menggunakan GenerateIDSubDetail yang sama dengan id_sub_detail baris tersebut.
+// Hanya diisi untuk TW2 dan TW4 (isExtendedTriwulan).
 func BuildMethodList(
 	idPengajuan string,
 	tahun string,
@@ -154,6 +152,43 @@ func BuildMethodList(
 	}
 
 	return methods
+}
+
+// BuildChallengeList membangun slice PenyusunanChallenge dari data sub KPI Excel.
+// ChallengeList diambil dari kolom T (Context) dan U (Deskripsi Context).
+// idDetailChallenge menggunakan GenerateIDSubDetail yang sama dengan id_sub_detail baris tersebut.
+// Hanya diisi untuk TW2 dan TW4 (isExtendedTriwulan).
+func BuildChallengeList(
+	idPengajuan string,
+	tahun string,
+	triwulan string,
+	kpiRows []dto.PenyusunanKpiRow,
+	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
+) []dto.PenyusunanChallenge {
+	challenges := []dto.PenyusunanChallenge{}
+
+	subCounter := 1
+	for _, kpiRow := range kpiRows {
+		rows := kpiSubDetails[kpiRow.KpiIndex]
+		for _, subRow := range rows {
+			idSubDetail := GenerateIDSubDetail(idPengajuan, subCounter)
+			subCounter++
+
+			// Kolom T (Context) = namaChallenge, kolom U (Deskripsi Context) = deskripsiChallenge
+			// Hanya insert jika Context tidak kosong/nil
+			if subRow.Context != nil && *subRow.Context != "" {
+				challenges = append(challenges, dto.PenyusunanChallenge{
+					IdDetailChallenge:  idSubDetail,
+					Tahun:              tahun,
+					Triwulan:           triwulan,
+					NamaChallenge:      *subRow.Context,
+					DeskripsiChallenge: safeDeref(subRow.DeskripsiContext),
+				})
+			}
+		}
+	}
+
+	return challenges
 }
 
 // safeDeref mengembalikan value dari pointer string, atau string kosong jika nil.

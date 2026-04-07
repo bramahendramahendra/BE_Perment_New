@@ -53,26 +53,29 @@ const (
 	queryInsertKpiSubDetail = `
 		INSERT INTO data_kpi_subdetail 
 			(id_pengajuan, id_detail, id_sub_detail, tahun, triwulan, 
-			 id_kpi, kpi, rumus, otomatis, bobot, capping, 
-			 target_triwulan, target_kuantitatif_triwulan, 
-			 target_tahunan, target_kuantitatif_tahunan, 
-			 deskripsi_glossary, item_qualifier, deskripsi_qualifier, 
-			 target_qualifier, id_keterangan_project, id_qualifier,
-			 result, deskripsi_result,
-			 process, deskripsi_process,
-			 context, deskripsi_context) 
+			id_kpi, kpi, rumus, otomatis, bobot, capping, 
+			target_triwulan, target_kuantitatif_triwulan, 
+			target_tahunan, target_kuantitatif_tahunan, 
+			deskripsi_glossary, item_qualifier, deskripsi_qualifier, 
+			target_qualifier, id_keterangan_project, id_qualifier) 
 		VALUES %s`
 
-	queryInsertChallengeDetail = `
-		INSERT INTO data_challenge_detail 
-			(id_pengajuan, id_detail_challenge, tahun, triwulan, 
-			 nama_challenge, deskripsi_challenge) 
+	queryInsertResultDetail = `
+		INSERT INTO data_result_detail
+			(id_pengajuan, id_detail_result, tahun, triwulan,
+			nama_result, deskripsi_result)
 		VALUES %s`
 
 	queryInsertMethodDetail = `
 		INSERT INTO data_method_detail 
 			(id_pengajuan, id_detail_method, tahun, triwulan, 
 			 nama_method, deskripsi_method) 
+		VALUES %s`
+
+	queryInsertChallengeDetail = `
+		INSERT INTO data_challenge_detail 
+			(id_pengajuan, id_detail_challenge, tahun, triwulan, 
+			 nama_challenge, deskripsi_challenge) 
 		VALUES %s`
 
 	queryLookupSubKpi = `
@@ -247,8 +250,9 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	req *dto.ValidatePenyusunanKpiRequest,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-	challengeList []dto.PenyusunanChallenge,
+	resultList []dto.PenyusunanResult,
 	methodList []dto.PenyusunanMethod,
+	challengeList []dto.PenyusunanChallenge,
 ) (string, error) {
 
 	idPengajuan := utils.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
@@ -325,76 +329,36 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 				targetQualifier = subRow.TargetQualifier
 			}
 
-			var result, deskripsiResult, process, deskripsiProcess, context, deskripsiContext interface{}
-			if subRow.Result != nil {
-				result = *subRow.Result
-			}
-			if subRow.DeskripsiResult != nil {
-				deskripsiResult = *subRow.DeskripsiResult
-			}
-			if subRow.Process != nil {
-				process = *subRow.Process
-			}
-			if subRow.DeskripsiProcess != nil {
-				deskripsiProcess = *subRow.DeskripsiProcess
-			}
-			if subRow.Context != nil {
-				context = *subRow.Context
-			}
-			if subRow.DeskripsiContext != nil {
-				deskripsiContext = *subRow.DeskripsiContext
-			}
-
 			subDetailPlaceholders = append(subDetailPlaceholders,
-				"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+				"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 			subDetailArgs = append(subDetailArgs,
 				idPengajuan,
-				idDetail,
-				idSubDetail,
-				req.Tahun,
-				req.Triwulan,
-				subRow.IdSubKpi,
-				subRow.SubKPI,
-				subRow.IdPolarisasi,
-				subRow.Otomatis,
-				subRow.Bobot,
-				subRow.Capping,
-				subRow.TargetTriwulan,
-				subRow.TargetKuantitatifTriwulan,
-				subRow.TargetTahunan,
-				subRow.TargetKuantitatifTahunan,
-				subRow.Glossary,
-				itemQualifier,
-				deskripsiQualifier,
-				targetQualifier,
-				"",
-				subRow.TerdapatQualifier,
-				result,
-				deskripsiResult,
-				process,
-				deskripsiProcess,
-				context,
-				deskripsiContext,
+				idDetail, idSubDetail, req.Tahun, req.Triwulan,
+				subRow.IdSubKpi, subRow.SubKPI, subRow.IdPolarisasi, subRow.Otomatis, subRow.Bobot,
+				subRow.Capping, subRow.TargetTriwulan, subRow.TargetKuantitatifTriwulan,
+				subRow.TargetTahunan, subRow.TargetKuantitatifTahunan, subRow.Glossary,
+				itemQualifier, deskripsiQualifier, targetQualifier,
+				"", subRow.TerdapatQualifier,
 			)
 		}
 	}
 
 	// =========================================================================
-	// Build INSERT data_challenge_detail
-	// challengeList sudah dibangun oleh service dari kolom T/U Excel.
+	// Build INSERT data_result_detail
+	// resultList sudah dibangun oleh service dari kolom P/Q Excel.
 	// Hanya berisi data jika triwulan TW2 atau TW4.
 	// =========================================================================
-	challengePlaceholders := []string{}
-	challengeArgs := []interface{}{}
-	for _, ch := range challengeList {
-		challengePlaceholders = append(challengePlaceholders, "(?, ?, ?, ?, ?, ?)")
-		challengeArgs = append(challengeArgs,
+	resultPlaceholders := []string{}
+	resultArgs := []interface{}{}
+	for _, rs := range resultList {
+		resultPlaceholders = append(resultPlaceholders, "(?, ?, ?, ?, ?, ?)")
+		resultArgs = append(resultArgs,
 			idPengajuan,
-			ch.IdDetailChallenge,
-			ch.Tahun,
-			ch.Triwulan,
-			ch.NamaChallenge,
-			ch.DeskripsiChallenge,
+			rs.IdDetailResult,
+			rs.Tahun,
+			rs.Triwulan,
+			rs.NamaResult,
+			rs.DeskripsiResult,
 		)
 	}
 
@@ -414,6 +378,25 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 			mt.Triwulan,
 			mt.NamaMethod,
 			mt.DeskripsiMethod,
+		)
+	}
+
+	// =========================================================================
+	// Build INSERT data_challenge_detail
+	// challengeList sudah dibangun oleh service dari kolom T/U Excel.
+	// Hanya berisi data jika triwulan TW2 atau TW4.
+	// =========================================================================
+	challengePlaceholders := []string{}
+	challengeArgs := []interface{}{}
+	for _, ch := range challengeList {
+		challengePlaceholders = append(challengePlaceholders, "(?, ?, ?, ?, ?, ?)")
+		challengeArgs = append(challengeArgs,
+			idPengajuan,
+			ch.IdDetailChallenge,
+			ch.Tahun,
+			ch.Triwulan,
+			ch.NamaChallenge,
+			ch.DeskripsiChallenge,
 		)
 	}
 
@@ -451,11 +434,11 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		}
 	}
 
-	if len(challengePlaceholders) > 0 {
-		queryChallenge := fmt.Sprintf(queryInsertChallengeDetail, strings.Join(challengePlaceholders, ", "))
-		if err := tx.Exec(queryChallenge, challengeArgs...).Error; err != nil {
+	if len(resultPlaceholders) > 0 {
+		queryResult := fmt.Sprintf(queryInsertResultDetail, strings.Join(resultPlaceholders, ", "))
+		if err := tx.Exec(queryResult, resultArgs...).Error; err != nil {
 			tx.Rollback()
-			return "", fmt.Errorf("gagal insert data_challenge_detail: %w", err)
+			return "", fmt.Errorf("gagal insert data_result_detail: %w", err)
 		}
 	}
 
@@ -464,6 +447,14 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		if err := tx.Exec(queryMethod, methodArgs...).Error; err != nil {
 			tx.Rollback()
 			return "", fmt.Errorf("gagal insert data_method_detail: %w", err)
+		}
+	}
+
+	if len(challengePlaceholders) > 0 {
+		queryChallenge := fmt.Sprintf(queryInsertChallengeDetail, strings.Join(challengePlaceholders, ", "))
+		if err := tx.Exec(queryChallenge, challengeArgs...).Error; err != nil {
+			tx.Rollback()
+			return "", fmt.Errorf("gagal insert data_challenge_detail: %w", err)
 		}
 	}
 

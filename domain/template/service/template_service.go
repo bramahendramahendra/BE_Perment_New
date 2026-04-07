@@ -219,7 +219,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Capping: %v", err)}
 	}
 
-	// Kolom F (Bobot %) → Angka desimal 2 digit di belakang koma, range 0.00–100.00
+	// Kolom F (Bobot %) → Angka desimal 2 digit di belakang koma, range 0–100
 	if err := f.AddDataValidation(sheetName, &excelize.DataValidation{
 		Type:             "decimal",
 		Operator:         "between",
@@ -228,7 +228,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		ShowErrorMessage: true,
 		ErrorStyle:       strPtr("stop"),
 		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Bobot harus berupa angka antara 0 s.d. 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
+		Error:            strPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
 		Sqref:            sqrefDataRange("F"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom F: %v", err)}
@@ -327,6 +327,13 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set freeze pane: %v", err)}
 	}
 
+	// =========================================================================
+	// Sheet 2: "KPI" — data dari mst_kpi join mst_polarisasi
+	// =========================================================================
+	if err := s.generateSheetKpi(f); err != nil {
+		return nil, "", err
+	}
+
 	// -------------------------------------------------------------------------
 	// Tulis ke buffer bytes
 	// -------------------------------------------------------------------------
@@ -337,6 +344,111 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 
 	filename := fmt.Sprintf("Format Penyusunan KPI Aplikasi Performance Management %s.xlsx", req.Triwulan)
 	return buf.Bytes(), filename, nil
+}
+
+// =============================================================================
+// generateSheetKpi — sheet kedua berisi daftar KPI dan Polarisasi dari DB
+// =============================================================================
+
+// generateSheetKpi membuat sheet "KPI" pada file Excel yang diberikan.
+// Kolom A1: KPI, Kolom B1: Polarisasi.
+// Data diambil dari mst_kpi LEFT JOIN mst_polarisasi.
+// Jika polarisasi tidak ditemukan di mst_polarisasi, kolom B dikosongkan.
+func (s *templateService) generateSheetKpi(f *excelize.File) error {
+	const kpiSheetName = "KPI"
+
+	// Tambahkan sheet baru "KPI"
+	if _, err := f.NewSheet(kpiSheetName); err != nil {
+		return &errors.InternalServerError{Message: fmt.Sprintf("gagal buat sheet KPI: %v", err)}
+	}
+
+	// Ambil data dari DB
+	kpiRows, err := s.repo.GetKpiWithPolarisasi()
+	if err != nil {
+		return &errors.InternalServerError{Message: fmt.Sprintf("gagal ambil data mst_kpi: %v", err)}
+	}
+
+	// Style header sheet KPI — background biru muda + bold
+	styleHeader, err := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"BDD7EE"},
+			Pattern: 1,
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+			WrapText:   true,
+		},
+		Border: borderStyle(),
+	})
+	if err != nil {
+		return &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style header sheet KPI: %v", err)}
+	}
+
+	// Style data sheet KPI — border tipis
+	styleData, err := f.NewStyle(&excelize.Style{
+		Border: borderStyle(),
+		Alignment: &excelize.Alignment{
+			Vertical: "top",
+			WrapText: true,
+		},
+	})
+	if err != nil {
+		return &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style data sheet KPI: %v", err)}
+	}
+
+	// -------------------------------------------------------------------------
+	// Row 1: Header — A1 = "KPI", B1 = "Polarisasi"
+	// -------------------------------------------------------------------------
+	headers := []string{"KPI", "Polarisasi"}
+	for colIdx, header := range headers {
+		cellName, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
+		if err := f.SetCellValue(kpiSheetName, cellName, header); err != nil {
+			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set header %s sheet KPI: %v", cellName, err)}
+		}
+		if err := f.SetCellStyle(kpiSheetName, cellName, cellName, styleHeader); err != nil {
+			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set style header %s sheet KPI: %v", cellName, err)}
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Row 2 dst: Isi data KPI dan Polarisasi
+	// -------------------------------------------------------------------------
+	for i, row := range kpiRows {
+		rowNum := i + 2 // data mulai row 2 (setelah header row 1)
+
+		cellKpi, _ := excelize.CoordinatesToCellName(1, rowNum)
+		cellPolarisasi, _ := excelize.CoordinatesToCellName(2, rowNum)
+
+		if err := f.SetCellValue(kpiSheetName, cellKpi, row.Kpi); err != nil {
+			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set nilai KPI baris %d sheet KPI: %v", rowNum, err)}
+		}
+		if err := f.SetCellValue(kpiSheetName, cellPolarisasi, row.Polarisasi); err != nil {
+			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set nilai Polarisasi baris %d sheet KPI: %v", rowNum, err)}
+		}
+		if err := f.SetCellStyle(kpiSheetName, cellKpi, cellPolarisasi, styleData); err != nil {
+			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set style data baris %d sheet KPI: %v", rowNum, err)}
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Set lebar kolom sheet KPI
+	// -------------------------------------------------------------------------
+	if err := f.SetColWidth(kpiSheetName, "A", "A", 40); err != nil {
+		return &errors.InternalServerError{Message: fmt.Sprintf("gagal set lebar kolom A sheet KPI: %v", err)}
+	}
+	if err := f.SetColWidth(kpiSheetName, "B", "B", 20); err != nil {
+		return &errors.InternalServerError{Message: fmt.Sprintf("gagal set lebar kolom B sheet KPI: %v", err)}
+	}
+
+	// Set tinggi row header sheet KPI
+	if err := f.SetRowHeight(kpiSheetName, 1, 30); err != nil {
+		return &errors.InternalServerError{Message: fmt.Sprintf("gagal set tinggi header sheet KPI: %v", err)}
+	}
+
+	return nil
 }
 
 // =============================================================================

@@ -53,9 +53,10 @@ func GetMaxRowsFromEnv() int {
 	return n
 }
 
-// IsTriwulanWithChallengeMethod mengembalikan true jika triwulan adalah TW2 atau TW4,
-// yaitu triwulan yang memerlukan insert ChallengeList dan MethodList ke DB.
-func IsTriwulanWithChallengeMethod(triwulan string) bool {
+// IsExtendedTriwulan mengembalikan true jika triwulan adalah TW2 atau TW4,
+// yaitu triwulan yang memerlukan kolom extended (P–U) dan insert ke
+// data_result_detail, data_challenge_detail, serta data_method_detail.
+func IsExtendedTriwulan(triwulan string) bool {
 	upper := strings.ToUpper(strings.TrimSpace(triwulan))
 	return upper == strings.ToUpper(TriwulanTW2) || upper == strings.ToUpper(TriwulanTW4)
 }
@@ -102,7 +103,7 @@ func parseAndValidateExcelInternal(
 	// Nama sheet mengikuti nilai triwulan: TW1, TW2, TW3, atau TW4.
 	// TW2 dan TW4 menggunakan kolom extended (R,S,T,U tersedia).
 	// TW1 dan TW3 menggunakan kolom base (A-O saja).
-	isChallengeMethodTriwulan := IsTriwulanWithChallengeMethod(triwulan)
+	isExtendedTriwulan := IsExtendedTriwulan(triwulan)
 	isTW4 := strings.EqualFold(triwulan, TriwulanTW4)
 
 	// targetSheet = nama sheet yang sesuai dengan triwulan yang dikirim
@@ -146,7 +147,7 @@ func parseAndValidateExcelInternal(
 	totalBobot := 0.0
 
 	expectedCols := 15
-	if isChallengeMethodTriwulan {
+	if isExtendedTriwulan {
 		expectedCols = 21
 	}
 
@@ -174,7 +175,7 @@ func parseAndValidateExcelInternal(
 		colO := strings.TrimSpace(row[14])
 
 		var colP, colQ, colR, colS, colT, colU string
-		if isChallengeMethodTriwulan {
+		if isExtendedTriwulan {
 			colP = strings.TrimSpace(row[15])
 			colQ = strings.TrimSpace(row[16])
 			colR = strings.TrimSpace(row[17])
@@ -310,23 +311,22 @@ func parseAndValidateExcelInternal(
 		}
 
 		// Kolom P-U: hanya divalidasi pada TW2 dan TW4
-		if isChallengeMethodTriwulan {
-			// Kolom P,Q (Result) hanya wajib pada TW4
-			if isTW4 {
-				if colP == "" {
-					return nil, nil, fmt.Errorf("baris %d, Kolom P (Result): tidak boleh kosong", displayRow)
-				}
-				if colQ == "" {
-					return nil, nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Result): tidak boleh kosong", displayRow)
-				}
+		if isExtendedTriwulan {
+			// Kolom P,Q (Result) wajib pada TW2 dan TW4
+			if colP == "" {
+				return nil, nil, fmt.Errorf("baris %d, Kolom P (Result): tidak boleh kosong", displayRow)
 			}
-			// Kolom R,S,T,U (Process & Context) wajib pada TW2 dan TW4
+			if colQ == "" {
+				return nil, nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Result): tidak boleh kosong", displayRow)
+			}
+			// Kolom R,S (Process) wajib pada TW2 dan TW4
 			if colR == "" {
 				return nil, nil, fmt.Errorf("baris %d, Kolom R (Process): tidak boleh kosong", displayRow)
 			}
 			if colS == "" {
 				return nil, nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Process): tidak boleh kosong", displayRow)
 			}
+			// Kolom T,U (Context) wajib pada TW2 dan TW4
 			if colT == "" {
 				return nil, nil, fmt.Errorf("baris %d, Kolom T (Context): tidak boleh kosong", displayRow)
 			}
@@ -359,13 +359,12 @@ func parseAndValidateExcelInternal(
 			DeskripsiQualifier:        deskripsiQualifier,
 			TargetQualifier:           targetQualifier,
 			IsTW4:                     isTW4,
-			Result:                    NullableString(colP, isTW4),
-			DeskripsiResult:           NullableString(colQ, isTW4),
-			// Process dan Context diisi untuk TW2 dan TW4
-			Process:          NullableString(colR, isChallengeMethodTriwulan),
-			DeskripsiProcess: NullableString(colS, isChallengeMethodTriwulan),
-			Context:          NullableString(colT, isChallengeMethodTriwulan),
-			DeskripsiContext: NullableString(colU, isChallengeMethodTriwulan),
+			Result:                    NullableString(colP, isExtendedTriwulan),
+			DeskripsiResult:           NullableString(colQ, isExtendedTriwulan),
+			Process:                   NullableString(colR, isExtendedTriwulan),
+			DeskripsiProcess:          NullableString(colS, isExtendedTriwulan),
+			Context:                   NullableString(colT, isExtendedTriwulan),
+			DeskripsiContext:          NullableString(colU, isExtendedTriwulan),
 		}
 
 		kpiSubDetails[kpiIdx] = append(kpiSubDetails[kpiIdx], subRow)

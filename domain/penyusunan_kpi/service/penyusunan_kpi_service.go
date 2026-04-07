@@ -61,17 +61,18 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 	// Bangun idPengajuan di service agar bisa digunakan untuk build response sebelum repo insert.
 	idPengajuan := utils.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
 
-	// Build ChallengeList dan MethodList dari data Excel (kolom R,S,T,U).
+	// Build ChallengeList dan MethodList dari data Excel (kolom P,Q,R,S,T,U).
 	// Hanya diisi untuk TW2 dan TW4; untuk TW1 dan TW3 list kosong (tidak diinsert ke DB).
-	challengeList := []dto.PenyusunanChallenge{}
+	resultList := []dto.PenyusunanResult{}
 	methodList := []dto.PenyusunanMethod{}
-	if utils.IsTriwulanWithChallengeMethod(req.Triwulan) {
-		challengeList = utils.BuildChallengeList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+	challengeList := []dto.PenyusunanChallenge{}
+	if utils.IsExtendedTriwulan(req.Triwulan) {
+		resultList = utils.BuildResultList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 		methodList = utils.BuildMethodList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+		challengeList = utils.BuildChallengeList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 	}
 
-	// System error: gagal simpan ke DB — biarkan naik apa adanya
-	idPengajuan, err = s.repo.ValidatePenyusunanKpi(req, kpiRows, kpiSubDetails, challengeList, methodList)
+	idPengajuan, err = s.repo.ValidatePenyusunanKpi(req, kpiRows, kpiSubDetails, resultList, methodList, challengeList)
 	if err != nil {
 		return data, err
 	}
@@ -91,8 +92,9 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		},
 		TotalKpi:      len(kpiRows),
 		Kpi:           utils.BuildKpiResponse(idPengajuan, kpiRows, kpiSubDetails),
-		ChallengeList: challengeList,
+		ResultList:    resultList,
 		MethodList:    methodList,
+		ChallengeList: challengeList,
 	}
 
 	return data, nil

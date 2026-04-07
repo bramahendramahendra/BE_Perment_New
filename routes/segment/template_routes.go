@@ -2,7 +2,9 @@ package segment
 
 import (
 	handler "permen_api/domain/template/handler"
+	repo "permen_api/domain/template/repo"
 	service "permen_api/domain/template/service"
+	db "permen_api/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +16,8 @@ import (
 //
 //	POST /template/format-penyusunan-kpi → GetFormatPenyusunanKpi (application/json body + file download response)
 func TemplateRoutes(r *gin.RouterGroup) {
-	templateService := service.NewTemplateService()
+	templateRepo := repo.NewTemplateRepo(db.DB)
+	templateService := service.NewTemplateService(templateRepo)
 	templateHandler := handler.NewTemplateHandler(templateService)
 
 	templateGroup := r.Group("template")

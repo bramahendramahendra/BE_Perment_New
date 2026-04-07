@@ -18,8 +18,9 @@ type (
 			req *dto.ValidatePenyusunanKpiRequest,
 			kpiRows []dto.PenyusunanKpiRow,
 			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-			challengeList []dto.PenyusunanChallenge,
+			resultList []dto.PenyusunanResult,
 			methodList []dto.PenyusunanMethod,
+			challengeList []dto.PenyusunanChallenge,
 		) (string, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
