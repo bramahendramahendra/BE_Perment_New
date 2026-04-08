@@ -2,7 +2,6 @@ package service
 
 import (
 	"bytes"
-	"encoding/csv"
 	"fmt"
 	"mime/multipart"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 	customErrors "permen_api/errors"
 
 	"github.com/jung-kurt/gofpdf"
+	"github.com/xuri/excelize/v2"
 )
 
 // =============================================================================
@@ -348,42 +348,89 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 }
 
 // =============================================================================
-// GET CSV
+// GET EXCEL
 // =============================================================================
 
-func (s *penyusunanKpiService) GetCsvPenyusunanKpi(
-	req *dto.GetCsvPenyusunanKpiRequest,
+func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
+	req *dto.GetExcelPenyusunanKpiRequest,
 ) ([]byte, string, error) {
 	exportData, err := s.repo.GetKpiExportData(req.IdPengajuan)
 	if err != nil {
 		return nil, "", err
 	}
 
-	var buf bytes.Buffer
-	writer := csv.NewWriter(&buf)
+	const sheetName = "Data KPI"
 
-	_ = writer.Write([]string{exportData.NamaDivisi})
-	_ = writer.Write([]string{"Tahun " + exportData.Tahun})
-	_ = writer.Write([]string{})
+	f := excelize.NewFile()
+	defer f.Close()
 
-	_ = writer.Write([]string{"No", "KPI", "Bobot (%)", "Target Tahunan", "Capping"})
+	// Rename default sheet "Sheet1" → "Data KPI"
+	defaultSheet := f.GetSheetName(0)
+	if err := f.SetSheetName(defaultSheet, sheetName); err != nil {
+		return nil, "", fmt.Errorf("gagal set nama sheet: %w", err)
+	}
 
-	for _, row := range exportData.Rows {
-		_ = writer.Write([]string{
+	// -------------------------------------------------------------------------
+	// Baris 1: Nama Divisi
+	// -------------------------------------------------------------------------
+	if err := f.SetCellValue(sheetName, "A1", exportData.NamaDivisi); err != nil {
+		return nil, "", fmt.Errorf("gagal menulis nama divisi: %w", err)
+	}
+
+	// -------------------------------------------------------------------------
+	// Baris 2: Tahun
+	// -------------------------------------------------------------------------
+	if err := f.SetCellValue(sheetName, "A2", "Tahun "+exportData.Tahun); err != nil {
+		return nil, "", fmt.Errorf("gagal menulis tahun: %w", err)
+	}
+
+	// -------------------------------------------------------------------------
+	// Baris 3: Kosong
+	// -------------------------------------------------------------------------
+	// (tidak perlu set value — cell default kosong)
+
+	// -------------------------------------------------------------------------
+	// Baris 4: Header kolom
+	// -------------------------------------------------------------------------
+	headers := []string{"No", "KPI", "Bobot (%)", "Target Tahunan", "Capping"}
+	for colIdx, header := range headers {
+		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 4)
+		if err := f.SetCellValue(sheetName, cell, header); err != nil {
+			return nil, "", fmt.Errorf("gagal menulis header kolom '%s': %w", header, err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Baris 5 dst: Data rows
+	// -------------------------------------------------------------------------
+	for i, row := range exportData.Rows {
+		rowNum := 5 + i
+
+		values := []interface{}{
 			strconv.Itoa(row.No),
 			row.KpiNama,
 			row.Bobot,
 			row.TargetTahunan,
 			row.Capping,
-		})
+		}
+
+		for colIdx, val := range values {
+			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowNum)
+			if err := f.SetCellValue(sheetName, cell, val); err != nil {
+				return nil, "", fmt.Errorf("gagal menulis data baris %d kolom %d: %w", rowNum, colIdx+1, err)
+			}
+		}
 	}
 
-	writer.Flush()
-	if err := writer.Error(); err != nil {
-		return nil, "", fmt.Errorf("gagal menulis CSV: %w", err)
+	// -------------------------------------------------------------------------
+	// Write ke buffer
+	// -------------------------------------------------------------------------
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return nil, "", fmt.Errorf("gagal menulis Excel ke buffer: %w", err)
 	}
 
-	filename := fmt.Sprintf("KPI_%s_%s_%s.csv",
+	filename := fmt.Sprintf("KPI_%s_%s_%s.xlsx",
 		exportData.NamaDivisi, exportData.Tahun, exportData.Triwulan)
 
 	return buf.Bytes(), filename, nil

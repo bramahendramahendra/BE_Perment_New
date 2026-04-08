@@ -21,7 +21,7 @@ import (
 //	POST /penyusunan-kpi/get-all-daftar-penyusunan 	→ GetAllDaftarPenyusunanKpi    			(application/json)
 //	POST /penyusunan-kpi/get-all-daftar-approval 	→ GetAllDaftarApprovalPenyusunanKpi		(application/json)
 //	POST /penyusunan-kpi/get-detail    				→ GetDetailPenyusunanKpi      			(application/json)
-//	POST /penyusunan-kpi/get-csv       				→ GetCsvPenyusunanKpi         			(application/json → file download)
+//	POST /penyusunan-kpi/get-excel     				→ GetExcelPenyusunanKpi       			(application/json → file download .xlsx)
 //	POST /penyusunan-kpi/get-pdf       				→ GetPdfPenyusunanKpi         			(application/json → file download)
 func PenyusunanKpiRoutes(r *gin.RouterGroup) {
 	penyusunanKpiRepo := repo.NewPenyusunanKpiRepo(db.DB)
@@ -36,6 +36,6 @@ func PenyusunanKpiRoutes(r *gin.RouterGroup) {
 	penyusunanKpiGroup.POST("/get-all-daftar-penyusunan", penyusunanKpiHandler.GetAllDaftarPenyusunanKpi)
 	penyusunanKpiGroup.POST("/get-all-daftar-approval", penyusunanKpiHandler.GetAllDaftarApprovalPenyusunanKpi)
 	penyusunanKpiGroup.POST("/get-detail", penyusunanKpiHandler.GetDetailPenyusunanKpi)
-	penyusunanKpiGroup.POST("/get-csv", penyusunanKpiHandler.GetCsvPenyusunanKpi)
+	penyusunanKpiGroup.POST("/get-excel", penyusunanKpiHandler.GetExcelPenyusunanKpi)
 	penyusunanKpiGroup.POST("/get-pdf", penyusunanKpiHandler.GetPdfPenyusunanKpi)
 }

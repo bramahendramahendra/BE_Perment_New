@@ -110,8 +110,8 @@ type GetDetailPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
 }
 
-// GetCsvPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-csv.
-type GetCsvPenyusunanKpiRequest struct {
+// GetExcelPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-excel.
+type GetExcelPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
 }
 

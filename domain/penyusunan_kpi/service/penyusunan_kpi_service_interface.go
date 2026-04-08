@@ -47,9 +47,9 @@ type (
 			req *dto.GetDetailPenyusunanKpiRequest,
 		) (data *dto.GetAllDataPenyusunanKpiResponse, err error)
 
-		// GetCsvPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-csv.
-		GetCsvPenyusunanKpi(
-			req *dto.GetCsvPenyusunanKpiRequest,
+		// GetExcelPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-excel.
+		GetExcelPenyusunanKpi(
+			req *dto.GetExcelPenyusunanKpiRequest,
 		) (fileBytes []byte, filename string, err error)
 
 		// GetPdfPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-pdf.

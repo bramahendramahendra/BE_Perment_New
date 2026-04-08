@@ -290,9 +290,9 @@ func (h *PenyusunanKpiHandler) GetDetailPenyusunanKpi(c *gin.Context) {
 	})
 }
 
-// GetCsvPenyusunanKpi handles POST /penyusunan-kpi/get-csv
-func (h *PenyusunanKpiHandler) GetCsvPenyusunanKpi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.GetCsvPenyusunanKpiRequest](c)
+// GetExcelPenyusunanKpi handles POST /penyusunan-kpi/get-excel
+func (h *PenyusunanKpiHandler) GetExcelPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetExcelPenyusunanKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -303,18 +303,20 @@ func (h *PenyusunanKpiHandler) GetCsvPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	fileBytes, filename, err := h.service.GetCsvPenyusunanKpi(&req)
+	fileBytes, filename, err := h.service.GetExcelPenyusunanKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
+	const mimeExcel = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Type", mimeExcel)
 	c.Header("Content-Transfer-Encoding", "binary")
 	c.Header("Cache-Control", "no-cache")
-	c.Data(http.StatusOK, "text/csv", fileBytes)
+	c.Data(http.StatusOK, mimeExcel, fileBytes)
 }
 
 // GetPdfPenyusunanKpi handles POST /penyusunan-kpi/get-pdf
