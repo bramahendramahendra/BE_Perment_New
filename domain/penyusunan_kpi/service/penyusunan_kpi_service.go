@@ -371,15 +371,21 @@ func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 	}
 
 	// -------------------------------------------------------------------------
-	// Baris 1: Nama Divisi
+	// Baris 1: Nama Divisi — merge A1:E1
 	// -------------------------------------------------------------------------
+	if err := f.MergeCell(sheetName, "A1", "E1"); err != nil {
+		return nil, "", fmt.Errorf("gagal merge cell baris 1: %w", err)
+	}
 	if err := f.SetCellValue(sheetName, "A1", exportData.NamaDivisi); err != nil {
 		return nil, "", fmt.Errorf("gagal menulis nama divisi: %w", err)
 	}
 
 	// -------------------------------------------------------------------------
-	// Baris 2: Tahun
+	// Baris 2: Tahun — merge A2:E2
 	// -------------------------------------------------------------------------
+	if err := f.MergeCell(sheetName, "A2", "E2"); err != nil {
+		return nil, "", fmt.Errorf("gagal merge cell baris 2: %w", err)
+	}
 	if err := f.SetCellValue(sheetName, "A2", "Tahun "+exportData.Tahun); err != nil {
 		return nil, "", fmt.Errorf("gagal menulis tahun: %w", err)
 	}
