@@ -2,6 +2,7 @@ package repo
 
 import (
 	dto "permen_api/domain/penyusunan_kpi/dto"
+	model "permen_api/domain/penyusunan_kpi/model"
 
 	"gorm.io/gorm"
 )
@@ -31,22 +32,22 @@ type (
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
 		GetAllApprovalPenyusunanKpi(
 			req *dto.GetAllApprovalPenyusunanKpiRequest,
-		) ([]*dto.GetAllApprovalPenyusunanKpiResponse, int64, error)
+		) ([]*model.DataKpi, int64, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-tolakan.
 		GetAllTolakanPenyusunanKpi(
 			req *dto.GetAllTolakanPenyusunanKpiRequest,
-		) ([]*dto.GetAllTolakanPenyusunanKpiResponse, int64, error)
+		) ([]*model.DataKpi, int64, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-penyusunan.
 		GetAllDaftarPenyusunanKpi(
 			req *dto.GetAllDaftarPenyusunanKpiRequest,
-		) ([]*dto.GetAllDaftarPenyusunanKpiResponse, int64, error)
+		) ([]*model.DataKpi, int64, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-approval.
 		GetAllDaftarApprovalPenyusunanKpi(
 			req *dto.GetAllDaftarApprovalPenyusunanKpiRequest,
-		) ([]*dto.GetAllDaftarApprovalPenyusunanKpiResponse, int64, error)
+		) ([]*model.DataKpi, int64, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
 		GetDetailPenyusunanKpi(
