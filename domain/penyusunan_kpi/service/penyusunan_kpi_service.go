@@ -371,6 +371,27 @@ func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 	}
 
 	// -------------------------------------------------------------------------
+	// Lebar kolom
+	// A  = No             → sempit
+	// B  = KPI            → lebar (konten teks panjang)
+	// C  = Bobot (%)      → sedang
+	// D  = Target Tahunan → sedang
+	// E  = Capping        → sedang
+	// -------------------------------------------------------------------------
+	colWidths := map[string]float64{
+		"A": 6,
+		"B": 40,
+		"C": 14,
+		"D": 20,
+		"E": 14,
+	}
+	for col, width := range colWidths {
+		if err := f.SetColWidth(sheetName, col, col, width); err != nil {
+			return nil, "", fmt.Errorf("gagal set lebar kolom %s: %w", col, err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// Baris 1: Nama Divisi — merge A1:E1
 	// -------------------------------------------------------------------------
 	if err := f.MergeCell(sheetName, "A1", "E1"); err != nil {
