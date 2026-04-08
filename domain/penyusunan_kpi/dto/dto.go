@@ -62,17 +62,47 @@ type PenyusunanChallenge struct {
 	DeskripsiChallenge string `json:"deskripsiChallenge"`
 }
 
-// GetAllDraftPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-draft.
-type GetAllDraftPenyusunanKpiRequest struct {
+// GetAllApprovalPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-approval.
+type GetAllApprovalPenyusunanKpiRequest struct {
+	Divisi   string `json:"divisi"`
+	Tahun    string `json:"tahun"`
+	Triwulan string `json:"triwulan"`
+	Page     int    `json:"page"`
+	Limit    int    `json:"limit"`
+
+	// Diisi handler dari header 'userq', tidak boleh dari body.
+	ApprovalUser string `json:"-"`
+}
+
+// GetAllTolakanPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-tolakan.
+type GetAllTolakanPenyusunanKpiRequest struct {
+	Divisi   string `json:"divisi"`
+	Tahun    string `json:"tahun"`
+	Triwulan string `json:"triwulan"`
+	Page     int    `json:"page"`
+	Limit    int    `json:"limit"`
+}
+
+// GetAllDaftarPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-daftar-penyusunan.
+type GetAllDaftarPenyusunanKpiRequest struct {
 	Divisi   string `json:"divisi"`
 	Tahun    string `json:"tahun"`
 	Triwulan string `json:"triwulan"`
 	Status   string `json:"status"`
 	Page     int    `json:"page"`
 	Limit    int    `json:"limit"`
+}
+
+// GetAllDaftarApprovalPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-daftar-approval.
+type GetAllDaftarApprovalPenyusunanKpiRequest struct {
+	Divisi   string `json:"divisi"`
+	Tahun    string `json:"tahun"`
+	Triwulan string `json:"triwulan"`
+	Page     int    `json:"page"`
+	Limit    int    `json:"limit"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
-	EntryUser string `json:"-"`
+	ApprovalUser string `json:"-"`
 }
 
 // GetDetailPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-detail.
@@ -202,66 +232,113 @@ type PenyusunanKpiSubDetailResponse struct {
 	Qualifier                 string  `json:"qualifier"`
 	DeskripsiQualifier        string  `json:"deskripsiQualifier"`
 	TargetQualifier           string  `json:"targetQualifier"`
-	Result                    *string `json:"result"`
-	DeskripsiResult           *string `json:"deskripsiResult"`
-	Process                   *string `json:"process"`
-	DeskripsiProcess          *string `json:"deskripsiProcess"`
-	Context                   *string `json:"context"`
-	DeskripsiContext          *string `json:"deskripsiContext"`
 }
 
-// GetAllDraftPenyusunanKpiResponse adalah satu record lengkap (header + nested detail).
-type GetAllDraftPenyusunanKpiResponse struct {
-	IdPengajuan              string                               `json:"IdPengajuan"`
-	Tahun                    string                               `json:"Tahun"`
-	Triwulan                 string                               `json:"Triwulan"`
-	Kostl                    string                               `json:"Kostl"`
-	KostlTx                  string                               `json:"KostlTx"`
-	Orgeh                    string                               `json:"Orgeh"`
-	OrgehTx                  string                               `json:"OrgehTx"`
-	EntryUser                string                               `json:"EntryUser"`
-	EntryName                string                               `json:"EntryName"`
-	EntryTime                string                               `json:"EntryTime"`
-	ApprovalPosisi           string                               `json:"ApprovalPosisi"`
-	ApprovalList             string                               `json:"ApprovalList"`
-	Status                   string                               `json:"Status"`
-	StatusDesc               string                               `json:"StatusDesc"`
-	EntryUserRealisasi       string                               `json:"EntryUserRealisasi"`
-	EntryNameRealisasi       string                               `json:"EntryNameRealisasi"`
-	EntryTimeRealisasi       string                               `json:"EntryTimeRealisasi"`
-	ApprovalListRealisasi    string                               `json:"ApprovalListRealisasi"`
-	CatatanTolakan           string                               `json:"CatatanTolakan"`
-	TotalBobot               string                               `json:"TotalBobot"`
-	TotalPencapaian          string                               `json:"TotalPencapaian"`
-	TotalBobotPengurang      string                               `json:"TotalBobotPengurang"`
-	TotalPencapaianPost      string                               `json:"TotalPencapaianPost"`
-	EntryUserValidasi        string                               `json:"EntryUserValidasi"`
-	EntryNameValidasi        string                               `json:"EntryNameValidasi"`
-	EntryTimeValidasi        string                               `json:"EntryTimeValidasi"`
-	ApprovalListValidasi     string                               `json:"ApprovalListValidasi"`
-	LampiranValidasi         string                               `json:"LampiranValidasi"`
-	QualifierOverallValidasi string                               `json:"QualifierOverallValidasi"`
-	KpiDetail                []GetAllDraftKpiDetailResponse       `json:"KpiDetail"`
-	ChallengeDetail          []GetAllDraftChallengeDetailResponse `json:"ChallengeDetail"`
-	MethodDetail             []GetAllDraftMethodDetailResponse    `json:"MethodDetail"`
+// GetAllApprovalPenyusunanKpiResponse adalah satu record lengkap (header + nested detail).
+type GetAllApprovalPenyusunanKpiResponse struct {
+	IdPengajuan string `json:"IdPengajuan"`
+	Tahun       string `json:"Tahun"`
+	Triwulan    string `json:"Triwulan"`
+	Kostl       string `json:"Kostl"`
+	KostlTx     string `json:"KostlTx"`
+	Orgeh       string `json:"Orgeh"`
+	OrgehTx     string `json:"OrgehTx"`
+	Status      string `json:"Status"`
+	StatusDesc  string `json:"StatusDesc"`
 }
 
-// GetAllDraftKpiDetailResponse — IdPengajuan, Tahun, Triwulan dihapus (redundan)
-type GetAllDraftKpiDetailResponse struct {
-	IdDetail            string                            `json:"IdDetail"`
-	IdKpi               string                            `json:"IdKpi"`
-	Kpi                 string                            `json:"Kpi"`
-	Rumus               string                            `json:"Rumus"`
-	IdPerspektif        string                            `json:"IdPerspektif"`
-	Perspektif          string                            `json:"Perspektif"`
-	IdKeteranganProject string                            `json:"IdKeteranganProject"`
-	KeteranganProject   string                            `json:"KeteranganProject"`
-	LampiranFile        string                            `json:"LampiranFile"`
-	KpiSubDetail        []GetAllDraftKpiSubDetailResponse `json:"KpiSubDetail"`
+// GetAllTolakanPenyusunanKpiResponse adalah satu record lengkap (header + nested detail).
+type GetAllTolakanPenyusunanKpiResponse struct {
+	IdPengajuan string `json:"IdPengajuan"`
+	Tahun       string `json:"Tahun"`
+	Triwulan    string `json:"Triwulan"`
+	Kostl       string `json:"Kostl"`
+	KostlTx     string `json:"KostlTx"`
+	Orgeh       string `json:"Orgeh"`
+	OrgehTx     string `json:"OrgehTx"`
+	Status      string `json:"Status"`
+	StatusDesc  string `json:"StatusDesc"`
 }
 
-// GetAllDraftKpiSubDetailResponse — IdPengajuan, IdDetail, Tahun, Triwulan dihapus (redundan)
-type GetAllDraftKpiSubDetailResponse struct {
+// GetAllDaftarPenyusunanKpiResponse adalah satu record lengkap (header + nested detail).
+type GetAllDaftarPenyusunanKpiResponse struct {
+	IdPengajuan string `json:"IdPengajuan"`
+	Tahun       string `json:"Tahun"`
+	Triwulan    string `json:"Triwulan"`
+	Kostl       string `json:"Kostl"`
+	KostlTx     string `json:"KostlTx"`
+	Orgeh       string `json:"Orgeh"`
+	OrgehTx     string `json:"OrgehTx"`
+	Status      string `json:"Status"`
+	StatusDesc  string `json:"StatusDesc"`
+}
+
+// GetAllDaftarApprovalPenyusunanKpiResponse adalah satu record lengkap (header + nested detail).
+type GetAllDaftarApprovalPenyusunanKpiResponse struct {
+	IdPengajuan string `json:"IdPengajuan"`
+	Tahun       string `json:"Tahun"`
+	Triwulan    string `json:"Triwulan"`
+	Kostl       string `json:"Kostl"`
+	KostlTx     string `json:"KostlTx"`
+	Orgeh       string `json:"Orgeh"`
+	OrgehTx     string `json:"OrgehTx"`
+	Status      string `json:"Status"`
+	StatusDesc  string `json:"StatusDesc"`
+}
+
+// GetAllDataPenyusunanKpiResponse adalah satu record lengkap (header + nested detail).
+type GetAllDataPenyusunanKpiResponse struct {
+	IdPengajuan              string                              `json:"IdPengajuan"`
+	Tahun                    string                              `json:"Tahun"`
+	Triwulan                 string                              `json:"Triwulan"`
+	Kostl                    string                              `json:"Kostl"`
+	KostlTx                  string                              `json:"KostlTx"`
+	Orgeh                    string                              `json:"Orgeh"`
+	OrgehTx                  string                              `json:"OrgehTx"`
+	EntryUser                string                              `json:"EntryUser"`
+	EntryName                string                              `json:"EntryName"`
+	EntryTime                string                              `json:"EntryTime"`
+	ApprovalPosisi           string                              `json:"ApprovalPosisi"`
+	ApprovalList             string                              `json:"ApprovalList"`
+	Status                   string                              `json:"Status"`
+	StatusDesc               string                              `json:"StatusDesc"`
+	EntryUserRealisasi       string                              `json:"EntryUserRealisasi"`
+	EntryNameRealisasi       string                              `json:"EntryNameRealisasi"`
+	EntryTimeRealisasi       string                              `json:"EntryTimeRealisasi"`
+	ApprovalListRealisasi    string                              `json:"ApprovalListRealisasi"`
+	CatatanTolakan           string                              `json:"CatatanTolakan"`
+	TotalBobot               string                              `json:"TotalBobot"`
+	TotalPencapaian          string                              `json:"TotalPencapaian"`
+	TotalBobotPengurang      string                              `json:"TotalBobotPengurang"`
+	TotalPencapaianPost      string                              `json:"TotalPencapaianPost"`
+	EntryUserValidasi        string                              `json:"EntryUserValidasi"`
+	EntryNameValidasi        string                              `json:"EntryNameValidasi"`
+	EntryTimeValidasi        string                              `json:"EntryTimeValidasi"`
+	ApprovalListValidasi     string                              `json:"ApprovalListValidasi"`
+	LampiranValidasi         string                              `json:"LampiranValidasi"`
+	QualifierOverallValidasi string                              `json:"QualifierOverallValidasi"`
+	KpiDetail                []GetAllDataKpiDetailResponse       `json:"KpiDetail"`
+	ResultDetail             []GetAllDataResultDetailResponse    `json:"ResultDetail"`
+	MethodDetail             []GetAllDataMethodDetailResponse    `json:"MethodDetail"`
+	ChallengeDetail          []GetAllDataChallengeDetailResponse `json:"ChallengeDetail"`
+}
+
+// GetAllDataKpiDetailResponse — IdPengajuan, Tahun, Triwulan dihapus (redundan)
+type GetAllDataKpiDetailResponse struct {
+	IdDetail            string                           `json:"IdDetail"`
+	IdKpi               string                           `json:"IdKpi"`
+	Kpi                 string                           `json:"Kpi"`
+	Rumus               string                           `json:"Rumus"`
+	IdPerspektif        string                           `json:"IdPerspektif"`
+	Perspektif          string                           `json:"Perspektif"`
+	IdKeteranganProject string                           `json:"IdKeteranganProject"`
+	KeteranganProject   string                           `json:"KeteranganProject"`
+	LampiranFile        string                           `json:"LampiranFile"`
+	KpiSubDetail        []GetAllDataKpiSubDetailResponse `json:"KpiSubDetail"`
+}
+
+// GetAllDataKpiSubDetailResponse — IdPengajuan, IdDetail, Tahun, Triwulan dihapus (redundan)
+type GetAllDataKpiSubDetailResponse struct {
 	IdSubDetail                      string `json:"IdSubDetail"`
 	IdKpi                            string `json:"IdKpi"`
 	Kpi                              string `json:"Kpi"`
@@ -294,19 +371,17 @@ type GetAllDraftKpiSubDetailResponse struct {
 	PencapaianPostQualifierValidated string `json:"PencapaianPostQualifierValidated"`
 }
 
-// GetAllDraftChallengeDetailResponse — IdPengajuan dihapus (redundan)
-type GetAllDraftChallengeDetailResponse struct {
-	IdDetailChallenge  string `json:"IdDetailChallenge"`
-	Tahun              string `json:"Tahun"`
-	Triwulan           string `json:"Triwulan"`
-	NamaChallenge      string `json:"NamaChallenge"`
-	DeskripsiChallenge string `json:"DeskripsiChallenge"`
-	RealisasiChallenge string `json:"RealisasiChallenge"`
-	LampiranEvidence   string `json:"LampiranEvidence"`
+// GetAllDataResultDetailResponse — IdPengajuan dihapus (redundan)
+type GetAllDataResultDetailResponse struct {
+	IdDetailResult  string `json:"IdDetailResult"`
+	Tahun           string `json:"Tahun"`
+	Triwulan        string `json:"Triwulan"`
+	NamaResult      string `json:"NamaResult"`
+	DeskripsiResult string `json:"DeskripsiResult"`
 }
 
-// GetAllDraftMethodDetailResponse — IdPengajuan dihapus (redundan)
-type GetAllDraftMethodDetailResponse struct {
+// GetAllDataMethodDetailResponse — IdPengajuan dihapus (redundan)
+type GetAllDataMethodDetailResponse struct {
 	IdDetailMethod   string `json:"IdDetailMethod"`
 	Tahun            string `json:"Tahun"`
 	Triwulan         string `json:"Triwulan"`
@@ -314,6 +389,17 @@ type GetAllDraftMethodDetailResponse struct {
 	DeskripsiMethod  string `json:"DeskripsiMethod"`
 	RealisasiMethod  string `json:"RealisasiMethod"`
 	LampiranEvidence string `json:"LampiranEvidence"`
+}
+
+// GetAllDataChallengeDetailResponse — IdPengajuan dihapus (redundan)
+type GetAllDataChallengeDetailResponse struct {
+	IdDetailChallenge  string `json:"IdDetailChallenge"`
+	Tahun              string `json:"Tahun"`
+	Triwulan           string `json:"Triwulan"`
+	NamaChallenge      string `json:"NamaChallenge"`
+	DeskripsiChallenge string `json:"DeskripsiChallenge"`
+	RealisasiChallenge string `json:"RealisasiChallenge"`
+	LampiranEvidence   string `json:"LampiranEvidence"`
 }
 
 // =============================================================================

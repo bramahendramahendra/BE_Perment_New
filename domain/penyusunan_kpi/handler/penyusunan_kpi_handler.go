@@ -99,9 +99,9 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 	})
 }
 
-// GetAllDraftPenyusunanKpi handles POST /penyusunan-kpi/get-all-draft
-func (h *PenyusunanKpiHandler) GetAllDraftPenyusunanKpi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.GetAllDraftPenyusunanKpiRequest](c)
+// GetAllApprovalPenyusunanKpi handles POST /penyusunan-kpi/get-all-approval
+func (h *PenyusunanKpiHandler) GetAllApprovalPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllApprovalPenyusunanKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -119,9 +119,131 @@ func (h *PenyusunanKpiHandler) GetAllDraftPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	req.EntryUser = strings.TrimSpace(parts[0])
+	req.ApprovalUser = strings.TrimSpace(parts[0])
 
-	data, total, err := h.service.GetAllDraftPenyusunanKpi(&req)
+	data, total, err := h.service.GetAllApprovalPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	pagination := response_helper.SetPagination(&globalDTO.FilterRequestParams{
+		Page:  req.Page,
+		Limit: req.Limit,
+	}, total)
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:       "00",
+		Status:     true,
+		Message:    "Data KPI berhasil diambil",
+		Data:       data,
+		Pagination: pagination,
+	})
+}
+
+// GetAllTolakanPenyusunanKpi handles POST /penyusunan-kpi/get-all-tolakan
+func (h *PenyusunanKpiHandler) GetAllTolakanPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllTolakanPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+
+	data, total, err := h.service.GetAllTolakanPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	pagination := response_helper.SetPagination(&globalDTO.FilterRequestParams{
+		Page:  req.Page,
+		Limit: req.Limit,
+	}, total)
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:       "00",
+		Status:     true,
+		Message:    "Data KPI berhasil diambil",
+		Data:       data,
+		Pagination: pagination,
+	})
+}
+
+// GetAllDaftarPenyusunanKpi handles POST /penyusunan-kpi/get-all-daftar-penyusunan
+func (h *PenyusunanKpiHandler) GetAllDaftarPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllDaftarPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+
+	data, total, err := h.service.GetAllDaftarPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	pagination := response_helper.SetPagination(&globalDTO.FilterRequestParams{
+		Page:  req.Page,
+		Limit: req.Limit,
+	}, total)
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:       "00",
+		Status:     true,
+		Message:    "Data KPI berhasil diambil",
+		Data:       data,
+		Pagination: pagination,
+	})
+}
+
+// GetAllApprovalPenyusunanKpi handles POST /penyusunan-kpi/get-all-daftar-approval
+func (h *PenyusunanKpiHandler) GetAllDaftarApprovalPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllDaftarApprovalPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+
+	req.ApprovalUser = strings.TrimSpace(parts[0])
+
+	data, total, err := h.service.GetAllDaftarApprovalPenyusunanKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return

@@ -28,15 +28,30 @@ type (
 			req *dto.CreatePenyusunanKpiRequest,
 		) error
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-draft.
-		GetAllDraftPenyusunanKpi(
-			req *dto.GetAllDraftPenyusunanKpiRequest,
-		) ([]*dto.GetAllDraftPenyusunanKpiResponse, int64, error)
+		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
+		GetAllApprovalPenyusunanKpi(
+			req *dto.GetAllApprovalPenyusunanKpiRequest,
+		) ([]*dto.GetAllApprovalPenyusunanKpiResponse, int64, error)
+
+		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-tolakan.
+		GetAllTolakanPenyusunanKpi(
+			req *dto.GetAllTolakanPenyusunanKpiRequest,
+		) ([]*dto.GetAllTolakanPenyusunanKpiResponse, int64, error)
+
+		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-penyusunan.
+		GetAllDaftarPenyusunanKpi(
+			req *dto.GetAllDaftarPenyusunanKpiRequest,
+		) ([]*dto.GetAllDaftarPenyusunanKpiResponse, int64, error)
+
+		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-approval.
+		GetAllDaftarApprovalPenyusunanKpi(
+			req *dto.GetAllDaftarApprovalPenyusunanKpiRequest,
+		) ([]*dto.GetAllDaftarApprovalPenyusunanKpiResponse, int64, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
-		) (*dto.GetAllDraftPenyusunanKpiResponse, error)
+		) (*dto.GetAllDataPenyusunanKpiResponse, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-csv dan /get-pdf.
 		GetKpiExportData(idPengajuan string) (*dto.KpiExportData, error)

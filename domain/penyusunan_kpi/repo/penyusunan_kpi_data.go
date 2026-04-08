@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
+	"permen_api/domain/penyusunan_kpi/model"
 	"permen_api/domain/penyusunan_kpi/utils"
 	customErrors "permen_api/errors"
 )
@@ -90,8 +91,14 @@ const (
 		WHERE LOWER(polarisasi) = LOWER(?)
 		LIMIT 1`
 
-	// queryGetAllDraftKpiHeader digunakan oleh GetAllDraftPenyusunanKpi dan GetDetailPenyusunanKpi.
-	queryGetAllDraftKpiHeader = `
+	// queryGetDataKpi digunakan oleh GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, dan GetAllDaftarApprovalPenyusunanKpi.
+	queryGetCountDataKpi = `
+        SELECT COUNT(1)
+        FROM data_kpi a
+        INNER JOIN mst_status b ON a.status = b.id_status`
+
+	// queryGetDataKpi digunakan oleh GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, GetAllDaftarApprovalPenyusunanKpi dan GetDetailPenyusunanKpi.
+	queryGetDataKpi = `
         SELECT
             a.id_pengajuan, a.tahun, a.triwulan, a.kostl, a.kostl_tx,
             a.orgeh, a.orgeh_tx, a.entry_user, a.entry_name, a.entry_time,
@@ -114,12 +121,7 @@ const (
         FROM data_kpi a
         INNER JOIN mst_status b ON a.status = b.id_status`
 
-	queryCountAllDraftKpi = `
-        SELECT COUNT(1)
-        FROM data_kpi a
-        INNER JOIN mst_status b ON a.status = b.id_status`
-
-	queryGetKpiDetail = `
+	queryGetDataKpiDetail = `
 		SELECT
 			a.id_detail,
 			a.id_kpi, a.kpi, a.rumus,
@@ -132,7 +134,7 @@ const (
 		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
 		WHERE a.id_pengajuan = ?`
 
-	queryGetKpiSubDetail = `
+	queryGetDataKpiSubDetail = `
 		SELECT
 			a.id_sub_detail,
 			a.id_kpi, a.kpi, a.rumus,
@@ -163,22 +165,29 @@ const (
 		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
 		WHERE a.id_detail = ?`
 
-	queryGetChallengeDetail = `
+	queryGetDataResultDetail = `
 		SELECT
-			id_detail_challenge, tahun, triwulan,
-			nama_challenge, deskripsi_challenge,
-			IFNULL(realisasi_challenge, '')  realisasi_challenge,
-			IFNULL(lampiran_evidence, '')    lampiran_evidence
-		FROM data_challenge_detail
+			id_detail_result, tahun, triwulan,
+			nama_result, deskripsi_result
+		FROM data_result_detail
 		WHERE id_pengajuan = ?`
 
-	queryGetMethodDetail = `
+	queryGetDataMethodDetail = `
 		SELECT
 			id_detail_method, tahun, triwulan,
 			nama_method, deskripsi_method,
 			IFNULL(realisasi_method, '')   realisasi_method,
 			IFNULL(lampiran_evidence, '')  lampiran_evidence
 		FROM data_method_detail
+		WHERE id_pengajuan = ?`
+
+	queryGetDataChallengeDetail = `
+		SELECT
+			id_detail_challenge, tahun, triwulan,
+			nama_challenge, deskripsi_challenge,
+			IFNULL(realisasi_challenge, '')  realisasi_challenge,
+			IFNULL(lampiran_evidence, '')    lampiran_evidence
+		FROM data_challenge_detail
 		WHERE id_pengajuan = ?`
 
 	// queryGetKpiHeaderForExport digunakan oleh GetKpiExportData.
@@ -518,19 +527,19 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 // scanNestedKpi — helper untuk GetAllDraftPenyusunanKpi dan GetDetailPenyusunanKpi
 // =============================================================================
 
-func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDraftPenyusunanKpiResponse) error {
+func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDataPenyusunanKpiResponse) error {
 
 	// =====================================================================
 	// QUERY KPI DETAIL per id_pengajuan
 	// =====================================================================
-	detailRows, err := r.db.Raw(queryGetKpiDetail, h.IdPengajuan).Rows()
+	detailRows, err := r.db.Raw(queryGetDataKpiDetail, h.IdPengajuan).Rows()
 	if err != nil {
 		return fmt.Errorf("gagal mengambil kpi detail [%s]: %w", h.IdPengajuan, err)
 	}
 
-	var kpiDetails []dto.GetAllDraftKpiDetailResponse
+	var kpiDetails []dto.GetAllDataKpiDetailResponse
 	for detailRows.Next() {
-		var d dto.GetAllDraftKpiDetailResponse
+		var d dto.GetAllDataKpiDetailResponse
 		if err := detailRows.Scan(
 			&d.IdDetail,
 			&d.IdKpi, &d.Kpi, &d.Rumus,
@@ -546,15 +555,15 @@ func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDraftPenyusunanKpiRespons
 		// =================================================================
 		// QUERY KPI SUB DETAIL per id_detail
 		// =================================================================
-		subDetailRows, err := r.db.Raw(queryGetKpiSubDetail, d.IdDetail).Rows()
+		subDetailRows, err := r.db.Raw(queryGetDataKpiSubDetail, d.IdDetail).Rows()
 		if err != nil {
 			detailRows.Close()
 			return fmt.Errorf("gagal mengambil kpi sub detail [%s]: %w", d.IdDetail, err)
 		}
 
-		var subDetails []dto.GetAllDraftKpiSubDetailResponse
+		var subDetails []dto.GetAllDataKpiSubDetailResponse
 		for subDetailRows.Next() {
-			var s dto.GetAllDraftKpiSubDetailResponse
+			var s dto.GetAllDataKpiSubDetailResponse
 			if err := subDetailRows.Scan(
 				&s.IdSubDetail,
 				&s.IdKpi, &s.Kpi, &s.Rumus,
@@ -592,40 +601,39 @@ func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDraftPenyusunanKpiRespons
 	h.KpiDetail = kpiDetails
 
 	// =====================================================================
-	// QUERY CHALLENGE DETAIL
+	// QUERY RESULT DETAIL
 	// =====================================================================
-	challengeRows, err := r.db.Raw(queryGetChallengeDetail, h.IdPengajuan).Rows()
+	resultRows, err := r.db.Raw(queryGetDataResultDetail, h.IdPengajuan).Rows()
 	if err != nil {
-		return fmt.Errorf("gagal mengambil challenge detail [%s]: %w", h.IdPengajuan, err)
+		return fmt.Errorf("gagal mengambil result detail [%s]: %w", h.IdPengajuan, err)
 	}
 
-	var challengeDetails []dto.GetAllDraftChallengeDetailResponse
-	for challengeRows.Next() {
-		var ch dto.GetAllDraftChallengeDetailResponse
-		if err := challengeRows.Scan(
-			&ch.IdDetailChallenge, &ch.Tahun, &ch.Triwulan,
-			&ch.NamaChallenge, &ch.DeskripsiChallenge,
-			&ch.RealisasiChallenge, &ch.LampiranEvidence,
+	var resultDetails []dto.GetAllDataResultDetailResponse
+	for resultRows.Next() {
+		var re dto.GetAllDataResultDetailResponse
+		if err := resultRows.Scan(
+			&re.IdDetailResult, &re.Tahun, &re.Triwulan,
+			&re.NamaResult, &re.DeskripsiResult,
 		); err != nil {
-			challengeRows.Close()
+			resultRows.Close()
 			return fmt.Errorf("gagal scan challenge detail: %w", err)
 		}
-		challengeDetails = append(challengeDetails, ch)
+		resultDetails = append(resultDetails, re)
 	}
-	challengeRows.Close()
-	h.ChallengeDetail = challengeDetails
+	resultRows.Close()
+	h.ResultDetail = resultDetails
 
 	// =====================================================================
 	// QUERY METHOD DETAIL
 	// =====================================================================
-	methodRows, err := r.db.Raw(queryGetMethodDetail, h.IdPengajuan).Rows()
+	methodRows, err := r.db.Raw(queryGetDataMethodDetail, h.IdPengajuan).Rows()
 	if err != nil {
 		return fmt.Errorf("gagal mengambil method detail [%s]: %w", h.IdPengajuan, err)
 	}
 
-	var methodDetails []dto.GetAllDraftMethodDetailResponse
+	var methodDetails []dto.GetAllDataMethodDetailResponse
 	for methodRows.Next() {
-		var mt dto.GetAllDraftMethodDetailResponse
+		var mt dto.GetAllDataMethodDetailResponse
 		if err := methodRows.Scan(
 			&mt.IdDetailMethod, &mt.Tahun, &mt.Triwulan,
 			&mt.NamaMethod, &mt.DeskripsiMethod,
@@ -639,25 +647,227 @@ func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDraftPenyusunanKpiRespons
 	methodRows.Close()
 	h.MethodDetail = methodDetails
 
+	// =====================================================================
+	// QUERY CHALLENGE DETAIL
+	// =====================================================================
+	challengeRows, err := r.db.Raw(queryGetDataChallengeDetail, h.IdPengajuan).Rows()
+	if err != nil {
+		return fmt.Errorf("gagal mengambil challenge detail [%s]: %w", h.IdPengajuan, err)
+	}
+
+	var challengeDetails []dto.GetAllDataChallengeDetailResponse
+	for challengeRows.Next() {
+		var ch dto.GetAllDataChallengeDetailResponse
+		if err := challengeRows.Scan(
+			&ch.IdDetailChallenge, &ch.Tahun, &ch.Triwulan,
+			&ch.NamaChallenge, &ch.DeskripsiChallenge,
+			&ch.RealisasiChallenge, &ch.LampiranEvidence,
+		); err != nil {
+			challengeRows.Close()
+			return fmt.Errorf("gagal scan challenge detail: %w", err)
+		}
+		challengeDetails = append(challengeDetails, ch)
+	}
+	challengeRows.Close()
+	h.ChallengeDetail = challengeDetails
+
 	return nil
 }
 
 // =============================================================================
-// GET ALL DRAFT — list dengan filter, pagination, dan nested detail
+// GET ALL APPROVAL — list dengan filter, pagination, dan nested detail
 // =============================================================================
 
-func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
-	req *dto.GetAllDraftPenyusunanKpiRequest,
-) ([]*dto.GetAllDraftPenyusunanKpiResponse, int64, error) {
+func (r *penyusunanKpiRepo) GetAllApprovalPenyusunanKpi(
+	req *dto.GetAllApprovalPenyusunanKpiRequest,
+) ([]*model.DataKpi, int64, error) {
 
 	// =========================================================================
 	// BUILD DYNAMIC WHERE
 	// =========================================================================
 	conditions := []string{
-		"a.status IN (70, 71)",
-		"a.entry_user = ?",
+		"a.status = 0",
+		"a.approval_posisi = ?",
 	}
-	args := []interface{}{req.EntryUser}
+	args := []interface{}{req.ApprovalUser}
+
+	// =========================================================================
+	// Kondisi opsional dari request body
+	// =========================================================================
+	if req.Divisi != "" {
+		conditions = append(conditions, "a.kostl = ?")
+		args = append(args, req.Divisi)
+	}
+	if req.Tahun != "" {
+		conditions = append(conditions, "a.tahun = ?")
+		args = append(args, req.Tahun)
+	}
+	if req.Triwulan != "" {
+		conditions = append(conditions, "a.triwulan = ?")
+		args = append(args, req.Triwulan)
+	}
+
+	where := " WHERE " + strings.Join(conditions, " AND ")
+
+	// =========================================================================
+	// COUNT TOTAL RECORDS
+	// =========================================================================
+	var total int64
+	countQuery := queryGetCountDataKpi + where
+	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
+	}
+
+	// =========================================================================
+	// PAGINATION
+	// =========================================================================
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
+	listQuery := queryGetDataKpi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.EntryUser, &h.EntryName, &h.EntryTime,
+			&h.ApprovalPosisi, &h.ApprovalList,
+			&h.Status, &h.StatusDesc,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
+}
+
+// =============================================================================
+// GET ALL TOLAKAN — list dengan filter, pagination, dan nested detail
+// =============================================================================
+
+func (r *penyusunanKpiRepo) GetAllTolakanPenyusunanKpi(
+	req *dto.GetAllTolakanPenyusunanKpiRequest,
+) ([]*model.DataKpi, int64, error) {
+
+	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
+	conditions := []string{
+		"a.status = 1",
+	}
+	args := []interface{}{}
+
+	// =========================================================================
+	// Kondisi opsional dari request body
+	// =========================================================================
+	if req.Divisi != "" {
+		conditions = append(conditions, "a.kostl = ?")
+		args = append(args, req.Divisi)
+	}
+	if req.Tahun != "" {
+		conditions = append(conditions, "a.tahun = ?")
+		args = append(args, req.Tahun)
+	}
+	if req.Triwulan != "" {
+		conditions = append(conditions, "a.triwulan = ?")
+		args = append(args, req.Triwulan)
+	}
+
+	where := " WHERE " + strings.Join(conditions, " AND ")
+
+	// =========================================================================
+	// COUNT TOTAL RECORDS
+	// =========================================================================
+	var total int64
+	countQuery := queryGetCountDataKpi + where
+	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
+	}
+
+	// =========================================================================
+	// PAGINATION
+	// =========================================================================
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
+	listQuery := queryGetDataKpi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.EntryUser, &h.EntryName, &h.EntryTime,
+			&h.ApprovalPosisi, &h.ApprovalList,
+			&h.Status, &h.StatusDesc,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
+}
+
+// =============================================================================
+// GET ALL DAFTAR PENYUSUNAN — list dengan filter, pagination, dan nested detail
+// =============================================================================
+
+func (r *penyusunanKpiRepo) GetAllDaftarPenyusunanKpi(
+	req *dto.GetAllDaftarPenyusunanKpiRequest,
+) ([]*model.DataKpi, int64, error) {
+
+	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
+	conditions := []string{}
+	args := []interface{}{}
 
 	// =========================================================================
 	// Kondisi opsional dari request body
@@ -685,7 +895,7 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 	// COUNT TOTAL RECORDS
 	// =========================================================================
 	var total int64
-	countQuery := queryCountAllDraftKpi + where
+	countQuery := queryGetCountDataKpi + where
 	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
@@ -706,7 +916,7 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 	// =========================================================================
 	// QUERY HEADER
 	// =========================================================================
-	listQuery := queryGetAllDraftKpiHeader + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listQuery := queryGetDataKpi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
 
 	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
@@ -715,10 +925,10 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 	}
 	defer rows.Close()
 
-	var results []*dto.GetAllDraftPenyusunanKpiResponse
+	var results []*model.DataKpi
 
 	for rows.Next() {
-		var h dto.GetAllDraftPenyusunanKpiResponse
+		var h model.DataKpi
 
 		if err := rows.Scan(
 			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
@@ -727,21 +937,98 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 			&h.EntryUser, &h.EntryName, &h.EntryTime,
 			&h.ApprovalPosisi, &h.ApprovalList,
 			&h.Status, &h.StatusDesc,
-			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
-			&h.ApprovalListRealisasi,
-			&h.CatatanTolakan,
-			&h.TotalBobot, &h.TotalPencapaian,
-			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
-			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
-			&h.ApprovalListValidasi,
-			&h.LampiranValidasi,
-			&h.QualifierOverallValidasi,
 		); err != nil {
 			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
 		}
 
-		if err := r.scanNestedKpi(&h); err != nil {
-			return nil, 0, err
+		results = append(results, &h)
+	}
+
+	return results, total, nil
+}
+
+// =============================================================================
+// GET ALL DAFTAR APPROVAL — list dengan filter, pagination, dan nested detail
+// =============================================================================
+
+func (r *penyusunanKpiRepo) GetAllDaftarApprovalPenyusunanKpi(
+	req *dto.GetAllDaftarApprovalPenyusunanKpiRequest,
+) ([]*model.DataKpi, int64, error) {
+
+	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
+	conditions := []string{
+		"a.approval_list LIKE '%?%'",
+	}
+	args := []interface{}{req.ApprovalUser}
+
+	// =========================================================================
+	// Kondisi opsional dari request body
+	// =========================================================================
+	if req.Divisi != "" {
+		conditions = append(conditions, "a.kostl = ?")
+		args = append(args, req.Divisi)
+	}
+	if req.Tahun != "" {
+		conditions = append(conditions, "a.tahun = ?")
+		args = append(args, req.Tahun)
+	}
+	if req.Triwulan != "" {
+		conditions = append(conditions, "a.triwulan = ?")
+		args = append(args, req.Triwulan)
+	}
+
+	where := " WHERE " + strings.Join(conditions, " AND ")
+
+	// =========================================================================
+	// COUNT TOTAL RECORDS
+	// =========================================================================
+	var total int64
+	countQuery := queryGetCountDataKpi + where
+	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
+	}
+
+	// =========================================================================
+	// PAGINATION
+	// =========================================================================
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
+	listQuery := queryGetDataKpi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.EntryUser, &h.EntryName, &h.EntryTime,
+			&h.ApprovalPosisi, &h.ApprovalList,
+			&h.Status, &h.StatusDesc,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
 		}
 
 		results = append(results, &h)
@@ -756,9 +1043,9 @@ func (r *penyusunanKpiRepo) GetAllDraftPenyusunanKpi(
 
 func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
-) (*dto.GetAllDraftPenyusunanKpiResponse, error) {
+) (*dto.GetAllDataPenyusunanKpiResponse, error) {
 
-	detailQuery := queryGetAllDraftKpiHeader + " WHERE a.id_pengajuan = ? LIMIT 1"
+	detailQuery := queryGetDataKpi + " WHERE a.id_pengajuan = ? LIMIT 1"
 
 	headerRows, err := r.db.Raw(detailQuery, req.IdPengajuan).Rows()
 	if err != nil {
@@ -772,7 +1059,7 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 		}
 	}
 
-	var h dto.GetAllDraftPenyusunanKpiResponse
+	var h dto.GetAllDataPenyusunanKpiResponse
 	if err := headerRows.Scan(
 		&h.IdPengajuan, &h.Tahun, &h.Triwulan,
 		&h.Kostl, &h.KostlTx,

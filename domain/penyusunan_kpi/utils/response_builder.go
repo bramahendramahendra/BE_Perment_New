@@ -57,12 +57,6 @@ func BuildKpiResponse(
 				Qualifier:                 qualifier,
 				DeskripsiQualifier:        deskripsiQualifier,
 				TargetQualifier:           targetQualifier,
-				Result:                    subRow.Result,
-				DeskripsiResult:           subRow.DeskripsiResult,
-				Process:                   subRow.Process,
-				DeskripsiProcess:          subRow.DeskripsiProcess,
-				Context:                   subRow.Context,
-				DeskripsiContext:          subRow.DeskripsiContext,
 			})
 		}
 

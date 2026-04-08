@@ -218,17 +218,119 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 }
 
 // =============================================================================
-// GET ALL DRAFT
+// GET ALL APPROVAL
 // =============================================================================
 
-func (s *penyusunanKpiService) GetAllDraftPenyusunanKpi(
-	req *dto.GetAllDraftPenyusunanKpiRequest,
-) (data []*dto.GetAllDraftPenyusunanKpiResponse, total int64, err error) {
-	dataDB, total, err := s.repo.GetAllDraftPenyusunanKpi(req)
+func (s *penyusunanKpiService) GetAllApprovalPenyusunanKpi(
+	req *dto.GetAllApprovalPenyusunanKpiRequest,
+) (data []*dto.GetAllApprovalPenyusunanKpiResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAllApprovalPenyusunanKpi(req)
+	if err != nil {
+		return data, 0, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.GetAllApprovalPenyusunanKpiResponse{
+			IdPengajuan: v.IdPengajuan,
+			Tahun:       v.Tahun,
+			Triwulan:    v.Triwulan,
+			Kostl:       v.Kostl,
+			KostlTx:     v.KostlTx,
+			Orgeh:       v.Orgeh,
+			OrgehTx:     v.OrgehTx,
+			Status:      v.Status,
+			StatusDesc:  v.StatusDesc,
+		})
+	}
+
+	return data, total, nil
+}
+
+// =============================================================================
+// GET ALL TOLAKAN
+// =============================================================================
+
+func (s *penyusunanKpiService) GetAllTolakanPenyusunanKpi(
+	req *dto.GetAllTolakanPenyusunanKpiRequest,
+) (data []*dto.GetAllTolakanPenyusunanKpiResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAllTolakanPenyusunanKpi(req)
+	if err != nil {
+		return data, 0, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.GetAllTolakanPenyusunanKpiResponse{
+			IdPengajuan: v.IdPengajuan,
+			Tahun:       v.Tahun,
+			Triwulan:    v.Triwulan,
+			Kostl:       v.Kostl,
+			KostlTx:     v.KostlTx,
+			Orgeh:       v.Orgeh,
+			OrgehTx:     v.OrgehTx,
+			Status:      v.Status,
+			StatusDesc:  v.StatusDesc,
+		})
+	}
+
+	return data, total, nil
+}
+
+// =============================================================================
+// GET ALL DAFTAR PENYUSUNAN
+// =============================================================================
+
+func (s *penyusunanKpiService) GetAllDaftarPenyusunanKpi(
+	req *dto.GetAllDaftarPenyusunanKpiRequest,
+) (data []*dto.GetAllDaftarPenyusunanKpiResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAllDaftarPenyusunanKpi(req)
 	if err != nil {
 		return nil, 0, err
 	}
-	return dataDB, total, nil
+
+	for _, v := range dataDB {
+		data = append(data, &dto.GetAllDaftarPenyusunanKpiResponse{
+			IdPengajuan: v.IdPengajuan,
+			Tahun:       v.Tahun,
+			Triwulan:    v.Triwulan,
+			Kostl:       v.Kostl,
+			KostlTx:     v.KostlTx,
+			Orgeh:       v.Orgeh,
+			OrgehTx:     v.OrgehTx,
+			Status:      v.Status,
+			StatusDesc:  v.StatusDesc,
+		})
+	}
+
+	return data, total, nil
+}
+
+// =============================================================================
+// GET ALL DAFTAR APPROVAL
+// =============================================================================
+
+func (s *penyusunanKpiService) GetAllDaftarApprovalPenyusunanKpi(
+	req *dto.GetAllDaftarApprovalPenyusunanKpiRequest,
+) (data []*dto.GetAllDaftarApprovalPenyusunanKpiResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAllDaftarApprovalPenyusunanKpi(req)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.GetAllDaftarApprovalPenyusunanKpiResponse{
+			IdPengajuan: v.IdPengajuan,
+			Tahun:       v.Tahun,
+			Triwulan:    v.Triwulan,
+			Kostl:       v.Kostl,
+			KostlTx:     v.KostlTx,
+			Orgeh:       v.Orgeh,
+			OrgehTx:     v.OrgehTx,
+			Status:      v.Status,
+			StatusDesc:  v.StatusDesc,
+		})
+	}
+
+	return data, total, nil
 }
 
 // =============================================================================
@@ -237,7 +339,7 @@ func (s *penyusunanKpiService) GetAllDraftPenyusunanKpi(
 
 func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
-) (data *dto.GetAllDraftPenyusunanKpiResponse, err error) {
+) (data *dto.GetAllDataPenyusunanKpiResponse, err error) {
 	dataDB, err := s.repo.GetDetailPenyusunanKpi(req)
 	if err != nil {
 		return nil, err
