@@ -15,4 +15,20 @@ type DataKpi struct {
 	ApprovalList   string `gorm:"column:approval_list"`
 	Status         string `gorm:"column:status"`
 	StatusDesc     string `gorm:"column:status_desc"`
+
+	EntryUserRealisasi       string `gorm:"column:entry_user_realisasi"`
+	EntryNameRealisasi       string `gorm:"column:entry_name_realisasi"`
+	EntryTimeRealisasi       string `gorm:"column:entry_time_realisasi"`
+	ApprovalListRealisasi    string `gorm:"column:approval_list_realisasi"`
+	CatatanTolakan           string `gorm:"column:catatan_tolakan"`
+	TotalBobot               string `gorm:"column:total_bobot"`
+	TotalPencapaian          string `gorm:"column:total_pencapaian"`
+	TotalBobotPengurang      string `gorm:"column:total_bobot_pengurang"`
+	TotalPencapaianPost      string `gorm:"column:total_pencapaian_post"`
+	EntryUserValidasi        string `gorm:"column:entry_user_validasi"`
+	EntryNameValidasi        string `gorm:"column:entry_name_validasi"`
+	EntryTimeValidasi        string `gorm:"column:entry_time_validasi"`
+	ApprovalListValidasi     string `gorm:"column:approval_list_validasi"`
+	LampiranValidasi         string `gorm:"column:lampiran_validasi"`
+	QualifierOverallValidasi string `gorm:"column:qualifier_overall_validasi"`
 }

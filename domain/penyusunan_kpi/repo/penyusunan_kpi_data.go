@@ -755,6 +755,15 @@ func (r *penyusunanKpiRepo) GetAllApprovalPenyusunanKpi(
 			&h.EntryUser, &h.EntryName, &h.EntryTime,
 			&h.ApprovalPosisi, &h.ApprovalList,
 			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
+			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
+			&h.ApprovalListValidasi,
+			&h.LampiranValidasi,
+			&h.QualifierOverallValidasi,
 		); err != nil {
 			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
 		}
@@ -845,6 +854,15 @@ func (r *penyusunanKpiRepo) GetAllTolakanPenyusunanKpi(
 			&h.EntryUser, &h.EntryName, &h.EntryTime,
 			&h.ApprovalPosisi, &h.ApprovalList,
 			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
+			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
+			&h.ApprovalListValidasi,
+			&h.LampiranValidasi,
+			&h.QualifierOverallValidasi,
 		); err != nil {
 			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
 		}
@@ -866,7 +884,7 @@ func (r *penyusunanKpiRepo) GetAllDaftarPenyusunanKpi(
 	// =========================================================================
 	// BUILD DYNAMIC WHERE
 	// =========================================================================
-	conditions := []string{}
+	conditions := []string{"1=1"}
 	args := []interface{}{}
 
 	// =========================================================================
@@ -937,6 +955,15 @@ func (r *penyusunanKpiRepo) GetAllDaftarPenyusunanKpi(
 			&h.EntryUser, &h.EntryName, &h.EntryTime,
 			&h.ApprovalPosisi, &h.ApprovalList,
 			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
+			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
+			&h.ApprovalListValidasi,
+			&h.LampiranValidasi,
+			&h.QualifierOverallValidasi,
 		); err != nil {
 			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
 		}
@@ -959,9 +986,9 @@ func (r *penyusunanKpiRepo) GetAllDaftarApprovalPenyusunanKpi(
 	// BUILD DYNAMIC WHERE
 	// =========================================================================
 	conditions := []string{
-		"a.approval_list LIKE '%?%'",
+		"a.approval_list LIKE ?",
 	}
-	args := []interface{}{req.ApprovalUser}
+	args := []interface{}{"%" + req.ApprovalUser + "%"}
 
 	// =========================================================================
 	// Kondisi opsional dari request body
@@ -1027,6 +1054,15 @@ func (r *penyusunanKpiRepo) GetAllDaftarApprovalPenyusunanKpi(
 			&h.EntryUser, &h.EntryName, &h.EntryTime,
 			&h.ApprovalPosisi, &h.ApprovalList,
 			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
+			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
+			&h.ApprovalListValidasi,
+			&h.LampiranValidasi,
+			&h.QualifierOverallValidasi,
 		); err != nil {
 			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
 		}
