@@ -21,6 +21,19 @@ type ValidatePenyusunanKpiRequest struct {
 	EntryTime string     `json:"EntryTime"`
 }
 
+// RevisionPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/revision.
+type RevisionPenyusunanKpiRequest struct {
+	IdPengajuan string     `json:"IdPengajuan" validate:"required"`
+	Divisi      DivisiItem `json:"Divisi"      validate:"required"`
+	Tahun       string     `json:"Tahun"       validate:"required"`
+	Triwulan    string     `json:"Triwulan"    validate:"required"`
+
+	// Diisi handler dari header 'userq', tidak boleh dari body.
+	EntryUser string `json:"EntryUser"`
+	EntryName string `json:"EntryName"`
+	EntryTime string `json:"EntryTime"`
+}
+
 // CreatePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/create.
 type CreatePenyusunanKpiRequest struct {
 	IdPengajuan  string     `json:"idPengajuan"  validate:"required"`
@@ -186,6 +199,20 @@ type EntryResponse struct {
 
 // ValidatePenyusunanKpiResponse adalah response untuk endpoint /validate.
 type ValidatePenyusunanKpiResponse struct {
+	IDPengajuan   string                        `json:"idPengajuan"`
+	Tahun         string                        `json:"tahun"`
+	Triwulan      string                        `json:"triwulan"`
+	Divisi        DivisiResponse                `json:"divisi"`
+	Entry         EntryResponse                 `json:"entry"`
+	TotalKpi      int                           `json:"totalKpi"`
+	Kpi           []PenyusunanKpiDetailResponse `json:"kpi"`
+	ResultList    []PenyusunanResult            `json:"resultList"`
+	MethodList    []PenyusunanMethod            `json:"methodList"`
+	ChallengeList []PenyusunanChallenge         `json:"challengeList"`
+}
+
+// RevisionPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/revision.
+type RevisionPenyusunanKpiResponse struct {
 	IDPengajuan   string                        `json:"idPengajuan"`
 	Tahun         string                        `json:"tahun"`
 	Triwulan      string                        `json:"triwulan"`

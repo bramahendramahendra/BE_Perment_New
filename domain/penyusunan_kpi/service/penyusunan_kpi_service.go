@@ -72,7 +72,14 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		challengeList = utils.BuildChallengeList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 	}
 
-	idPengajuan, err = s.repo.ValidatePenyusunanKpi(req, kpiRows, kpiSubDetails, resultList, methodList, challengeList)
+	idPengajuan, err = s.repo.ValidatePenyusunanKpi(
+		req,
+		kpiRows,
+		kpiSubDetails,
+		resultList,
+		methodList,
+		challengeList,
+	)
 	if err != nil {
 		return data, err
 	}
@@ -92,6 +99,93 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		},
 		TotalKpi:      len(kpiRows),
 		Kpi:           utils.BuildKpiResponse(idPengajuan, kpiRows, kpiSubDetails),
+		ResultList:    resultList,
+		MethodList:    methodList,
+		ChallengeList: challengeList,
+	}
+
+	return data, nil
+}
+
+// =============================================================================
+// REVISION
+// =============================================================================
+
+func (s *penyusunanKpiService) RevisionPenyusunanKpi(
+	req *dto.RevisionPenyusunanKpiRequest,
+	file *multipart.FileHeader,
+) (data dto.RevisionPenyusunanKpiResponse, err error) {
+
+	// User error: tidak mengirim file
+	if file == nil {
+		return data, &customErrors.BadRequestError{
+			Message: "file Excel tidak ditemukan, pastikan mengirim file via field 'files'",
+		}
+	}
+
+	// User error: format file salah
+	if !strings.HasSuffix(strings.ToLower(file.Filename), ".xlsx") {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("file '%s' bukan format Excel (.xlsx)", file.Filename),
+		}
+	}
+
+	// Parse dan validasi file Excel (logika sama dengan /validate)
+	kpiRows, kpiSubDetails, err := utils.ParseAndValidateExcel(file, req.Triwulan)
+	if err != nil {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("validasi file Excel '%s' gagal: %s", file.Filename, err.Error()),
+		}
+	}
+
+	// Lookup mst_kpi untuk setiap KPI unik dari kolom B Excel
+	if err := s.resolveKpiMasterLookup(kpiRows); err != nil {
+		return data, err
+	}
+
+	// Lookup mst_kpi dan mst_polarisasi untuk setiap baris sub KPI (kolom C)
+	if err := s.resolveMasterLookup(kpiSubDetails); err != nil {
+		return data, err
+	}
+
+	// Build ChallengeList, MethodList, ResultList dari kolom P–U Excel
+	// Hanya diisi untuk TW2 dan TW4
+	resultList := []dto.PenyusunanResult{}
+	methodList := []dto.PenyusunanMethod{}
+	challengeList := []dto.PenyusunanChallenge{}
+	if utils.IsExtendedTriwulan(req.Triwulan) {
+		resultList = utils.BuildResultList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+		methodList = utils.BuildMethodList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+		challengeList = utils.BuildChallengeList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+	}
+
+	// Simpan ke DB: DELETE lama + INSERT baru + UPDATE header
+	if err := s.repo.RevisionPenyusunanKpi(
+		req,
+		kpiRows,
+		kpiSubDetails,
+		resultList,
+		methodList,
+		challengeList,
+	); err != nil {
+		return data, err
+	}
+
+	data = dto.RevisionPenyusunanKpiResponse{
+		IDPengajuan: req.IdPengajuan,
+		Tahun:       req.Tahun,
+		Triwulan:    req.Triwulan,
+		Divisi: dto.DivisiResponse{
+			Kostl:   req.Divisi.Kostl,
+			KostlTx: req.Divisi.KostlTx,
+		},
+		Entry: dto.EntryResponse{
+			EntryUser: req.EntryUser,
+			EntryName: req.EntryName,
+			EntryTime: req.EntryTime,
+		},
+		TotalKpi:      len(kpiRows),
+		Kpi:           utils.BuildKpiResponse(req.IdPengajuan, kpiRows, kpiSubDetails),
 		ResultList:    resultList,
 		MethodList:    methodList,
 		ChallengeList: challengeList,

@@ -79,6 +79,28 @@ const (
 			 nama_challenge, deskripsi_challenge) 
 		VALUES %s`
 
+	// queryDeleteKpiDetail digunakan oleh RevisionPenyusunanKpi.
+	queryDeleteKpiDetail = `DELETE FROM data_kpi_detail WHERE id_pengajuan = ?`
+
+	// queryDeleteKpiSubDetail digunakan oleh RevisionPenyusunanKpi.
+	queryDeleteKpiSubDetail = `DELETE FROM data_kpi_subdetail WHERE id_pengajuan = ?`
+
+	// queryDeleteResultDetail digunakan oleh RevisionPenyusunanKpi.
+	queryDeleteResultDetail = `DELETE FROM data_result_detail WHERE id_pengajuan = ?`
+
+	// queryDeleteMethodDetail digunakan oleh RevisionPenyusunanKpi.
+	queryDeleteMethodDetail = `DELETE FROM data_method_detail WHERE id_pengajuan = ?`
+
+	// queryDeleteChallengeDetail digunakan oleh RevisionPenyusunanKpi.
+	queryDeleteChallengeDetail = `DELETE FROM data_challenge_detail WHERE id_pengajuan = ?`
+
+	// queryUpdateKpiRevision digunakan oleh RevisionPenyusunanKpi untuk update header data_kpi.
+	// status = 0 → langsung ke approval (tidak perlu draft lagi).
+	queryUpdateKpiRevision = `
+		UPDATE data_kpi
+		SET entry_user = ?, entry_name = ?, entry_time = ?, status = 0
+		WHERE id_pengajuan = ?`
+
 	queryLookupSubKpi = `
 		SELECT id_kpi, kpi, rumus
 		FROM mst_kpi
@@ -472,6 +494,251 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	}
 
 	return idPengajuan, nil
+}
+
+func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
+	req *dto.RevisionPenyusunanKpiRequest,
+	kpiRows []dto.PenyusunanKpiRow,
+	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
+	resultList []dto.PenyusunanResult,
+	methodList []dto.PenyusunanMethod,
+	challengeList []dto.PenyusunanChallenge,
+) error {
+
+	// Validasi: id_pengajuan harus ada di DB
+	var countExist int
+	if err := r.db.Raw(queryCheckExistIdPengajuan, req.IdPengajuan).
+		Scan(&countExist).Error; err != nil {
+		return fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
+	}
+	if countExist == 0 {
+		return &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
+
+	// =========================================================================
+	// Build INSERT data_kpi_detail
+	// =========================================================================
+	kpiDetailPlaceholders := []string{}
+	kpiDetailArgs := []interface{}{}
+	idDetailMap := make(map[int]string) // kpiIndex → idDetail
+
+	for i, kpiRow := range kpiRows {
+		idDetail := utils.GenerateIDDetail(req.IdPengajuan, i)
+		idDetailMap[kpiRow.KpiIndex] = idDetail
+
+		kpiDetailPlaceholders = append(kpiDetailPlaceholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+		kpiDetailArgs = append(kpiDetailArgs,
+			req.IdPengajuan,
+			idDetail,
+			req.Tahun,
+			req.Triwulan,
+			kpiRow.IdKpi,
+			kpiRow.Kpi,
+			kpiRow.Rumus,
+			nil, // id_perspektif = NULL (sudah tidak digunakan)
+			nil, // id_keterangan_project
+		)
+	}
+
+	// =========================================================================
+	// Build INSERT data_kpi_subdetail
+	// =========================================================================
+	subDetailPlaceholders := []string{}
+	subDetailArgs := []interface{}{}
+	subCounter := 1
+
+	for _, kpiRow := range kpiRows {
+		rows, ok := kpiSubDetails[kpiRow.KpiIndex]
+		if !ok {
+			continue
+		}
+
+		idDetail := idDetailMap[kpiRow.KpiIndex]
+
+		for _, subRow := range rows {
+			idSubDetail := utils.GenerateIDSubDetail(req.IdPengajuan, subCounter)
+			subCounter++
+
+			itemQualifier, deskripsiQualifier, targetQualifier := "", "", ""
+			if strings.EqualFold(subRow.TerdapatQualifier, "Ya") {
+				itemQualifier = subRow.Qualifier
+				deskripsiQualifier = subRow.DeskripsiQualifier
+				targetQualifier = subRow.TargetQualifier
+			}
+
+			subDetailPlaceholders = append(subDetailPlaceholders,
+				"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+			subDetailArgs = append(subDetailArgs,
+				req.IdPengajuan,
+				idDetail, idSubDetail, req.Tahun, req.Triwulan,
+				subRow.IdSubKpi, subRow.SubKPI, subRow.IdPolarisasi, subRow.Otomatis, subRow.Bobot,
+				subRow.Capping, subRow.TargetTriwulan, subRow.TargetKuantitatifTriwulan,
+				subRow.TargetTahunan, subRow.TargetKuantitatifTahunan, subRow.Glossary,
+				itemQualifier, deskripsiQualifier, targetQualifier,
+				"", subRow.TerdapatQualifier,
+			)
+		}
+	}
+
+	// =========================================================================
+	// Build INSERT data_result_detail (hanya TW2/TW4)
+	// =========================================================================
+	resultPlaceholders := []string{}
+	resultArgs := []interface{}{}
+	for _, rs := range resultList {
+		resultPlaceholders = append(resultPlaceholders, "(?, ?, ?, ?, ?, ?)")
+		resultArgs = append(resultArgs,
+			req.IdPengajuan,
+			rs.IdDetailResult,
+			rs.Tahun,
+			rs.Triwulan,
+			rs.NamaResult,
+			rs.DeskripsiResult,
+		)
+	}
+
+	// =========================================================================
+	// Build INSERT data_method_detail (hanya TW2/TW4)
+	// =========================================================================
+	methodPlaceholders := []string{}
+	methodArgs := []interface{}{}
+	for _, mt := range methodList {
+		methodPlaceholders = append(methodPlaceholders, "(?, ?, ?, ?, ?, ?)")
+		methodArgs = append(methodArgs,
+			req.IdPengajuan,
+			mt.IdDetailMethod,
+			mt.Tahun,
+			mt.Triwulan,
+			mt.NamaMethod,
+			mt.DeskripsiMethod,
+		)
+	}
+
+	// =========================================================================
+	// Build INSERT data_challenge_detail (hanya TW2/TW4)
+	// =========================================================================
+	challengePlaceholders := []string{}
+	challengeArgs := []interface{}{}
+	for _, ch := range challengeList {
+		challengePlaceholders = append(challengePlaceholders, "(?, ?, ?, ?, ?, ?)")
+		challengeArgs = append(challengeArgs,
+			req.IdPengajuan,
+			ch.IdDetailChallenge,
+			ch.Tahun,
+			ch.Triwulan,
+			ch.NamaChallenge,
+			ch.DeskripsiChallenge,
+		)
+	}
+
+	// =========================================================================
+	// Eksekusi dalam satu transaksi:
+	//   1. DELETE data child lama
+	//   2. INSERT data child baru
+	//   3. UPDATE header data_kpi
+	// =========================================================================
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("gagal memulai transaksi revision: %w", tx.Error)
+	}
+
+	// -------------------------------------------------------------------------
+	// DELETE data child lama
+	// -------------------------------------------------------------------------
+	if err := tx.Exec(queryDeleteKpiDetail, req.IdPengajuan).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal delete data_kpi_detail: %w", err)
+	}
+	if err := tx.Exec(queryDeleteKpiSubDetail, req.IdPengajuan).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal delete data_kpi_subdetail: %w", err)
+	}
+	if err := tx.Exec(queryDeleteResultDetail, req.IdPengajuan).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal delete data_result_detail: %w", err)
+	}
+	if err := tx.Exec(queryDeleteMethodDetail, req.IdPengajuan).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal delete data_method_detail: %w", err)
+	}
+	if err := tx.Exec(queryDeleteChallengeDetail, req.IdPengajuan).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal delete data_challenge_detail: %w", err)
+	}
+
+	// -------------------------------------------------------------------------
+	// INSERT data_kpi_detail baru
+	// -------------------------------------------------------------------------
+	if len(kpiDetailPlaceholders) > 0 {
+		queryDetail := fmt.Sprintf(queryInsertKpiDetail, strings.Join(kpiDetailPlaceholders, ", "))
+		if err := tx.Exec(queryDetail, kpiDetailArgs...).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal insert data_kpi_detail saat revision: %w", err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// INSERT data_kpi_subdetail baru
+	// -------------------------------------------------------------------------
+	if len(subDetailPlaceholders) > 0 {
+		querySubDetail := fmt.Sprintf(queryInsertKpiSubDetail, strings.Join(subDetailPlaceholders, ", "))
+		if err := tx.Exec(querySubDetail, subDetailArgs...).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal insert data_kpi_subdetail saat revision: %w", err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// INSERT data_result_detail baru (hanya TW2/TW4)
+	// -------------------------------------------------------------------------
+	if len(resultPlaceholders) > 0 {
+		queryResult := fmt.Sprintf(queryInsertResultDetail, strings.Join(resultPlaceholders, ", "))
+		if err := tx.Exec(queryResult, resultArgs...).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal insert data_result_detail saat revision: %w", err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// INSERT data_method_detail baru (hanya TW2/TW4)
+	// -------------------------------------------------------------------------
+	if len(methodPlaceholders) > 0 {
+		queryMethod := fmt.Sprintf(queryInsertMethodDetail, strings.Join(methodPlaceholders, ", "))
+		if err := tx.Exec(queryMethod, methodArgs...).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal insert data_method_detail saat revision: %w", err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// INSERT data_challenge_detail baru (hanya TW2/TW4)
+	// -------------------------------------------------------------------------
+	if len(challengePlaceholders) > 0 {
+		queryChallenge := fmt.Sprintf(queryInsertChallengeDetail, strings.Join(challengePlaceholders, ", "))
+		if err := tx.Exec(queryChallenge, challengeArgs...).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal insert data_challenge_detail saat revision: %w", err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// UPDATE header data_kpi
+	// status = 0 → langsung ke approval
+	// -------------------------------------------------------------------------
+	if err := tx.Exec(queryUpdateKpiRevision,
+		req.EntryUser, req.EntryName, req.EntryTime, req.IdPengajuan,
+	).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal update data_kpi saat revision: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi revision: %w", err)
+	}
+
+	return nil
 }
 
 // =============================================================================

@@ -14,6 +14,7 @@ type (
 
 		// LookupPolarisasi mencari id_polarisasi dari mst_polarisasi.
 		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
+
 		// Digunakan oleh endpoint POST /penyusunan-kpi/validate.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,
@@ -23,6 +24,18 @@ type (
 			methodList []dto.PenyusunanMethod,
 			challengeList []dto.PenyusunanChallenge,
 		) (string, error)
+
+		// Digunakan oleh endpoint POST /penyusunan-kpi/revision.
+		// Menghapus data lama (detail, subdetail, result, method, challenge)
+		// lalu insert ulang dari hasil parse Excel baru, dan update header data_kpi.
+		RevisionPenyusunanKpi(
+			req *dto.RevisionPenyusunanKpiRequest,
+			kpiRows []dto.PenyusunanKpiRow,
+			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
+			resultList []dto.PenyusunanResult,
+			methodList []dto.PenyusunanMethod,
+			challengeList []dto.PenyusunanChallenge,
+		) error
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
 		CreatePenyusunanKpi(

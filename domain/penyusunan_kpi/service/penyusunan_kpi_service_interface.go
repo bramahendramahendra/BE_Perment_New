@@ -17,6 +17,15 @@ type (
 			file *multipart.FileHeader,
 		) (data dto.ValidatePenyusunanKpiResponse, err error)
 
+		// RevisionPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/revision.
+		// Menerima file Excel hasil revisi user (format sama dengan /validate).
+		// Menghapus data lama berdasarkan IdPengajuan lalu insert ulang dari Excel baru.
+		// Status data_kpi di-update ke 0 (langsung ke approval).
+		RevisionPenyusunanKpi(
+			req *dto.RevisionPenyusunanKpiRequest,
+			file *multipart.FileHeader,
+		) (data dto.RevisionPenyusunanKpiResponse, err error)
+
 		// CreatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/create.
 		CreatePenyusunanKpi(
 			req *dto.CreatePenyusunanKpiRequest,

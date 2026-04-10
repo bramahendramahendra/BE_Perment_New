@@ -23,7 +23,7 @@ func NewTemplateHandler(service service.TemplateServiceInterface) *TemplateHandl
 
 // GetFormatPenyusunanKpi handles POST /template/format-penyusunan-kpi
 // Menerima JSON body dengan field triwulan (TW1/TW2/TW3/TW4).
-// Menghasilkan file Excel template yang langsung diunduh oleh client.
+// Menghasilkan file Excel template kosong yang langsung diunduh oleh client.
 func (h *TemplateHandler) GetFormatPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.FormatPenyusunanKpiRequest](c)
 	if err != nil {
@@ -42,11 +42,45 @@ func (h *TemplateHandler) GetFormatPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	// Set header response untuk file download
+	setExcelDownloadHeaders(c, filename)
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
+}
+
+// GetTolakanPenyusunanKpi handles POST /template/tolakan-penyusunan-kpi
+// Menerima JSON body dengan field id_pengajuan.
+// Menghasilkan file Excel yang sudah terisi data baris sub KPI berdasarkan id_pengajuan,
+// sehingga user dapat langsung merevisi dan mengupload ulang via /penyusunan-kpi/revision.
+func (h *TemplateHandler) GetTolakanPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.TolakanPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	fileBytes, filename, err := h.service.GenerateTolakanPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	setExcelDownloadHeaders(c, filename)
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
+}
+
+// =============================================================================
+// Helper
+// =============================================================================
+
+// setExcelDownloadHeaders menyetel header HTTP untuk response file Excel download.
+func setExcelDownloadHeaders(c *gin.Context, filename string) {
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	c.Header("Content-Transfer-Encoding", "binary")
 	c.Header("Cache-Control", "no-cache")
-	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }
