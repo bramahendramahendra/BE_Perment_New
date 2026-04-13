@@ -11,6 +11,7 @@ import (
 	"permen_api/domain/penyusunan_kpi/model"
 	"permen_api/domain/penyusunan_kpi/utils"
 	customErrors "permen_api/errors"
+	notif "permen_api/pkg/notif"
 )
 
 const (
@@ -80,6 +81,22 @@ const (
 		VALUES %s`
 
 	queryBatalPenyusunanKpi = `UPDATE data_kpi SET status = 71 WHERE id_pengajuan = ?`
+
+	queryCheckApprovalPenyusunan = `
+		SELECT COUNT(*) FROM data_kpi
+		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
+
+	queryApproveChainPenyusunan = `
+		UPDATE data_kpi SET approval_posisi = ?, approval_list = ? WHERE id_pengajuan = ?`
+
+	queryApproveFinalPenyusunan = `
+		UPDATE data_kpi SET status = 2, approval_list = ? WHERE id_pengajuan = ?`
+
+	queryRejectPenyusunan = `
+		UPDATE data_kpi SET status = 1, approval_list = ?, catatan_tolakan = ? WHERE id_pengajuan = ?`
+
+	queryGetEntryUserPenyusunan = `
+		SELECT entry_user FROM data_kpi WHERE id_pengajuan = ?`
 
 	// queryDeleteKpiDetail digunakan oleh RevisionPenyusunanKpi.
 	queryDeleteKpiDetail = `DELETE FROM data_kpi_detail WHERE id_pengajuan = ?`
@@ -860,6 +877,100 @@ func (r *penyusunanKpiRepo) BatalPenyusunanKpi(
 	}
 
 	return nil
+}
+
+// =============================================================================
+// APPROVAL PENYUSUNAN KPI
+// =============================================================================
+
+func (r *penyusunanKpiRepo) ApprovalPenyusunanKpi(req *dto.ApprovalPenyusunanKpiRequest) error {
+	// =========================================================================
+	// Cek data: status=0, approval_posisi=user, id_pengajuan sesuai
+	// =========================================================================
+	var count int64
+	if err := r.db.Raw(queryCheckApprovalPenyusunan, req.User, req.IdPengajuan).Scan(&count).Error; err != nil {
+		return fmt.Errorf("gagal mengecek data pengajuan: %w", err)
+	}
+	if count == 0 {
+		return &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+
+	// =========================================================================
+	// Jalankan dalam transaksi
+	// =========================================================================
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+	}
+
+	if req.Status == "approve" {
+		if req.ApprovalPosisi == "" {
+			// ── Approve final: set status=2, tidak ada notifikasi ──
+			if err := tx.Exec(queryApproveFinalPenyusunan,
+				req.ApprovalList, req.IdPengajuan,
+			).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("gagal approve final penyusunan: %w", err)
+			}
+			tx.Commit()
+			return nil
+		}
+
+		// ── Approve chain: update approval_posisi ke level berikutnya + notif ──
+		if err := tx.Exec(queryApproveChainPenyusunan,
+			req.ApprovalPosisi, req.ApprovalList, req.IdPengajuan,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal approve chain penyusunan: %w", err)
+		}
+
+		if err := notif.Insert(tx,
+			req.IdPengajuan,
+			"Approval Penyusunan, ID : "+req.IdPengajuan,
+			req.User,
+			req.ApprovalPosisi,
+			"approval_penyusunan",
+		); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		tx.Commit()
+		return nil
+	}
+
+	if req.Status == "reject" {
+		// Ambil entry_user untuk dikirim notifikasi penolakan
+		var entryUser string
+		if err := r.db.Raw(queryGetEntryUserPenyusunan, req.IdPengajuan).Scan(&entryUser).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal mengambil entry_user: %w", err)
+		}
+
+		if err := tx.Exec(queryRejectPenyusunan,
+			req.ApprovalList, req.CatatanTolak, req.IdPengajuan,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal reject penyusunan: %w", err)
+		}
+
+		if err := notif.Insert(tx,
+			req.IdPengajuan,
+			"Penyusunan Ditolak, ID : "+req.IdPengajuan,
+			req.User,
+			entryUser,
+			"penyusunan_ditolak",
+		); err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		tx.Commit()
+		return nil
+	}
+
+	tx.Rollback()
+	return &customErrors.BadRequestError{Message: "status tidak valid"}
 }
 
 // =============================================================================

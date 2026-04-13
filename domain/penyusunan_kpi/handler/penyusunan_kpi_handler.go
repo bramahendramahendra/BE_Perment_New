@@ -185,6 +185,47 @@ func (h *PenyusunanKpiHandler) BatalPenyusunanKpi(c *gin.Context) {
 	})
 }
 
+// ApprovalPenyusunanKpi handles POST /penyusunan-kpi/approval
+func (h *PenyusunanKpiHandler) ApprovalPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.ApprovalPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+
+	req.User = strings.TrimSpace(parts[0])
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.ApprovalPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:    "00",
+		Status:  true,
+		Message: "Approval penyusunan KPI berhasil diproses",
+		Data:    data,
+	})
+}
+
 // GetAllApprovalPenyusunanKpi handles POST /penyusunan-kpi/get-all-approval
 func (h *PenyusunanKpiHandler) GetAllApprovalPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllApprovalPenyusunanKpiRequest](c)

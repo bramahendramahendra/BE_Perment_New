@@ -136,6 +136,18 @@ type BatalPenyusunanKpiRequest struct {
 	User string `json:"user"`
 }
 
+// ApprovalPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/approval.
+type ApprovalPenyusunanKpiRequest struct {
+	IdPengajuan    string `json:"id_pengajuan"      validate:"required"`
+	Status         string `json:"status"            validate:"required,oneof=approve reject"`
+	ApprovalList   string `json:"approval_list"     validate:"required"`
+	ApprovalPosisi string `json:"approval_posisi"`
+	CatatanTolak   string `json:"catatan_tolak"`
+
+	// Diisi handler dari header 'userq' (PERNR), tidak boleh dari body.
+	User string `json:"user"`
+}
+
 // GetAllApprovalPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-approval.
 type GetAllApprovalPenyusunanKpiRequest struct {
 	Divisi   string `json:"divisi"`
@@ -282,6 +294,12 @@ type CreatePenyusunanKpiResponse struct {
 // BatalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/batal.
 type BatalPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
+}
+
+// ApprovalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/approval.
+type ApprovalPenyusunanKpiResponse struct {
+	IdPengajuan string `json:"id_pengajuan"`
+	Status      string `json:"status"`
 }
 
 // GetAllApprovalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-all-approval.

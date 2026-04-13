@@ -18,6 +18,7 @@ import (
 //	POST /penyusunan-kpi/revision                → RevisionPenyusunanKpi               (multipart/form-data + file Excel)
 //	POST /penyusunan-kpi/create                  → CreatePenyusunanKpi                  (application/json)
 //	POST /penyusunan-kpi/batal                   → BatalPenyusunanKpi  					(application/json)
+//	POST /penyusunan-kpi/approval                → ApprovalPenyusunanKpi
 //	POST /penyusunan-kpi/get-all-approval        → GetAllApprovalPenyusunanKpi          (application/json)
 //	POST /penyusunan-kpi/get-all-tolakan         → GetAllTolakanPenyusunanKpi           (application/json)
 //	POST /penyusunan-kpi/get-all-daftar-penyusunan → GetAllDaftarPenyusunanKpi          (application/json)
@@ -35,6 +36,7 @@ func PenyusunanKpiRoutes(r *gin.RouterGroup) {
 	penyusunanKpiGroup.POST("/revision", penyusunanKpiHandler.RevisionPenyusunanKpi)
 	penyusunanKpiGroup.POST("/create", penyusunanKpiHandler.CreatePenyusunanKpi)
 	penyusunanKpiGroup.POST("/batal", penyusunanKpiHandler.BatalPenyusunanKpi)
+	penyusunanKpiGroup.POST("/approval", penyusunanKpiHandler.ApprovalPenyusunanKpi)
 	penyusunanKpiGroup.POST("/get-all-approval", penyusunanKpiHandler.GetAllApprovalPenyusunanKpi)
 	penyusunanKpiGroup.POST("/get-all-tolakan", penyusunanKpiHandler.GetAllTolakanPenyusunanKpi)
 	penyusunanKpiGroup.POST("/get-all-daftar-penyusunan", penyusunanKpiHandler.GetAllDaftarPenyusunanKpi)

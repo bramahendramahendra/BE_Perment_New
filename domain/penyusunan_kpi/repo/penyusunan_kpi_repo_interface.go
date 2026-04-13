@@ -45,6 +45,11 @@ type (
 			req *dto.BatalPenyusunanKpiRequest,
 		) error
 
+		// Digunakan oleh endpoint POST /penyusunan-kpi/approval.
+		ApprovalPenyusunanKpi(
+			req *dto.ApprovalPenyusunanKpiRequest,
+		) error
+
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
 		GetAllApprovalPenyusunanKpi(
 			req *dto.GetAllApprovalPenyusunanKpiRequest,

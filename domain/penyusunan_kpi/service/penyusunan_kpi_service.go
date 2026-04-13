@@ -233,6 +233,25 @@ func (s *penyusunanKpiService) BatalPenyusunanKpi(
 }
 
 // =============================================================================
+// APPROVAL
+// =============================================================================
+
+func (s *penyusunanKpiService) ApprovalPenyusunanKpi(
+	req *dto.ApprovalPenyusunanKpiRequest,
+) (data dto.ApprovalPenyusunanKpiResponse, err error) {
+	if err = s.repo.ApprovalPenyusunanKpi(req); err != nil {
+		return data, err
+	}
+
+	data = dto.ApprovalPenyusunanKpiResponse{
+		IdPengajuan: req.IdPengajuan,
+		Status:      req.Status,
+	}
+
+	return data, nil
+}
+
+// =============================================================================
 // HELPER — resolveKpiMasterLookup
 // =============================================================================
 
