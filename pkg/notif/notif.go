@@ -10,6 +10,12 @@ const queryInsertNotif = `
 	INSERT INTO log_notif (key_notif, desc_notif, user_pengirim, user_penerima, jenis_notif, entry_date)
 	VALUES (?, ?, ?, ?, ?, NOW())`
 
+// DBExecutor adalah interface minimal untuk operasi Exec pada gorm.DB atau tx.
+// *gorm.DB memenuhi interface ini secara otomatis.
+type DBExecutor interface {
+	Exec(sql string, values ...interface{}) *gorm.DB
+}
+
 // Insert menyimpan satu record notifikasi ke tabel log_notif.
 // Dipanggil di dalam transaksi (tx) agar atomic bersama operasi utama.
 //
@@ -18,7 +24,7 @@ const queryInsertNotif = `
 //   - userPengirim : PERNR pengirim (dari header userq)
 //   - userPenerima : PERNR penerima (approval_posisi berikutnya atau entry_user)
 //   - jenisNotif   : jenis notifikasi, mis. "approval_penyusunan", "penyusunan_ditolak"
-func Insert(tx *gorm.DB, keyNotif, descNotif, userPengirim, userPenerima, jenisNotif string) error {
+func Insert(tx DBExecutor, keyNotif, descNotif, userPengirim, userPenerima, jenisNotif string) error {
 	if err := tx.Exec(queryInsertNotif,
 		keyNotif, descNotif, userPengirim, userPenerima, jenisNotif,
 	).Error; err != nil {
