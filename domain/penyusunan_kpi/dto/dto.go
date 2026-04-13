@@ -243,14 +243,16 @@ type CreatePenyusunanKpiResponse struct {
 // PenyusunanKpiDetailResponse merepresentasikan 1 KPI beserta sub-detail-nya.
 // Digunakan oleh validate, revision, dan get-detail.
 type PenyusunanKpiDetailResponse struct {
-	IdDetail     string                           `json:"id_detail"`
-	IdKpi        string                           `json:"id_kpi"`
-	Kpi          string                           `json:"kpi"`
-	Rumus        string                           `json:"rumus"`
-	IdPerspektif string                           `json:"id_perspektif"`
-	Persfektif   string                           `json:"persfektif"`
-	TotalSubKpi  int                              `json:"total_sub_kpi"`
-	KpiSubDetail []PenyusunanKpiSubDetailResponse `json:"kpi_sub_detail"`
+	IdDetail            string                           `json:"id_detail"`
+	IdKpi               string                           `json:"id_kpi"`
+	Kpi                 string                           `json:"kpi"`
+	Rumus               string                           `json:"rumus"`
+	IdPerspektif        string                           `json:"id_perspektif"`
+	Persfektif          string                           `json:"persfektif"`
+	IdKeteranganProject string                           `json:"id_keterangan_project"`
+	KeteranganProject   string                           `json:"keterangan_project"`
+	TotalSubKpi         int                              `json:"total_sub_kpi"`
+	KpiSubDetail        []PenyusunanKpiSubDetailResponse `json:"kpi_sub_detail"`
 }
 
 // PenyusunanKpiSubDetailResponse merepresentasikan 1 sub KPI.

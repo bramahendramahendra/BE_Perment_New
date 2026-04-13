@@ -147,12 +147,13 @@ const (
 		SELECT
 			a.id_detail,
 			a.id_kpi, a.kpi, a.rumus,
-			a.id_perspektif, b.perspektif,
-			a.id_keterangan_project,
+			IFNULL(a.id_perspektif, '') id_perspektif,
+        	IFNULL(b.perspektif, '') perspektif
+			IFNULL(a.id_keterangan_project, '') id_perspektif,
 			IFNULL(c.keterangan_project, '') keterangan_project,
 			IFNULL(a.lampiran_file, '')       lampiran_file
 		FROM data_kpi_detail a
-		INNER JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
+		LEFT JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
 		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
 		WHERE a.id_pengajuan = ?`
 
@@ -236,10 +237,13 @@ const (
     SELECT
         a.id_detail,
         a.id_kpi, a.kpi, a.rumus,
-        a.id_perspektif,
-        IFNULL(b.perspektif, '') perspektif
+        IFNULL(a.id_perspektif, '') id_perspektif,
+        IFNULL(b.perspektif, '') perspektif,
+		IFNULL(a.id_keterangan_project, '') id_perspektif,
+		IFNULL(c.keterangan_project, '') keterangan_project
     FROM data_kpi_detail a
-    INNER JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
+    LEFT JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
+	LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
     WHERE a.id_pengajuan = ?`
 
 	// queryGetDataKpiSubDetailPenyusunan digunakan oleh GetDetailPenyusunanKpi (versi ringan).
@@ -1500,6 +1504,8 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 			&d.IdDetail,
 			&d.IdKpi, &d.Kpi, &d.Rumus,
 			&d.IdPerspektif, &d.Persfektif,
+			&d.IdKeteranganProject,
+			&d.KeteranganProject,
 		); err != nil {
 			detailRows.Close()
 			return fmt.Errorf("gagal scan kpi detail: %w", err)
