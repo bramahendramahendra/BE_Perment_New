@@ -15,11 +15,45 @@ import (
 )
 
 const (
+	// =============================================================================
+	// Check
+	// =============================================================================
+
+	// Use func : ValidatePenyusunanKpi
 	queryCheckExistKpi = `
 		SELECT COUNT(id_pengajuan) 
 		FROM data_kpi 
 		WHERE tahun = ? AND triwulan = ? AND kostl = ?`
 
+	// Use func : RevisionPenyusunanKpi, CreatePenyusunanKpi
+	queryCheckExistIdPengajuan = `
+		SELECT COUNT(id_pengajuan)
+		FROM data_kpi
+		WHERE id_pengajuan = ?`
+
+	// Use Func : GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, GetAllDaftarApprovalPenyusunanKpi
+	queryGetCountDataKpi = `
+		SELECT COUNT(1)
+		FROM data_kpi a
+		INNER JOIN mst_status b ON a.status = b.id_status`
+
+	queryGetKostlTx = `
+		SELECT kostl_tx
+		FROM data_kpi
+		WHERE id_pengajuan = ?
+		LIMIT 1`
+
+	queryGetEntryUserPenyusunan = `
+		SELECT entry_user FROM data_kpi WHERE id_pengajuan = ?`
+
+	// queryGetKpiHeaderForExport dan queryGetSubDetailForExport digunakan oleh GetKpiExportData.
+	queryGetKpiHeaderForExport = `
+		SELECT kostl_tx, tahun, triwulan
+		FROM data_kpi
+		WHERE id_pengajuan = ?
+		LIMIT 1`
+
+	// Use func : ValidatePenyusunanKpi
 	queryGetOrgeh = `
 		SELECT orgeh, orgeh_tx 
 		FROM user 
@@ -27,29 +61,125 @@ const (
 		ORDER BY HILFM ASC 
 		LIMIT 1`
 
+	queryLookupSubKpi = `
+		SELECT id_kpi, kpi, rumus
+		FROM mst_kpi
+		WHERE LOWER(kpi) = LOWER(?)
+		LIMIT 1`
+
+	queryLookupPolarisasi = `
+		SELECT id_polarisasi
+		FROM mst_polarisasi
+		WHERE LOWER(polarisasi) = LOWER(?)
+		LIMIT 1`
+
+	queryGetDataKpi = `
+		SELECT
+			a.id_pengajuan, a.tahun, a.triwulan, a.kostl, a.kostl_tx,
+			a.orgeh, a.orgeh_tx, a.entry_user, a.entry_name, a.entry_time,
+			a.approval_posisi, a.approval_list, a.status, b.status_desc,
+			IFNULL(a.entry_user_realisasi, '')     entry_user_realisasi,
+			IFNULL(a.entry_name_realisasi, '')     entry_name_realisasi,
+			IFNULL(a.entry_time_realisasi, '')     entry_time_realisasi,
+			IFNULL(a.approval_list_realisasi, '')  approval_list_realisasi,
+			IFNULL(a.catatan_tolakan, '')           catatan_tolakan,
+			IFNULL(a.total_bobot, '')               total_bobot,
+			IFNULL(a.total_pencapaian, '')          total_pencapaian,
+			IFNULL(a.total_bobot_pengurang, '')     total_bobot_pengurang,
+			IFNULL(a.total_pencapaian_post, '')     total_pencapaian_post,
+			IFNULL(a.entry_user_validasi, '')       entry_user_validasi,
+			IFNULL(a.entry_name_validasi, '')       entry_name_validasi,
+			IFNULL(a.entry_time_validasi, '')       entry_time_validasi,
+			IFNULL(a.approval_list_validasi, '')    approval_list_validasi,
+			IFNULL(a.lampiran_validasi, '')         lampiran_validasi,
+			IFNULL(a.qualifier_overall_validasi,'') qualifier_overall_validasi
+		FROM data_kpi a
+		INNER JOIN mst_status b ON a.status = b.id_status`
+
+	queryGetDataKpiDetail = `
+		SELECT
+			a.id_detail,
+			a.id_kpi, a.kpi, a.rumus,
+			IFNULL(a.id_perspektif, '')         id_perspektif,
+			IFNULL(b.perspektif, '')            perspektif,
+			IFNULL(a.id_keterangan_project, '') id_keterangan_project,
+			IFNULL(c.keterangan_project, '')    keterangan_project,
+		FROM data_kpi_detail a
+		LEFT JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
+		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
+		WHERE a.id_pengajuan = ?`
+
+	// queryGetDataKpiSubDetailPenyusunan digunakan oleh GetDetailPenyusunanKpi (versi ringan).
+	// JOIN ke mst_polarisasi via a.rumus untuk mendapatkan polarisasi dan id_polarisasi.
+	queryGetDataKpiSubDetail = `
+		SELECT
+			a.id_sub_detail,
+			a.id_kpi, a.kpi, a.rumus,
+			a.otomatis,
+			a.bobot, a.capping,
+			a.target_triwulan,  a.target_kuantitatif_triwulan,
+			a.target_tahunan,   a.target_kuantitatif_tahunan,
+			IFNULL(a.deskripsi_glossary, '')    deskripsi_glossary,
+			IFNULL(a.rumus, '')                 id_polarisasi,
+			IFNULL(p.polarisasi, '')            polarisasi,
+			IFNULL(a.id_qualifier, '')          id_qualifier,
+			IFNULL(a.item_qualifier, '')        item_qualifier,
+			IFNULL(a.deskripsi_qualifier, '')   deskripsi_qualifier,
+			IFNULL(a.target_qualifier, '')      target_qualifier,
+			IFNULL(a.id_keterangan_project, '') id_keterangan_project,
+			IFNULL(c.keterangan_project, '')    keterangan_project
+		FROM data_kpi_subdetail a
+		LEFT JOIN mst_polarisasi p ON a.rumus = p.id_polarisasi
+		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
+		WHERE a.id_detail = ?`
+
+	queryGetDataResultDetail = `
+		SELECT
+			id_detail_result, tahun, triwulan,
+			nama_result, deskripsi_result
+		FROM data_result_detail
+		WHERE id_pengajuan = ?`
+
+	queryGetDataProcessDetail = `
+		SELECT
+			id_detail_method, tahun, triwulan,
+			nama_method, deskripsi_method,
+			IFNULL(realisasi_method, '')   realisasi_method,
+			IFNULL(lampiran_evidence, '')  lampiran_evidence
+		FROM data_method_detail
+		WHERE id_pengajuan = ?`
+
+	queryGetDataContextDetail = `
+		SELECT
+			id_detail_challenge, tahun, triwulan,
+			nama_challenge, deskripsi_challenge,
+			IFNULL(realisasi_challenge, '')  realisasi_challenge,
+			IFNULL(lampiran_evidence, '')    lampiran_evidence
+		FROM data_challenge_detail
+		WHERE id_pengajuan = ?`
+
+	queryGetSubDetailForExport = `
+		SELECT
+			a.kpi,
+			IFNULL(CAST(a.bobot AS CHAR), '') bobot,
+			IFNULL(a.target_tahunan, '')       target_tahunan,
+			IFNULL(a.capping, '')              capping
+		FROM data_kpi_subdetail a
+		WHERE a.id_pengajuan = ?
+		ORDER BY a.id_sub_detail ASC`
+
+	queryCheckApprovalPenyusunan = `
+		SELECT COUNT(*) FROM data_kpi
+		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
+	// =============================================================================
+	// Insert
+	// =============================================================================
 	// queryInsertKpi digunakan oleh ValidatePenyusunanKpi.
 	queryInsertKpi = `
 		INSERT INTO data_kpi 
 			(id_pengajuan, tahun, triwulan, kostl, kostl_tx, orgeh, orgeh_tx, 
 			 entry_user, entry_name, entry_time, approval_posisi, approval_list, status) 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-
-	// queryUpdateKpi digunakan oleh CreatePenyusunanKpi untuk mengisi approval dan mengubah status.
-	queryUpdateKpi = `
-		UPDATE data_kpi 
-		SET approval_posisi = ?, approval_list = ?, status = 0
-		WHERE id_pengajuan = ?`
-
-	queryCheckExistIdPengajuan = `
-		SELECT COUNT(id_pengajuan)
-		FROM data_kpi
-		WHERE id_pengajuan = ?`
-
-	queryGetKostlTx = `
-		SELECT kostl_tx
-		FROM data_kpi
-		WHERE id_pengajuan = ?
-		LIMIT 1`
 
 	// queryInsertKpiDetail: id_perspektif diisi NULL karena sudah tidak digunakan.
 	queryInsertKpiDetail = `
@@ -86,11 +216,17 @@ const (
 			 nama_challenge, deskripsi_challenge) 
 		VALUES %s`
 
-	queryBatalPenyusunanKpi = `UPDATE data_kpi SET status = 71 WHERE id_pengajuan = ?`
+	// =============================================================================
+	// Update
+	// =============================================================================
+	// queryUpdateKpi digunakan oleh CreatePenyusunanKpi untuk mengisi approval dan mengubah status.
+	queryUpdateKpi = `
+		UPDATE data_kpi 
+		SET approval_posisi = ?, approval_list = ?, status = 0
+		WHERE id_pengajuan = ?`
 
-	queryCheckApprovalPenyusunan = `
-		SELECT COUNT(*) FROM data_kpi
-		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
+	queryBatalPenyusunanKpi = `
+		UPDATE data_kpi SET status = 71 WHERE id_pengajuan = ?`
 
 	queryApproveChainPenyusunan = `
 		UPDATE data_kpi SET approval_posisi = ?, approval_list = ? WHERE id_pengajuan = ?`
@@ -101,24 +237,6 @@ const (
 	queryRejectPenyusunan = `
 		UPDATE data_kpi SET status = 1, approval_list = ?, catatan_tolakan = ? WHERE id_pengajuan = ?`
 
-	queryGetEntryUserPenyusunan = `
-		SELECT entry_user FROM data_kpi WHERE id_pengajuan = ?`
-
-	// queryDeleteKpiDetail digunakan oleh RevisionPenyusunanKpi.
-	queryDeleteKpiDetail = `DELETE FROM data_kpi_detail WHERE id_pengajuan = ?`
-
-	// queryDeleteKpiSubDetail digunakan oleh RevisionPenyusunanKpi.
-	queryDeleteKpiSubDetail = `DELETE FROM data_kpi_subdetail WHERE id_pengajuan = ?`
-
-	// queryDeleteResultDetail digunakan oleh RevisionPenyusunanKpi.
-	queryDeleteResultDetail = `DELETE FROM data_result_detail WHERE id_pengajuan = ?`
-
-	// queryDeleteProcessDetail digunakan oleh RevisionPenyusunanKpi.
-	queryDeleteProcessDetail = `DELETE FROM data_method_detail WHERE id_pengajuan = ?`
-
-	// queryDeleteContextDetail digunakan oleh RevisionPenyusunanKpi.
-	queryDeleteContextDetail = `DELETE FROM data_challenge_detail WHERE id_pengajuan = ?`
-
 	// queryUpdateKpiRevision digunakan oleh RevisionPenyusunanKpi untuk update header data_kpi.
 	// status = 0 → langsung ke approval (tidak perlu draft lagi).
 	queryUpdateKpiRevision = `
@@ -126,175 +244,16 @@ const (
 		SET entry_user = ?, entry_name = ?, entry_time = ?, status = 0
 		WHERE id_pengajuan = ?`
 
-	queryLookupSubKpi = `
-		SELECT id_kpi, kpi, rumus
-		FROM mst_kpi
-		WHERE LOWER(kpi) = LOWER(?)
-		LIMIT 1`
+	// =============================================================================
+	// Delete
+	// =============================================================================
 
-	queryLookupPolarisasi = `
-		SELECT id_polarisasi
-		FROM mst_polarisasi
-		WHERE LOWER(polarisasi) = LOWER(?)
-		LIMIT 1`
-
-	// queryGetDataKpi digunakan oleh GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, dan GetAllDaftarApprovalPenyusunanKpi.
-	queryGetCountDataKpi = `
-        SELECT COUNT(1)
-        FROM data_kpi a
-        INNER JOIN mst_status b ON a.status = b.id_status`
-
-	// queryGetDataKpi digunakan oleh GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, GetAllDaftarApprovalPenyusunanKpi dan GetDetailPenyusunanKpi.
-	queryGetDataKpi = `
-        SELECT
-            a.id_pengajuan, a.tahun, a.triwulan, a.kostl, a.kostl_tx,
-            a.orgeh, a.orgeh_tx, a.entry_user, a.entry_name, a.entry_time,
-            a.approval_posisi, a.approval_list, a.status, b.status_desc,
-            IFNULL(a.entry_user_realisasi, '')    entry_user_realisasi,
-            IFNULL(a.entry_name_realisasi, '')    entry_name_realisasi,
-            IFNULL(a.entry_time_realisasi, '')    entry_time_realisasi,
-            IFNULL(a.approval_list_realisasi, '') approval_list_realisasi,
-            IFNULL(a.catatan_tolakan, '')          catatan_tolakan,
-            IFNULL(a.total_bobot, '')              total_bobot,
-            IFNULL(a.total_pencapaian, '')         total_pencapaian,
-            IFNULL(a.total_bobot_pengurang, '')    total_bobot_pengurang,
-            IFNULL(a.total_pencapaian_post, '')    total_pencapaian_post,
-            IFNULL(a.entry_user_validasi, '')      entry_user_validasi,
-            IFNULL(a.entry_name_validasi, '')      entry_name_validasi,
-            IFNULL(a.entry_time_validasi, '')      entry_time_validasi,
-            IFNULL(a.approval_list_validasi, '')   approval_list_validasi,
-            IFNULL(a.lampiran_validasi, '')        lampiran_validasi,
-            IFNULL(a.qualifier_overall_validasi,'') qualifier_overall_validasi
-        FROM data_kpi a
-        INNER JOIN mst_status b ON a.status = b.id_status`
-
-	queryGetDataKpiDetail = `
-		SELECT
-			a.id_detail,
-			a.id_kpi, a.kpi, a.rumus,
-			IFNULL(a.id_perspektif, '') id_perspektif,
-        	IFNULL(b.perspektif, '') perspektif
-			IFNULL(a.id_keterangan_project, '') id_perspektif,
-			IFNULL(c.keterangan_project, '') keterangan_project,
-			IFNULL(a.lampiran_file, '')       lampiran_file
-		FROM data_kpi_detail a
-		LEFT JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
-		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
-		WHERE a.id_pengajuan = ?`
-
-	queryGetDataKpiSubDetail = `
-		SELECT
-			a.id_sub_detail,
-			a.id_kpi, a.kpi, a.rumus,
-			a.otomatis,
-			a.bobot, a.capping,
-			a.target_triwulan, a.target_kuantitatif_triwulan,
-			a.target_tahunan, a.target_kuantitatif_tahunan,
-			IFNULL(a.realisasi, '')                           realisasi,
-			IFNULL(a.realisasi_kuantitatif, '')               realisasi_kuantitatif,
-			IFNULL(a.realisasi_keterangan, '')                realisasi_keterangan,
-			IFNULL(a.realisasi_validated, '')                 realisasi_validated,
-			IFNULL(a.realisasi_kuantitatif_validated, '')     realisasi_kuantitatif_validated,
-			IFNULL(a.validasi_keterangan, '')                 validasi_keterangan,
-			IFNULL(a.pencapaian, '')                          pencapaian,
-			IFNULL(a.skor, '')                                skor,
-			IFNULL(a.deskripsi_glossary, '')                  deskripsi_glossary,
-			IFNULL(a.item_qualifier, '')                      item_qualifier,
-			IFNULL(a.deskripsi_qualifier, '')                 deskripsi_qualifier,
-			IFNULL(a.target_qualifier, '')                    target_qualifier,
-			IFNULL(a.id_keterangan_project, '')               id_keterangan_project,
-			IFNULL(a.id_qualifier, '')                        id_qualifier,
-			IFNULL(a.realisasi_qualifier, '')                 realisasi_qualifier,
-			IFNULL(a.realisasi_kuantitatif_qualifier, '')     realisasi_kuantitatif_qualifier,
-			IFNULL(a.pencapaian_qualifier_validated, '')      pencapaian_qualifier_validated,
-			IFNULL(a.pencapaian_post_qualifier_validated, '') pencapaian_post_qualifier_validated,
-			IFNULL(c.keterangan_project, '')                  keterangan_project
-		FROM data_kpi_subdetail a
-		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
-		WHERE a.id_detail = ?`
-
-	queryGetDataResultDetail = `
-		SELECT
-			id_detail_result, tahun, triwulan,
-			nama_result, deskripsi_result
-		FROM data_result_detail
-		WHERE id_pengajuan = ?`
-
-	queryGetDataProcessDetail = `
-		SELECT
-			id_detail_method, tahun, triwulan,
-			nama_method, deskripsi_method,
-			IFNULL(realisasi_method, '')   realisasi_method,
-			IFNULL(lampiran_evidence, '')  lampiran_evidence
-		FROM data_method_detail
-		WHERE id_pengajuan = ?`
-
-	queryGetDataContextDetail = `
-		SELECT
-			id_detail_challenge, tahun, triwulan,
-			nama_challenge, deskripsi_challenge,
-			IFNULL(realisasi_challenge, '')  realisasi_challenge,
-			IFNULL(lampiran_evidence, '')    lampiran_evidence
-		FROM data_challenge_detail
-		WHERE id_pengajuan = ?`
-
-	// queryGetKpiHeaderForExport digunakan oleh GetKpiExportData.
-	queryGetKpiHeaderForExport = `
-        SELECT kostl_tx, tahun, triwulan
-        FROM data_kpi
-        WHERE id_pengajuan = ?
-        LIMIT 1`
-
-	// queryGetSubDetailForExport digunakan oleh GetKpiExportData.
-	queryGetSubDetailForExport = `
-        SELECT
-            a.kpi,
-            IFNULL(CAST(a.bobot AS CHAR), '') bobot,
-            IFNULL(a.target_tahunan, '')       target_tahunan,
-            IFNULL(a.capping, '')              capping
-        FROM data_kpi_subdetail a
-        WHERE a.id_pengajuan = ?
-        ORDER BY a.id_sub_detail ASC`
-
-	// queryGetDataKpiDetailPenyusunan digunakan oleh GetDetailPenyusunanKpi (versi ringan).
-	// Hanya mengambil field yang dibutuhkan konteks penyusunan, tanpa field validasi/realisasi.
-	queryGetDataKpiDetailPenyusunan = `
-    SELECT
-        a.id_detail,
-        a.id_kpi, a.kpi, a.rumus,
-        IFNULL(a.id_perspektif, '') id_perspektif,
-        IFNULL(b.perspektif, '') perspektif,
-		IFNULL(a.id_keterangan_project, '') id_perspektif,
-		IFNULL(c.keterangan_project, '') keterangan_project
-    FROM data_kpi_detail a
-    LEFT JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
-	LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
-    WHERE a.id_pengajuan = ?`
-
-	// queryGetDataKpiSubDetailPenyusunan digunakan oleh GetDetailPenyusunanKpi (versi ringan).
-	// JOIN ke mst_polarisasi via a.rumus untuk mendapatkan polarisasi dan id_polarisasi.
-	// JOIN ke mst_keterangan_project untuk mendapatkan keterangan_project.
-	queryGetDataKpiSubDetailPenyusunan = `
-    SELECT
-        a.id_sub_detail,
-        a.id_kpi, a.kpi, a.rumus,
-        a.otomatis,
-        a.bobot, a.capping,
-        a.target_triwulan,  a.target_kuantitatif_triwulan,
-        a.target_tahunan,   a.target_kuantitatif_tahunan,
-        IFNULL(a.deskripsi_glossary, '')    deskripsi_glossary,
-        IFNULL(a.rumus, '')                 id_polarisasi,
-        IFNULL(p.polarisasi, '')            polarisasi,
-        IFNULL(a.id_qualifier, '')          id_qualifier,
-        IFNULL(a.item_qualifier, '')        item_qualifier,
-        IFNULL(a.deskripsi_qualifier, '')   deskripsi_qualifier,
-        IFNULL(a.target_qualifier, '')      target_qualifier,
-        IFNULL(a.id_keterangan_project, '') id_keterangan_project,
-        IFNULL(c.keterangan_project, '')    keterangan_project
-    FROM data_kpi_subdetail a
-    LEFT JOIN mst_polarisasi p ON a.rumus = p.id_polarisasi
-    LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
-    WHERE a.id_detail = ?`
+	// Query-query DELETE berikut digunakan oleh RevisionPenyusunanKpi.
+	queryDeleteKpiDetail     = `DELETE FROM data_kpi_detail WHERE id_pengajuan = ?`
+	queryDeleteKpiSubDetail  = `DELETE FROM data_kpi_subdetail WHERE id_pengajuan = ?`
+	queryDeleteResultDetail  = `DELETE FROM data_result_detail WHERE id_pengajuan = ?`
+	queryDeleteProcessDetail = `DELETE FROM data_method_detail WHERE id_pengajuan = ?`
+	queryDeleteContextDetail = `DELETE FROM data_challenge_detail WHERE id_pengajuan = ?`
 )
 
 // =============================================================================
@@ -855,10 +814,7 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 
 	// Ambil kostl_tx dari data_kpi untuk pesan notifikasi
 	var kostlTx string
-	if err := r.db.Raw(
-		`SELECT kostl_tx FROM data_kpi WHERE id_pengajuan = ? LIMIT 1`,
-		req.IdPengajuan,
-	).Scan(&kostlTx).Error; err != nil {
+	if err := r.db.Raw(queryGetKostlTx, req.IdPengajuan).Scan(&kostlTx).Error; err != nil {
 		return fmt.Errorf("gagal mengambil kostl_tx: %w", err)
 	}
 
@@ -1529,7 +1485,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 	// =====================================================================
 	// KPI DETAIL
 	// =====================================================================
-	detailRows, err := r.db.Raw(queryGetDataKpiDetailPenyusunan, resp.IdPengajuan).Rows()
+	detailRows, err := r.db.Raw(queryGetDataKpiDetail, resp.IdPengajuan).Rows()
 	if err != nil {
 		return fmt.Errorf("gagal mengambil kpi detail [%s]: %w", resp.IdPengajuan, err)
 	}
@@ -1551,7 +1507,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 		// =================================================================
 		// KPI SUB DETAIL per id_detail
 		// =================================================================
-		subDetailRows, err := r.db.Raw(queryGetDataKpiSubDetailPenyusunan, d.IdDetail).Rows()
+		subDetailRows, err := r.db.Raw(queryGetDataKpiSubDetail, d.IdDetail).Rows()
 		if err != nil {
 			detailRows.Close()
 			return fmt.Errorf("gagal mengambil kpi sub detail [%s]: %w", d.IdDetail, err)
