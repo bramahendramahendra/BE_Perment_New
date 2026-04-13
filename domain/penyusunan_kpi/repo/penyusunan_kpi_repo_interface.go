@@ -21,20 +21,18 @@ type (
 			kpiRows []dto.PenyusunanKpiRow,
 			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 			resultList []dto.PenyusunanResult,
-			methodList []dto.PenyusunanMethod,
-			challengeList []dto.PenyusunanChallenge,
+			processList []dto.PenyusunanProcess,
+			contextList []dto.PenyusunanContext,
 		) (string, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/revision.
-		// Menghapus data lama (detail, subdetail, result, method, challenge)
-		// lalu insert ulang dari hasil parse Excel baru, dan update header data_kpi.
 		RevisionPenyusunanKpi(
 			req *dto.RevisionPenyusunanKpiRequest,
 			kpiRows []dto.PenyusunanKpiRow,
 			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 			resultList []dto.PenyusunanResult,
-			methodList []dto.PenyusunanMethod,
-			challengeList []dto.PenyusunanChallenge,
+			processList []dto.PenyusunanProcess,
+			contextList []dto.PenyusunanContext,
 		) error
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
@@ -63,11 +61,13 @@ type (
 		) ([]*model.DataKpi, int64, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
+		// Mengembalikan GetDetailPenyusunanKpiResponse dengan approval_list sudah di-unmarshal
+		// menjadi []Approval, dan nested KPI/result/process/context sudah terisi.
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
-		) (*dto.GetAllDataPenyusunanKpiResponse, error)
+		) (*dto.GetDetailPenyusunanKpiResponse, error)
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/get-csv dan /get-pdf.
+		// Digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /get-pdf.
 		GetKpiExportData(idPengajuan string) (*dto.KpiExportData, error)
 
 		GetDB() *gorm.DB

@@ -111,18 +111,18 @@ func BuildResultList(
 	return results
 }
 
-// BuildMethodList membangun slice PenyusunanMethod dari data sub KPI Excel.
-// MethodList diambil dari kolom R (Process) dan S (Deskripsi Process).
-// idDetailMethod menggunakan GenerateIDSubDetail yang sama dengan id_sub_detail baris tersebut.
+// BuildProcessList membangun slice PenyusunanProcess dari data sub KPI Excel.
+// ProcessList diambil dari kolom R (Process) dan S (Deskripsi Process).
+// idDetailProcess menggunakan GenerateIDSubDetail yang sama dengan id_sub_detail baris tersebut.
 // Hanya diisi untuk TW2 dan TW4 (isExtendedTriwulan).
-func BuildMethodList(
+func BuildProcessList(
 	idPengajuan string,
 	tahun string,
 	triwulan string,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) []dto.PenyusunanMethod {
-	methods := []dto.PenyusunanMethod{}
+) []dto.PenyusunanProcess {
+	processses := []dto.PenyusunanProcess{}
 
 	subCounter := 1
 	for _, kpiRow := range kpiRows {
@@ -131,35 +131,35 @@ func BuildMethodList(
 			idSubDetail := GenerateIDSubDetail(idPengajuan, subCounter)
 			subCounter++
 
-			// Kolom R (Process) = namaMethod, kolom S (Deskripsi Process) = deskripsiMethod
+			// Kolom R (Process) = namaProcess, kolom S (Deskripsi Process) = deskripsiProcess
 			// Hanya insert jika Process tidak kosong/nil
 			if subRow.Process != nil && *subRow.Process != "" {
-				methods = append(methods, dto.PenyusunanMethod{
-					IdDetailMethod:  idSubDetail,
-					Tahun:           tahun,
-					Triwulan:        triwulan,
-					NamaMethod:      *subRow.Process,
-					DeskripsiMethod: safeDeref(subRow.DeskripsiProcess),
+				processses = append(processses, dto.PenyusunanProcess{
+					IdDetailProcess:  idSubDetail,
+					Tahun:            tahun,
+					Triwulan:         triwulan,
+					NamaProcess:      *subRow.Process,
+					DeskripsiProcess: safeDeref(subRow.DeskripsiProcess),
 				})
 			}
 		}
 	}
 
-	return methods
+	return processses
 }
 
-// BuildChallengeList membangun slice PenyusunanChallenge dari data sub KPI Excel.
-// ChallengeList diambil dari kolom T (Context) dan U (Deskripsi Context).
-// idDetailChallenge menggunakan GenerateIDSubDetail yang sama dengan id_sub_detail baris tersebut.
+// BuildContextList membangun slice PenyusunanContext dari data sub KPI Excel.
+// ContextList diambil dari kolom T (Context) dan U (Deskripsi Context).
+// idDetailContext menggunakan GenerateIDSubDetail yang sama dengan id_sub_detail baris tersebut.
 // Hanya diisi untuk TW2 dan TW4 (isExtendedTriwulan).
-func BuildChallengeList(
+func BuildContextList(
 	idPengajuan string,
 	tahun string,
 	triwulan string,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) []dto.PenyusunanChallenge {
-	challenges := []dto.PenyusunanChallenge{}
+) []dto.PenyusunanContext {
+	contexts := []dto.PenyusunanContext{}
 
 	subCounter := 1
 	for _, kpiRow := range kpiRows {
@@ -168,21 +168,21 @@ func BuildChallengeList(
 			idSubDetail := GenerateIDSubDetail(idPengajuan, subCounter)
 			subCounter++
 
-			// Kolom T (Context) = namaChallenge, kolom U (Deskripsi Context) = deskripsiChallenge
+			// Kolom T (Context) = namaContext, kolom U (Deskripsi Context) = deskripsiContext
 			// Hanya insert jika Context tidak kosong/nil
 			if subRow.Context != nil && *subRow.Context != "" {
-				challenges = append(challenges, dto.PenyusunanChallenge{
-					IdDetailChallenge:  idSubDetail,
-					Tahun:              tahun,
-					Triwulan:           triwulan,
-					NamaChallenge:      *subRow.Context,
-					DeskripsiChallenge: safeDeref(subRow.DeskripsiContext),
+				contexts = append(contexts, dto.PenyusunanContext{
+					IdDetailContext:  idSubDetail,
+					Tahun:            tahun,
+					Triwulan:         triwulan,
+					NamaContext:      *subRow.Context,
+					DeskripsiContext: safeDeref(subRow.DeskripsiContext),
 				})
 			}
 		}
 	}
 
-	return challenges
+	return contexts
 }
 
 // safeDeref mengembalikan value dari pointer string, atau string kosong jika nil.

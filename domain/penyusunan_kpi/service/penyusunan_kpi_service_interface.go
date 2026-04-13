@@ -10,17 +10,12 @@ import (
 type (
 	PenyusunanKpiServiceInterface interface {
 		// ValidatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/validate.
-		// REQUEST hanya memerlukan Divisi, Tahun, dan Triwulan.
-		// KPI, ChallengeList, dan MethodList diambil dari file Excel dan tabel mst_kpi.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,
 			file *multipart.FileHeader,
 		) (data dto.ValidatePenyusunanKpiResponse, err error)
 
 		// RevisionPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/revision.
-		// Menerima file Excel hasil revisi user (format sama dengan /validate).
-		// Menghapus data lama berdasarkan IdPengajuan lalu insert ulang dari Excel baru.
-		// Status data_kpi di-update ke 0 (langsung ke approval).
 		RevisionPenyusunanKpi(
 			req *dto.RevisionPenyusunanKpiRequest,
 			file *multipart.FileHeader,
@@ -52,9 +47,11 @@ type (
 		) (data []*dto.GetAllDaftarApprovalPenyusunanKpiResponse, total int64, err error)
 
 		// GetDetailPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
+		// Mengembalikan GetDetailPenyusunanKpiResponse dengan struktur response baru
+		// (nested divisi, entry, approvalList sebagai array, totalKpi, totalResult, dst).
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
-		) (data *dto.GetAllDataPenyusunanKpiResponse, err error)
+		) (data *dto.GetDetailPenyusunanKpiResponse, err error)
 
 		// GetExcelPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-excel.
 		GetExcelPenyusunanKpi(

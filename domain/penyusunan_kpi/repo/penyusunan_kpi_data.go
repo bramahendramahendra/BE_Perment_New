@@ -67,13 +67,13 @@ const (
 			nama_result, deskripsi_result)
 		VALUES %s`
 
-	queryInsertMethodDetail = `
+	queryInsertProcessDetail = `
 		INSERT INTO data_method_detail 
 			(id_pengajuan, id_detail_method, tahun, triwulan, 
 			 nama_method, deskripsi_method) 
 		VALUES %s`
 
-	queryInsertChallengeDetail = `
+	queryInsertContextDetail = `
 		INSERT INTO data_challenge_detail 
 			(id_pengajuan, id_detail_challenge, tahun, triwulan, 
 			 nama_challenge, deskripsi_challenge) 
@@ -88,11 +88,11 @@ const (
 	// queryDeleteResultDetail digunakan oleh RevisionPenyusunanKpi.
 	queryDeleteResultDetail = `DELETE FROM data_result_detail WHERE id_pengajuan = ?`
 
-	// queryDeleteMethodDetail digunakan oleh RevisionPenyusunanKpi.
-	queryDeleteMethodDetail = `DELETE FROM data_method_detail WHERE id_pengajuan = ?`
+	// queryDeleteProcessDetail digunakan oleh RevisionPenyusunanKpi.
+	queryDeleteProcessDetail = `DELETE FROM data_method_detail WHERE id_pengajuan = ?`
 
-	// queryDeleteChallengeDetail digunakan oleh RevisionPenyusunanKpi.
-	queryDeleteChallengeDetail = `DELETE FROM data_challenge_detail WHERE id_pengajuan = ?`
+	// queryDeleteContextDetail digunakan oleh RevisionPenyusunanKpi.
+	queryDeleteContextDetail = `DELETE FROM data_challenge_detail WHERE id_pengajuan = ?`
 
 	// queryUpdateKpiRevision digunakan oleh RevisionPenyusunanKpi untuk update header data_kpi.
 	// status = 0 → langsung ke approval (tidak perlu draft lagi).
@@ -194,7 +194,7 @@ const (
 		FROM data_result_detail
 		WHERE id_pengajuan = ?`
 
-	queryGetDataMethodDetail = `
+	queryGetDataProcessDetail = `
 		SELECT
 			id_detail_method, tahun, triwulan,
 			nama_method, deskripsi_method,
@@ -203,7 +203,7 @@ const (
 		FROM data_method_detail
 		WHERE id_pengajuan = ?`
 
-	queryGetDataChallengeDetail = `
+	queryGetDataContextDetail = `
 		SELECT
 			id_detail_challenge, tahun, triwulan,
 			nama_challenge, deskripsi_challenge,
@@ -229,6 +229,43 @@ const (
         FROM data_kpi_subdetail a
         WHERE a.id_pengajuan = ?
         ORDER BY a.id_sub_detail ASC`
+
+	// queryGetDataKpiDetailPenyusunan digunakan oleh GetDetailPenyusunanKpi (versi ringan).
+	// Hanya mengambil field yang dibutuhkan konteks penyusunan, tanpa field validasi/realisasi.
+	queryGetDataKpiDetailPenyusunan = `
+    SELECT
+        a.id_detail,
+        a.id_kpi, a.kpi, a.rumus,
+        a.id_perspektif,
+        IFNULL(b.perspektif, '') perspektif
+    FROM data_kpi_detail a
+    INNER JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
+    WHERE a.id_pengajuan = ?`
+
+	// queryGetDataKpiSubDetailPenyusunan digunakan oleh GetDetailPenyusunanKpi (versi ringan).
+	// JOIN ke mst_polarisasi via a.rumus untuk mendapatkan polarisasi dan id_polarisasi.
+	// JOIN ke mst_keterangan_project untuk mendapatkan keterangan_project.
+	queryGetDataKpiSubDetailPenyusunan = `
+    SELECT
+        a.id_sub_detail,
+        a.id_kpi, a.kpi, a.rumus,
+        a.otomatis,
+        a.bobot, a.capping,
+        a.target_triwulan,  a.target_kuantitatif_triwulan,
+        a.target_tahunan,   a.target_kuantitatif_tahunan,
+        IFNULL(a.deskripsi_glossary, '')    deskripsi_glossary,
+        IFNULL(a.rumus, '')                 id_polarisasi,
+        IFNULL(p.polarisasi, '')            polarisasi,
+        IFNULL(a.id_qualifier, '')          id_qualifier,
+        IFNULL(a.item_qualifier, '')        item_qualifier,
+        IFNULL(a.deskripsi_qualifier, '')   deskripsi_qualifier,
+        IFNULL(a.target_qualifier, '')      target_qualifier,
+        IFNULL(a.id_keterangan_project, '') id_keterangan_project,
+        IFNULL(c.keterangan_project, '')    keterangan_project
+    FROM data_kpi_subdetail a
+    LEFT JOIN mst_polarisasi p ON a.rumus = p.id_polarisasi
+    LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
+    WHERE a.id_detail = ?`
 )
 
 // =============================================================================
@@ -269,21 +306,21 @@ func (r *penyusunanKpiRepo) LookupPolarisasi(polarisasiText string) (idPolarisas
 // VALIDATE — simpan data KPI tanpa approval
 // =============================================================================
 
-// ValidatePenyusunanKpi menyimpan data KPI, SubKPI, ChallengeList, dan MethodList ke DB.
+// ValidatePenyusunanKpi menyimpan data KPI, SubKPI, ContextList, dan ProcessList ke DB.
 //
 // Perubahan dari versi sebelumnya:
-//   - Parameter req tidak lagi memiliki Kpi[], ChallengeList[], MethodList[]
+//   - Parameter req tidak lagi memiliki Kpi[], ContextList[], ProcessList[]
 //   - kpiRows: daftar KPI unik dari kolom B Excel (sudah dilookup ke mst_kpi oleh service)
-//   - challengeList: dibangun dari kolom T/U Excel oleh service (hanya TW2 & TW4)
-//   - methodList: dibangun dari kolom R/S Excel oleh service (hanya TW2 & TW4)
+//   - contextList: dibangun dari kolom T/U Excel oleh service (hanya TW2 & TW4)
+//   - processList: dibangun dari kolom R/S Excel oleh service (hanya TW2 & TW4)
 //   - Persfektif (id_perspektif) diisi NULL di DB karena sudah tidak digunakan
 func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	req *dto.ValidatePenyusunanKpiRequest,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 	resultList []dto.PenyusunanResult,
-	methodList []dto.PenyusunanMethod,
-	challengeList []dto.PenyusunanChallenge,
+	processList []dto.PenyusunanProcess,
+	contextList []dto.PenyusunanContext,
 ) (string, error) {
 
 	idPengajuan := utils.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
@@ -395,39 +432,39 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 
 	// =========================================================================
 	// Build INSERT data_method_detail
-	// methodList sudah dibangun oleh service dari kolom R/S Excel.
+	// processList sudah dibangun oleh service dari kolom R/S Excel.
 	// Hanya berisi data jika triwulan TW2 atau TW4.
 	// =========================================================================
-	methodPlaceholders := []string{}
-	methodArgs := []interface{}{}
-	for _, mt := range methodList {
-		methodPlaceholders = append(methodPlaceholders, "(?, ?, ?, ?, ?, ?)")
-		methodArgs = append(methodArgs,
+	processPlaceholders := []string{}
+	processArgs := []interface{}{}
+	for _, mt := range processList {
+		processPlaceholders = append(processPlaceholders, "(?, ?, ?, ?, ?, ?)")
+		processArgs = append(processArgs,
 			idPengajuan,
-			mt.IdDetailMethod,
+			mt.IdDetailProcess,
 			mt.Tahun,
 			mt.Triwulan,
-			mt.NamaMethod,
-			mt.DeskripsiMethod,
+			mt.NamaProcess,
+			mt.DeskripsiProcess,
 		)
 	}
 
 	// =========================================================================
 	// Build INSERT data_challenge_detail
-	// challengeList sudah dibangun oleh service dari kolom T/U Excel.
+	// contextList sudah dibangun oleh service dari kolom T/U Excel.
 	// Hanya berisi data jika triwulan TW2 atau TW4.
 	// =========================================================================
-	challengePlaceholders := []string{}
-	challengeArgs := []interface{}{}
-	for _, ch := range challengeList {
-		challengePlaceholders = append(challengePlaceholders, "(?, ?, ?, ?, ?, ?)")
-		challengeArgs = append(challengeArgs,
+	contextPlaceholders := []string{}
+	contextArgs := []interface{}{}
+	for _, ch := range contextList {
+		contextPlaceholders = append(contextPlaceholders, "(?, ?, ?, ?, ?, ?)")
+		contextArgs = append(contextArgs,
 			idPengajuan,
-			ch.IdDetailChallenge,
+			ch.IdDetailContext,
 			ch.Tahun,
 			ch.Triwulan,
-			ch.NamaChallenge,
-			ch.DeskripsiChallenge,
+			ch.NamaContext,
+			ch.DeskripsiContext,
 		)
 	}
 
@@ -473,17 +510,17 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		}
 	}
 
-	if len(methodPlaceholders) > 0 {
-		queryMethod := fmt.Sprintf(queryInsertMethodDetail, strings.Join(methodPlaceholders, ", "))
-		if err := tx.Exec(queryMethod, methodArgs...).Error; err != nil {
+	if len(processPlaceholders) > 0 {
+		queryProcess := fmt.Sprintf(queryInsertProcessDetail, strings.Join(processPlaceholders, ", "))
+		if err := tx.Exec(queryProcess, processArgs...).Error; err != nil {
 			tx.Rollback()
 			return "", fmt.Errorf("gagal insert data_method_detail: %w", err)
 		}
 	}
 
-	if len(challengePlaceholders) > 0 {
-		queryChallenge := fmt.Sprintf(queryInsertChallengeDetail, strings.Join(challengePlaceholders, ", "))
-		if err := tx.Exec(queryChallenge, challengeArgs...).Error; err != nil {
+	if len(contextPlaceholders) > 0 {
+		queryContext := fmt.Sprintf(queryInsertContextDetail, strings.Join(contextPlaceholders, ", "))
+		if err := tx.Exec(queryContext, contextArgs...).Error; err != nil {
 			tx.Rollback()
 			return "", fmt.Errorf("gagal insert data_challenge_detail: %w", err)
 		}
@@ -501,8 +538,8 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
 	resultList []dto.PenyusunanResult,
-	methodList []dto.PenyusunanMethod,
-	challengeList []dto.PenyusunanChallenge,
+	processList []dto.PenyusunanProcess,
+	contextList []dto.PenyusunanContext,
 ) error {
 
 	// Validasi: id_pengajuan harus ada di DB
@@ -602,34 +639,34 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	// =========================================================================
 	// Build INSERT data_method_detail (hanya TW2/TW4)
 	// =========================================================================
-	methodPlaceholders := []string{}
-	methodArgs := []interface{}{}
-	for _, mt := range methodList {
-		methodPlaceholders = append(methodPlaceholders, "(?, ?, ?, ?, ?, ?)")
-		methodArgs = append(methodArgs,
+	processPlaceholders := []string{}
+	processArgs := []interface{}{}
+	for _, mt := range processList {
+		processPlaceholders = append(processPlaceholders, "(?, ?, ?, ?, ?, ?)")
+		processArgs = append(processArgs,
 			req.IdPengajuan,
-			mt.IdDetailMethod,
+			mt.IdDetailProcess,
 			mt.Tahun,
 			mt.Triwulan,
-			mt.NamaMethod,
-			mt.DeskripsiMethod,
+			mt.NamaProcess,
+			mt.DeskripsiProcess,
 		)
 	}
 
 	// =========================================================================
 	// Build INSERT data_challenge_detail (hanya TW2/TW4)
 	// =========================================================================
-	challengePlaceholders := []string{}
-	challengeArgs := []interface{}{}
-	for _, ch := range challengeList {
-		challengePlaceholders = append(challengePlaceholders, "(?, ?, ?, ?, ?, ?)")
-		challengeArgs = append(challengeArgs,
+	contextPlaceholders := []string{}
+	contextArgs := []interface{}{}
+	for _, ch := range contextList {
+		contextPlaceholders = append(contextPlaceholders, "(?, ?, ?, ?, ?, ?)")
+		contextArgs = append(contextArgs,
 			req.IdPengajuan,
-			ch.IdDetailChallenge,
+			ch.IdDetailContext,
 			ch.Tahun,
 			ch.Triwulan,
-			ch.NamaChallenge,
-			ch.DeskripsiChallenge,
+			ch.NamaContext,
+			ch.DeskripsiContext,
 		)
 	}
 
@@ -659,11 +696,11 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		tx.Rollback()
 		return fmt.Errorf("gagal delete data_result_detail: %w", err)
 	}
-	if err := tx.Exec(queryDeleteMethodDetail, req.IdPengajuan).Error; err != nil {
+	if err := tx.Exec(queryDeleteProcessDetail, req.IdPengajuan).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal delete data_method_detail: %w", err)
 	}
-	if err := tx.Exec(queryDeleteChallengeDetail, req.IdPengajuan).Error; err != nil {
+	if err := tx.Exec(queryDeleteContextDetail, req.IdPengajuan).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal delete data_challenge_detail: %w", err)
 	}
@@ -704,9 +741,9 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	// -------------------------------------------------------------------------
 	// INSERT data_method_detail baru (hanya TW2/TW4)
 	// -------------------------------------------------------------------------
-	if len(methodPlaceholders) > 0 {
-		queryMethod := fmt.Sprintf(queryInsertMethodDetail, strings.Join(methodPlaceholders, ", "))
-		if err := tx.Exec(queryMethod, methodArgs...).Error; err != nil {
+	if len(processPlaceholders) > 0 {
+		queryProcess := fmt.Sprintf(queryInsertProcessDetail, strings.Join(processPlaceholders, ", "))
+		if err := tx.Exec(queryProcess, processArgs...).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("gagal insert data_method_detail saat revision: %w", err)
 		}
@@ -715,9 +752,9 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	// -------------------------------------------------------------------------
 	// INSERT data_challenge_detail baru (hanya TW2/TW4)
 	// -------------------------------------------------------------------------
-	if len(challengePlaceholders) > 0 {
-		queryChallenge := fmt.Sprintf(queryInsertChallengeDetail, strings.Join(challengePlaceholders, ", "))
-		if err := tx.Exec(queryChallenge, challengeArgs...).Error; err != nil {
+	if len(contextPlaceholders) > 0 {
+		queryContext := fmt.Sprintf(queryInsertContextDetail, strings.Join(contextPlaceholders, ", "))
+		if err := tx.Exec(queryContext, contextArgs...).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("gagal insert data_challenge_detail saat revision: %w", err)
 		}
@@ -883,7 +920,7 @@ func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDataPenyusunanKpiResponse
 			&re.NamaResult, &re.DeskripsiResult,
 		); err != nil {
 			resultRows.Close()
-			return fmt.Errorf("gagal scan challenge detail: %w", err)
+			return fmt.Errorf("gagal scan result detail: %w", err)
 		}
 		resultDetails = append(resultDetails, re)
 	}
@@ -893,50 +930,50 @@ func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDataPenyusunanKpiResponse
 	// =====================================================================
 	// QUERY METHOD DETAIL
 	// =====================================================================
-	methodRows, err := r.db.Raw(queryGetDataMethodDetail, h.IdPengajuan).Rows()
+	processRows, err := r.db.Raw(queryGetDataProcessDetail, h.IdPengajuan).Rows()
 	if err != nil {
-		return fmt.Errorf("gagal mengambil method detail [%s]: %w", h.IdPengajuan, err)
+		return fmt.Errorf("gagal mengambil process detail [%s]: %w", h.IdPengajuan, err)
 	}
 
-	var methodDetails []dto.GetAllDataMethodDetailResponse
-	for methodRows.Next() {
-		var mt dto.GetAllDataMethodDetailResponse
-		if err := methodRows.Scan(
-			&mt.IdDetailMethod, &mt.Tahun, &mt.Triwulan,
-			&mt.NamaMethod, &mt.DeskripsiMethod,
-			&mt.RealisasiMethod, &mt.LampiranEvidence,
+	var processDetails []dto.GetAllDataProcessDetailResponse
+	for processRows.Next() {
+		var mt dto.GetAllDataProcessDetailResponse
+		if err := processRows.Scan(
+			&mt.IdDetailProcess, &mt.Tahun, &mt.Triwulan,
+			&mt.NamaProcess, &mt.DeskripsiProcess,
+			&mt.RealisasiProcess, &mt.LampiranEvidence,
 		); err != nil {
-			methodRows.Close()
-			return fmt.Errorf("gagal scan method detail: %w", err)
+			processRows.Close()
+			return fmt.Errorf("gagal scan process detail: %w", err)
 		}
-		methodDetails = append(methodDetails, mt)
+		processDetails = append(processDetails, mt)
 	}
-	methodRows.Close()
-	h.MethodDetail = methodDetails
+	processRows.Close()
+	h.ProcessDetail = processDetails
 
 	// =====================================================================
 	// QUERY CHALLENGE DETAIL
 	// =====================================================================
-	challengeRows, err := r.db.Raw(queryGetDataChallengeDetail, h.IdPengajuan).Rows()
+	contextRows, err := r.db.Raw(queryGetDataContextDetail, h.IdPengajuan).Rows()
 	if err != nil {
-		return fmt.Errorf("gagal mengambil challenge detail [%s]: %w", h.IdPengajuan, err)
+		return fmt.Errorf("gagal mengambil context detail [%s]: %w", h.IdPengajuan, err)
 	}
 
-	var challengeDetails []dto.GetAllDataChallengeDetailResponse
-	for challengeRows.Next() {
-		var ch dto.GetAllDataChallengeDetailResponse
-		if err := challengeRows.Scan(
-			&ch.IdDetailChallenge, &ch.Tahun, &ch.Triwulan,
-			&ch.NamaChallenge, &ch.DeskripsiChallenge,
-			&ch.RealisasiChallenge, &ch.LampiranEvidence,
+	var contextDetails []dto.GetAllDataContextDetailResponse
+	for contextRows.Next() {
+		var ch dto.GetAllDataContextDetailResponse
+		if err := contextRows.Scan(
+			&ch.IdDetailContext, &ch.Tahun, &ch.Triwulan,
+			&ch.NamaContext, &ch.DeskripsiContext,
+			&ch.RealisasiContext, &ch.LampiranEvidence,
 		); err != nil {
-			challengeRows.Close()
-			return fmt.Errorf("gagal scan challenge detail: %w", err)
+			contextRows.Close()
+			return fmt.Errorf("gagal scan context detail: %w", err)
 		}
-		challengeDetails = append(challengeDetails, ch)
+		contextDetails = append(contextDetails, ch)
 	}
-	challengeRows.Close()
-	h.ChallengeDetail = challengeDetails
+	contextRows.Close()
+	h.ContextDetail = contextDetails
 
 	return nil
 }
@@ -1346,11 +1383,13 @@ func (r *penyusunanKpiRepo) GetAllDaftarApprovalPenyusunanKpi(
 
 func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
-) (*dto.GetAllDataPenyusunanKpiResponse, error) {
+) (*dto.GetDetailPenyusunanKpiResponse, error) {
 
-	detailQuery := queryGetDataKpi + " WHERE a.id_pengajuan = ? LIMIT 1"
-
-	headerRows, err := r.db.Raw(detailQuery, req.IdPengajuan).Rows()
+	// =========================================================================
+	// QUERY HEADER — reuse queryGetDataKpi yang sudah ada
+	// =========================================================================
+	headerQuery := queryGetDataKpi + " WHERE a.id_pengajuan = ? LIMIT 1"
+	headerRows, err := r.db.Raw(headerQuery, req.IdPengajuan).Rows()
 	if err != nil {
 		return nil, fmt.Errorf("gagal mengambil detail KPI: %w", err)
 	}
@@ -1362,32 +1401,255 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 		}
 	}
 
-	var h dto.GetAllDataPenyusunanKpiResponse
+	// Variabel untuk menampung semua kolom queryGetDataKpi.
+	// Kolom yang tidak dipakai di response ini tetap di-scan ke dummy var
+	// agar urutan scan sesuai dengan kolom query.
+	var (
+		idPengajuan, tahun, triwulan           string
+		kostl, kostlTx, orgeh, orgehTx         string
+		entryUser, entryName, entryTime        string
+		approvalPosisi, approvalListRaw        string
+		status, statusDesc                     string
+		dummyEUR, dummyENR, dummyETR, dummyALR string
+		dummyCatatan                           string
+		dummyTB, dummyTP, dummyTBP, dummyTPP   string
+		dummyEUV, dummyENV, dummyETV, dummyALV string
+		dummyLampiran, dummyQualifier          string
+	)
+
 	if err := headerRows.Scan(
-		&h.IdPengajuan, &h.Tahun, &h.Triwulan,
-		&h.Kostl, &h.KostlTx,
-		&h.Orgeh, &h.OrgehTx,
-		&h.EntryUser, &h.EntryName, &h.EntryTime,
-		&h.ApprovalPosisi, &h.ApprovalList,
-		&h.Status, &h.StatusDesc,
-		&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
-		&h.ApprovalListRealisasi,
-		&h.CatatanTolakan,
-		&h.TotalBobot, &h.TotalPencapaian,
-		&h.TotalBobotPengurang, &h.TotalPencapaianPost,
-		&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
-		&h.ApprovalListValidasi,
-		&h.LampiranValidasi,
-		&h.QualifierOverallValidasi,
+		&idPengajuan, &tahun, &triwulan,
+		&kostl, &kostlTx,
+		&orgeh, &orgehTx,
+		&entryUser, &entryName, &entryTime,
+		&approvalPosisi, &approvalListRaw,
+		&status, &statusDesc,
+		&dummyEUR, &dummyENR, &dummyETR, &dummyALR,
+		&dummyCatatan,
+		&dummyTB, &dummyTP,
+		&dummyTBP, &dummyTPP,
+		&dummyEUV, &dummyENV, &dummyETV, &dummyALV,
+		&dummyLampiran, &dummyQualifier,
 	); err != nil {
-		return nil, fmt.Errorf("gagal scan detail KPI: %w", err)
+		return nil, fmt.Errorf("gagal scan header KPI: %w", err)
 	}
 
-	if err := r.scanNestedKpi(&h); err != nil {
+	// =========================================================================
+	// UNMARSHAL approval_list (string JSON → []Approval)
+	// =========================================================================
+	var approvalList []dto.Approval
+	if approvalListRaw != "" {
+		if err := json.Unmarshal([]byte(approvalListRaw), &approvalList); err != nil {
+			return nil, fmt.Errorf("gagal parse approval_list: %w", err)
+		}
+	}
+	if approvalList == nil {
+		approvalList = []dto.Approval{}
+	}
+
+	// =========================================================================
+	// BUILD RESPONSE HEADER
+	// =========================================================================
+	resp := &dto.GetDetailPenyusunanKpiResponse{
+		IdPengajuan: idPengajuan,
+		Tahun:       tahun,
+		Triwulan:    triwulan,
+		Status:      status,
+		StatusDesc:  statusDesc,
+		Divisi: dto.DivisiDetailResponse{
+			Kostl:   kostl,
+			KostlTx: kostlTx,
+			Orgeh:   orgeh,
+			OrgehTx: orgehTx,
+		},
+		Entry: dto.EntryResponse{
+			EntryUser: entryUser,
+			EntryName: entryName,
+			EntryTime: entryTime,
+		},
+		ApprovalPosisi: approvalPosisi,
+		ApprovalList:   approvalList,
+	}
+
+	// =========================================================================
+	// ISI NESTED DATA (KPI detail, result, process, context)
+	// =========================================================================
+	if err := r.scanNestedKpiPenyusunan(resp); err != nil {
 		return nil, err
 	}
 
-	return &h, nil
+	return resp, nil
+}
+
+// scanNestedKpiPenyusunan mengisi KPI detail (versi ringan), result, process, dan context
+// ke dalam GetDetailPenyusunanKpiResponse.
+func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusunanKpiResponse) error {
+
+	// =====================================================================
+	// KPI DETAIL
+	// =====================================================================
+	detailRows, err := r.db.Raw(queryGetDataKpiDetailPenyusunan, resp.IdPengajuan).Rows()
+	if err != nil {
+		return fmt.Errorf("gagal mengambil kpi detail [%s]: %w", resp.IdPengajuan, err)
+	}
+
+	var kpiDetails []dto.PenyusunanKpiDetailResponse
+	for detailRows.Next() {
+		var d dto.PenyusunanKpiDetailResponse
+		if err := detailRows.Scan(
+			&d.IdDetail,
+			&d.IdKpi, &d.Kpi, &d.Rumus,
+			&d.IdPerspektif, &d.Persfektif,
+		); err != nil {
+			detailRows.Close()
+			return fmt.Errorf("gagal scan kpi detail: %w", err)
+		}
+
+		// =================================================================
+		// KPI SUB DETAIL per id_detail
+		// =================================================================
+		subDetailRows, err := r.db.Raw(queryGetDataKpiSubDetailPenyusunan, d.IdDetail).Rows()
+		if err != nil {
+			detailRows.Close()
+			return fmt.Errorf("gagal mengambil kpi sub detail [%s]: %w", d.IdDetail, err)
+		}
+
+		var subDetails []dto.PenyusunanKpiSubDetailResponse
+		for subDetailRows.Next() {
+			var s dto.PenyusunanKpiSubDetailResponse
+			if err := subDetailRows.Scan(
+				&s.IdSubDetail,
+				&s.IdSubKpi, &s.SubKpi, &s.Polarisasi,
+				&s.Otomatis,
+				&s.Bobot, &s.Capping,
+				&s.TargetTriwulan, &s.TargetKuantitatifTriwulan,
+				&s.TargetTahunan, &s.TargetKuantitatifTahunan,
+				&s.Glossary,
+				&s.IdPolarisasi,
+				&s.Polarisasi,
+				&s.TerdapatQualifier,
+				&s.Qualifier,
+				&s.DeskripsiQualifier,
+				&s.TargetQualifier,
+				&s.IdKeteranganProject,
+				&s.KeteranganProject,
+			); err != nil {
+				subDetailRows.Close()
+				detailRows.Close()
+				return fmt.Errorf("gagal scan kpi sub detail: %w", err)
+			}
+			subDetails = append(subDetails, s)
+		}
+		subDetailRows.Close()
+
+		if subDetails == nil {
+			subDetails = []dto.PenyusunanKpiSubDetailResponse{}
+		}
+		d.KpiSubDetail = subDetails
+		d.TotalSubKpi = len(subDetails)
+		kpiDetails = append(kpiDetails, d)
+	}
+	detailRows.Close()
+
+	if kpiDetails == nil {
+		kpiDetails = []dto.PenyusunanKpiDetailResponse{}
+	}
+	resp.Kpi = kpiDetails
+	resp.TotalKpi = len(kpiDetails)
+
+	// =====================================================================
+	// RESULT DETAIL — reuse queryGetDataResultDetail yang sudah ada
+	// =====================================================================
+	resultRows, err := r.db.Raw(queryGetDataResultDetail, resp.IdPengajuan).Rows()
+	if err != nil {
+		return fmt.Errorf("gagal mengambil result detail [%s]: %w", resp.IdPengajuan, err)
+	}
+
+	var resultDetails []dto.PenyusunanResult
+	for resultRows.Next() {
+		var re dto.PenyusunanResult
+		if err := resultRows.Scan(
+			&re.IdDetailResult, &re.Tahun, &re.Triwulan,
+			&re.NamaResult, &re.DeskripsiResult,
+		); err != nil {
+			resultRows.Close()
+			return fmt.Errorf("gagal scan result detail: %w", err)
+		}
+		resultDetails = append(resultDetails, re)
+	}
+	resultRows.Close()
+
+	if resultDetails == nil {
+		resultDetails = []dto.PenyusunanResult{}
+	}
+	resp.ResultList = resultDetails
+	resp.TotalResult = len(resultDetails)
+
+	// =====================================================================
+	// METHOD DETAIL — reuse queryGetDataProcessDetail yang sudah ada
+	// queryGetDataProcessDetail mengembalikan 7 kolom termasuk realisasi_method
+	// dan lampiran_evidence yang tidak ada di PenyusunanProcess → scan ke dummy.
+	// =====================================================================
+	processRows, err := r.db.Raw(queryGetDataProcessDetail, resp.IdPengajuan).Rows()
+	if err != nil {
+		return fmt.Errorf("gagal mengambil process detail [%s]: %w", resp.IdPengajuan, err)
+	}
+
+	var processDetails []dto.PenyusunanProcess
+	for processRows.Next() {
+		var mt dto.PenyusunanProcess
+		var dummyRealisasi, dummyLampiran string
+		if err := processRows.Scan(
+			&mt.IdDetailProcess, &mt.Tahun, &mt.Triwulan,
+			&mt.NamaProcess, &mt.DeskripsiProcess,
+			&dummyRealisasi, &dummyLampiran,
+		); err != nil {
+			processRows.Close()
+			return fmt.Errorf("gagal scan process detail: %w", err)
+		}
+		processDetails = append(processDetails, mt)
+	}
+	processRows.Close()
+
+	if processDetails == nil {
+		processDetails = []dto.PenyusunanProcess{}
+	}
+	resp.ProcessList = processDetails
+	resp.TotalProcess = len(processDetails)
+
+	// =====================================================================
+	// CHALLENGE DETAIL — reuse queryGetDataContextDetail yang sudah ada
+	// queryGetDataContextDetail mengembalikan 7 kolom termasuk realisasi_challenge
+	// dan lampiran_evidence yang tidak ada di PenyusunanContext → scan ke dummy.
+	// =====================================================================
+	contextRows, err := r.db.Raw(queryGetDataContextDetail, resp.IdPengajuan).Rows()
+	if err != nil {
+		return fmt.Errorf("gagal mengambil context detail [%s]: %w", resp.IdPengajuan, err)
+	}
+
+	var contextDetails []dto.PenyusunanContext
+	for contextRows.Next() {
+		var ch dto.PenyusunanContext
+		var dummyRealisasi, dummyLampiran string
+		if err := contextRows.Scan(
+			&ch.IdDetailContext, &ch.Tahun, &ch.Triwulan,
+			&ch.NamaContext, &ch.DeskripsiContext,
+			&dummyRealisasi, &dummyLampiran,
+		); err != nil {
+			contextRows.Close()
+			return fmt.Errorf("gagal scan context detail: %w", err)
+		}
+		contextDetails = append(contextDetails, ch)
+	}
+	contextRows.Close()
+
+	if contextDetails == nil {
+		contextDetails = []dto.PenyusunanContext{}
+	}
+	resp.ContextList = contextDetails
+	resp.TotalContext = len(contextDetails)
+
+	return nil
 }
 
 // =============================================================================

@@ -61,15 +61,15 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 	// Bangun idPengajuan di service agar bisa digunakan untuk build response sebelum repo insert.
 	idPengajuan := utils.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
 
-	// Build ChallengeList dan MethodList dari data Excel (kolom P,Q,R,S,T,U).
+	// Build ProcessList dan ContextList dari data Excel (kolom P,Q,R,S,T,U).
 	// Hanya diisi untuk TW2 dan TW4; untuk TW1 dan TW3 list kosong (tidak diinsert ke DB).
 	resultList := []dto.PenyusunanResult{}
-	methodList := []dto.PenyusunanMethod{}
-	challengeList := []dto.PenyusunanChallenge{}
+	processList := []dto.PenyusunanProcess{}
+	contextList := []dto.PenyusunanContext{}
 	if utils.IsExtendedTriwulan(req.Triwulan) {
 		resultList = utils.BuildResultList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
-		methodList = utils.BuildMethodList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
-		challengeList = utils.BuildChallengeList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+		processList = utils.BuildProcessList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+		contextList = utils.BuildContextList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 	}
 
 	idPengajuan, err = s.repo.ValidatePenyusunanKpi(
@@ -77,8 +77,8 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		kpiRows,
 		kpiSubDetails,
 		resultList,
-		methodList,
-		challengeList,
+		processList,
+		contextList,
 	)
 	if err != nil {
 		return data, err
@@ -97,11 +97,11 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 			EntryName: req.EntryName,
 			EntryTime: req.EntryTime,
 		},
-		TotalKpi:      len(kpiRows),
-		Kpi:           utils.BuildKpiResponse(idPengajuan, kpiRows, kpiSubDetails),
-		ResultList:    resultList,
-		MethodList:    methodList,
-		ChallengeList: challengeList,
+		TotalKpi:    len(kpiRows),
+		Kpi:         utils.BuildKpiResponse(idPengajuan, kpiRows, kpiSubDetails),
+		ResultList:  resultList,
+		ProcessList: processList,
+		ContextList: contextList,
 	}
 
 	return data, nil
@@ -148,15 +148,15 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		return data, err
 	}
 
-	// Build ChallengeList, MethodList, ResultList dari kolom P–U Excel
+	// Build ContextList, ProcessList, ResultList dari kolom P–U Excel
 	// Hanya diisi untuk TW2 dan TW4
 	resultList := []dto.PenyusunanResult{}
-	methodList := []dto.PenyusunanMethod{}
-	challengeList := []dto.PenyusunanChallenge{}
+	processList := []dto.PenyusunanProcess{}
+	contextList := []dto.PenyusunanContext{}
 	if utils.IsExtendedTriwulan(req.Triwulan) {
 		resultList = utils.BuildResultList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
-		methodList = utils.BuildMethodList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
-		challengeList = utils.BuildChallengeList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+		processList = utils.BuildProcessList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
+		contextList = utils.BuildContextList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 	}
 
 	// Simpan ke DB: DELETE lama + INSERT baru + UPDATE header
@@ -165,8 +165,8 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		kpiRows,
 		kpiSubDetails,
 		resultList,
-		methodList,
-		challengeList,
+		processList,
+		contextList,
 	); err != nil {
 		return data, err
 	}
@@ -184,11 +184,11 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 			EntryName: req.EntryName,
 			EntryTime: req.EntryTime,
 		},
-		TotalKpi:      len(kpiRows),
-		Kpi:           utils.BuildKpiResponse(req.IdPengajuan, kpiRows, kpiSubDetails),
-		ResultList:    resultList,
-		MethodList:    methodList,
-		ChallengeList: challengeList,
+		TotalKpi:    len(kpiRows),
+		Kpi:         utils.BuildKpiResponse(req.IdPengajuan, kpiRows, kpiSubDetails),
+		ResultList:  resultList,
+		ProcessList: processList,
+		ContextList: contextList,
 	}
 
 	return data, nil
@@ -433,12 +433,8 @@ func (s *penyusunanKpiService) GetAllDaftarApprovalPenyusunanKpi(
 
 func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
-) (data *dto.GetAllDataPenyusunanKpiResponse, err error) {
-	dataDB, err := s.repo.GetDetailPenyusunanKpi(req)
-	if err != nil {
-		return nil, err
-	}
-	return dataDB, nil
+) (data *dto.GetDetailPenyusunanKpiResponse, err error) {
+	return s.repo.GetDetailPenyusunanKpi(req)
 }
 
 // =============================================================================
