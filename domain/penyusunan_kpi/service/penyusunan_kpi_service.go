@@ -88,11 +88,11 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		IDPengajuan: idPengajuan,
 		Tahun:       req.Tahun,
 		Triwulan:    req.Triwulan,
-		Divisi: dto.DivisiResponse{
+		Divisi: dto.Divisi{
 			Kostl:   req.Divisi.Kostl,
 			KostlTx: req.Divisi.KostlTx,
 		},
-		Entry: dto.EntryResponse{
+		Entry: dto.EntryUser{
 			EntryUser: req.EntryUser,
 			EntryName: req.EntryName,
 			EntryTime: req.EntryTime,
@@ -175,11 +175,11 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		IDPengajuan: req.IdPengajuan,
 		Tahun:       req.Tahun,
 		Triwulan:    req.Triwulan,
-		Divisi: dto.DivisiResponse{
+		Divisi: dto.Divisi{
 			Kostl:   req.Divisi.Kostl,
 			KostlTx: req.Divisi.KostlTx,
 		},
-		Entry: dto.EntryResponse{
+		Entry: dto.EntryUser{
 			EntryUser: req.EntryUser,
 			EntryName: req.EntryName,
 			EntryTime: req.EntryTime,
@@ -209,6 +209,24 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 	data = dto.CreatePenyusunanKpiResponse{
 		IdPengajuan:  req.IdPengajuan,
 		ApprovalList: req.ApprovalList,
+	}
+
+	return data, nil
+}
+
+// =============================================================================
+// BATAL
+// =============================================================================
+
+func (s *penyusunanKpiService) BatalPenyusunanKpi(
+	req *dto.BatalPenyusunanKpiRequest,
+) (data dto.BatalPenyusunanKpiResponse, err error) {
+	if err = s.repo.BatalPenyusunanKpi(req); err != nil {
+		return data, err
+	}
+
+	data = dto.BatalPenyusunanKpiResponse{
+		IdPengajuan: req.IdPengajuan,
 	}
 
 	return data, nil

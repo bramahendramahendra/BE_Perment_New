@@ -17,16 +17,16 @@ func BuildKpiResponse(
 	idPengajuan string,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) []dto.PenyusunanKpiDetailResponse {
+) []dto.DataKpiDetail {
 
-	result := make([]dto.PenyusunanKpiDetailResponse, 0, len(kpiRows))
+	result := make([]dto.DataKpiDetail, 0, len(kpiRows))
 
 	subCounter := 1
 	for i, kpiRow := range kpiRows {
 		idDetail := GenerateIDDetail(idPengajuan, i)
 
 		rows := kpiSubDetails[kpiRow.KpiIndex]
-		subDetails := make([]dto.PenyusunanKpiSubDetailResponse, 0, len(rows))
+		subDetails := make([]dto.DataKpiSubdetail, 0, len(rows))
 
 		for _, subRow := range rows {
 			idSubDetail := GenerateIDSubDetail(idPengajuan, subCounter)
@@ -39,7 +39,7 @@ func BuildKpiResponse(
 				targetQualifier = subRow.TargetQualifier
 			}
 
-			subDetails = append(subDetails, dto.PenyusunanKpiSubDetailResponse{
+			subDetails = append(subDetails, dto.DataKpiSubdetail{
 				IdSubDetail:               idSubDetail,
 				IdSubKpi:                  subRow.IdSubKpi,
 				SubKpi:                    subRow.SubKPI,
@@ -60,7 +60,7 @@ func BuildKpiResponse(
 			})
 		}
 
-		result = append(result, dto.PenyusunanKpiDetailResponse{
+		result = append(result, dto.DataKpiDetail{
 			IdDetail:     idDetail,
 			IdKpi:        kpiRow.IdKpi,
 			Kpi:          kpiRow.Kpi,

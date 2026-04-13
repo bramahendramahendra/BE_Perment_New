@@ -79,6 +79,8 @@ const (
 			 nama_challenge, deskripsi_challenge) 
 		VALUES %s`
 
+	queryBatalPenyusunanKpi = `UPDATE data_kpi SET status = 71 WHERE id_pengajuan = ?`
+
 	// queryDeleteKpiDetail digunakan oleh RevisionPenyusunanKpi.
 	queryDeleteKpiDetail = `DELETE FROM data_kpi_detail WHERE id_pengajuan = ?`
 
@@ -832,152 +834,30 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 }
 
 // =============================================================================
-// scanNestedKpi — helper untuk GetAllDraftPenyusunanKpi dan GetDetailPenyusunanKpi
+// BATAL PENYUSUNAN KPI
 // =============================================================================
 
-func (r *penyusunanKpiRepo) scanNestedKpi(h *dto.GetAllDataPenyusunanKpiResponse) error {
+func (r *penyusunanKpiRepo) BatalPenyusunanKpi(
+	req *dto.BatalPenyusunanKpiRequest,
+) error {
+	var count int64
 
-	// =====================================================================
-	// QUERY KPI DETAIL per id_pengajuan
-	// =====================================================================
-	detailRows, err := r.db.Raw(queryGetDataKpiDetail, h.IdPengajuan).Rows()
-	if err != nil {
-		return fmt.Errorf("gagal mengambil kpi detail [%s]: %w", h.IdPengajuan, err)
+	if err := r.db.Raw(
+		`SELECT COUNT(1) FROM data_kpi WHERE id_pengajuan = ?`,
+		req.IdPengajuan,
+	).Scan(&count).Error; err != nil {
+		return fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
 	}
 
-	var kpiDetails []dto.GetAllDataKpiDetailResponse
-	for detailRows.Next() {
-		var d dto.GetAllDataKpiDetailResponse
-		if err := detailRows.Scan(
-			&d.IdDetail,
-			&d.IdKpi, &d.Kpi, &d.Rumus,
-			&d.IdPerspektif, &d.Perspektif,
-			&d.IdKeteranganProject,
-			&d.KeteranganProject,
-			&d.LampiranFile,
-		); err != nil {
-			detailRows.Close()
-			return fmt.Errorf("gagal scan kpi detail: %w", err)
+	if count == 0 {
+		return &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
 		}
-
-		// =================================================================
-		// QUERY KPI SUB DETAIL per id_detail
-		// =================================================================
-		subDetailRows, err := r.db.Raw(queryGetDataKpiSubDetail, d.IdDetail).Rows()
-		if err != nil {
-			detailRows.Close()
-			return fmt.Errorf("gagal mengambil kpi sub detail [%s]: %w", d.IdDetail, err)
-		}
-
-		var subDetails []dto.GetAllDataKpiSubDetailResponse
-		for subDetailRows.Next() {
-			var s dto.GetAllDataKpiSubDetailResponse
-			if err := subDetailRows.Scan(
-				&s.IdSubDetail,
-				&s.IdKpi, &s.Kpi, &s.Rumus,
-				&s.Otomatis,
-				&s.Bobot, &s.Capping,
-				&s.TargetTriwulan, &s.TargetKuantitatifTriwulan,
-				&s.TargetTahunan, &s.TargetKuantitatifTahunan,
-				&s.Realisasi,
-				&s.RealisasiKuantitatif,
-				&s.RealisasiKeterangan,
-				&s.RealisasiValidated,
-				&s.RealisasiKuantitatifValidated,
-				&s.ValidasiKeterangan,
-				&s.Pencapaian, &s.Skor,
-				&s.DeskripsiGlossary,
-				&s.ItemQualifier, &s.DeskripsiQualifier, &s.TargetQualifier,
-				&s.IdKeteranganProject,
-				&s.IdQualifier,
-				&s.RealisasiQualifier, &s.RealisasiKuantitatifQualifier,
-				&s.PencapaianQualifierValidated, &s.PencapaianPostQualifierValidated,
-				&s.KeteranganProject,
-			); err != nil {
-				subDetailRows.Close()
-				detailRows.Close()
-				return fmt.Errorf("gagal scan kpi sub detail: %w", err)
-			}
-			subDetails = append(subDetails, s)
-		}
-		subDetailRows.Close()
-
-		d.KpiSubDetail = subDetails
-		kpiDetails = append(kpiDetails, d)
-	}
-	detailRows.Close()
-	h.KpiDetail = kpiDetails
-
-	// =====================================================================
-	// QUERY RESULT DETAIL
-	// =====================================================================
-	resultRows, err := r.db.Raw(queryGetDataResultDetail, h.IdPengajuan).Rows()
-	if err != nil {
-		return fmt.Errorf("gagal mengambil result detail [%s]: %w", h.IdPengajuan, err)
 	}
 
-	var resultDetails []dto.GetAllDataResultDetailResponse
-	for resultRows.Next() {
-		var re dto.GetAllDataResultDetailResponse
-		if err := resultRows.Scan(
-			&re.IdDetailResult, &re.Tahun, &re.Triwulan,
-			&re.NamaResult, &re.DeskripsiResult,
-		); err != nil {
-			resultRows.Close()
-			return fmt.Errorf("gagal scan result detail: %w", err)
-		}
-		resultDetails = append(resultDetails, re)
+	if err := r.db.Exec(queryBatalPenyusunanKpi, req.IdPengajuan).Error; err != nil {
+		return fmt.Errorf("gagal membatalkan penyusunan KPI: %w", err)
 	}
-	resultRows.Close()
-	h.ResultDetail = resultDetails
-
-	// =====================================================================
-	// QUERY METHOD DETAIL
-	// =====================================================================
-	processRows, err := r.db.Raw(queryGetDataProcessDetail, h.IdPengajuan).Rows()
-	if err != nil {
-		return fmt.Errorf("gagal mengambil process detail [%s]: %w", h.IdPengajuan, err)
-	}
-
-	var processDetails []dto.GetAllDataProcessDetailResponse
-	for processRows.Next() {
-		var mt dto.GetAllDataProcessDetailResponse
-		if err := processRows.Scan(
-			&mt.IdDetailProcess, &mt.Tahun, &mt.Triwulan,
-			&mt.NamaProcess, &mt.DeskripsiProcess,
-			&mt.RealisasiProcess, &mt.LampiranEvidence,
-		); err != nil {
-			processRows.Close()
-			return fmt.Errorf("gagal scan process detail: %w", err)
-		}
-		processDetails = append(processDetails, mt)
-	}
-	processRows.Close()
-	h.ProcessDetail = processDetails
-
-	// =====================================================================
-	// QUERY CHALLENGE DETAIL
-	// =====================================================================
-	contextRows, err := r.db.Raw(queryGetDataContextDetail, h.IdPengajuan).Rows()
-	if err != nil {
-		return fmt.Errorf("gagal mengambil context detail [%s]: %w", h.IdPengajuan, err)
-	}
-
-	var contextDetails []dto.GetAllDataContextDetailResponse
-	for contextRows.Next() {
-		var ch dto.GetAllDataContextDetailResponse
-		if err := contextRows.Scan(
-			&ch.IdDetailContext, &ch.Tahun, &ch.Triwulan,
-			&ch.NamaContext, &ch.DeskripsiContext,
-			&ch.RealisasiContext, &ch.LampiranEvidence,
-		); err != nil {
-			contextRows.Close()
-			return fmt.Errorf("gagal scan context detail: %w", err)
-		}
-		contextDetails = append(contextDetails, ch)
-	}
-	contextRows.Close()
-	h.ContextDetail = contextDetails
 
 	return nil
 }
@@ -1441,14 +1321,14 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	// =========================================================================
 	// UNMARSHAL approval_list (string JSON → []Approval)
 	// =========================================================================
-	var approvalList []dto.Approval
+	var approvalList []dto.ApprovalUser
 	if approvalListRaw != "" {
 		if err := json.Unmarshal([]byte(approvalListRaw), &approvalList); err != nil {
 			return nil, fmt.Errorf("gagal parse approval_list: %w", err)
 		}
 	}
 	if approvalList == nil {
-		approvalList = []dto.Approval{}
+		approvalList = []dto.ApprovalUser{}
 	}
 
 	// =========================================================================
@@ -1460,13 +1340,13 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 		Triwulan:    triwulan,
 		Status:      status,
 		StatusDesc:  statusDesc,
-		Divisi: dto.DivisiDetailResponse{
+		Divisi: dto.DivisiOrgeh{
 			Kostl:   kostl,
 			KostlTx: kostlTx,
 			Orgeh:   orgeh,
 			OrgehTx: orgehTx,
 		},
-		Entry: dto.EntryResponse{
+		Entry: dto.EntryUser{
 			EntryUser: entryUser,
 			EntryName: entryName,
 			EntryTime: entryTime,
@@ -1497,9 +1377,9 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 		return fmt.Errorf("gagal mengambil kpi detail [%s]: %w", resp.IdPengajuan, err)
 	}
 
-	var kpiDetails []dto.PenyusunanKpiDetailResponse
+	var kpiDetails []dto.DataKpiDetail
 	for detailRows.Next() {
-		var d dto.PenyusunanKpiDetailResponse
+		var d dto.DataKpiDetail
 		if err := detailRows.Scan(
 			&d.IdDetail,
 			&d.IdKpi, &d.Kpi, &d.Rumus,
@@ -1520,9 +1400,9 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 			return fmt.Errorf("gagal mengambil kpi sub detail [%s]: %w", d.IdDetail, err)
 		}
 
-		var subDetails []dto.PenyusunanKpiSubDetailResponse
+		var subDetails []dto.DataKpiSubdetail
 		for subDetailRows.Next() {
-			var s dto.PenyusunanKpiSubDetailResponse
+			var s dto.DataKpiSubdetail
 			if err := subDetailRows.Scan(
 				&s.IdSubDetail,
 				&s.IdSubKpi, &s.SubKpi, &s.Polarisasi,
@@ -1549,7 +1429,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 		subDetailRows.Close()
 
 		if subDetails == nil {
-			subDetails = []dto.PenyusunanKpiSubDetailResponse{}
+			subDetails = []dto.DataKpiSubdetail{}
 		}
 		d.KpiSubDetail = subDetails
 		d.TotalSubKpi = len(subDetails)
@@ -1558,7 +1438,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 	detailRows.Close()
 
 	if kpiDetails == nil {
-		kpiDetails = []dto.PenyusunanKpiDetailResponse{}
+		kpiDetails = []dto.DataKpiDetail{}
 	}
 	resp.Kpi = kpiDetails
 	resp.TotalKpi = len(kpiDetails)
