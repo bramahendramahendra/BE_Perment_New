@@ -125,6 +125,24 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 		return
 	}
 
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+
+	// req.Kostl = req.Divisi.Kostl
+	// req.KostlTx = req.Divisi.KostlTx
+	req.EntryUser = strings.TrimSpace(parts[0])
+	req.EntryName = strings.TrimSpace(parts[1])
+	req.EntryTime = time.Now().Format("2006-01-02 15:04:05")
+
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return

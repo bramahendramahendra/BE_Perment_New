@@ -126,6 +126,11 @@ type RevisionPenyusunanKpiRequest struct {
 type CreatePenyusunanKpiRequest struct {
 	IdPengajuan  string         `json:"id_pengajuan"  validate:"required"`
 	ApprovalList []ApprovalUser `json:"approval_list" validate:"required,min=1,dive"`
+
+	// Diisi handler dari header 'userq', tidak boleh dari body.
+	EntryUser string `json:"entry_user"`
+	EntryName string `json:"entry_name"`
+	EntryTime string `json:"entry_time"`
 }
 
 // BatalPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/batal.

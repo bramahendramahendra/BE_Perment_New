@@ -41,9 +41,15 @@ const (
 		WHERE id_pengajuan = ?`
 
 	queryCheckExistIdPengajuan = `
-		SELECT COUNT(id_pengajuan) 
-		FROM data_kpi 
+		SELECT COUNT(id_pengajuan)
+		FROM data_kpi
 		WHERE id_pengajuan = ?`
+
+	queryGetKostlTx = `
+		SELECT kostl_tx
+		FROM data_kpi
+		WHERE id_pengajuan = ?
+		LIMIT 1`
 
 	// queryInsertKpiDetail: id_perspektif diisi NULL karena sudah tidak digunakan.
 	queryInsertKpiDetail = `
@@ -845,6 +851,46 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
 	).Error; err != nil {
 		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
+	}
+
+	// Ambil kostl_tx dari data_kpi untuk pesan notifikasi
+	var kostlTx string
+	if err := r.db.Raw(
+		`SELECT kostl_tx FROM data_kpi WHERE id_pengajuan = ? LIMIT 1`,
+		req.IdPengajuan,
+	).Scan(&kostlTx).Error; err != nil {
+		return fmt.Errorf("gagal mengambil kostl_tx: %w", err)
+	}
+
+	// =========================================================================
+	// Jalankan dalam transaksi agar update + notif atomic
+	// =========================================================================
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+	}
+
+	if err := tx.Exec(queryUpdateKpi,
+		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
+	).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
+	}
+
+	if err := notif.Insert(
+		tx,
+		req.IdPengajuan,
+		kostlTx,
+		req.EntryUser,
+		approvalPosisi,
+		"approval_penyusunan",
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi: %w", err)
 	}
 
 	return nil
