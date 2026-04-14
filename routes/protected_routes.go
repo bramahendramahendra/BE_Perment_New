@@ -21,6 +21,11 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.PenyusunanKpiRoutes(r)
 
 	// =============================================
+	// DOMAIN: REALISASI KPI
+	// =============================================
+	segment.RealisasiKpiRoutes(r)
+
+	// =============================================
 	// DOMAIN: MASTER TRIWULAN
 	// =============================================
 	segment.MasterTriwulanRoutes(r)
