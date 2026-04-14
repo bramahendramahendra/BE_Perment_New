@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"strings"
 
 	dto "permen_api/domain/audit_trail/dto"
 	service "permen_api/domain/audit_trail/service"
@@ -11,14 +12,12 @@ import (
 )
 
 // AuditTrailMiddleware mencatat setiap request ke log_request setelah response dikirim.
-// Logika mengikuti BE_Perment_Old: hanya log jika request body tidak kosong,
-// userid diambil dari header "User", IP dari client, function dari full path route.
+// userid diambil dari header "userq" (format: "pernr | nama"), diambil bagian pernr-nya.
+// function diambil dari full path route dengan prefix "/api" dihilangkan.
 func AuditTrailMiddleware(svc service.AuditTrailServiceInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Baca request body sebelum c.Next() agar tidak hilang
 		reqBodyStr, _ := request_helper.ReadRequestBody(c)
 
-		// Wrap response writer untuk menangkap response body
 		blw := &auditBodyLogWriter{
 			ResponseWriter: c.Writer,
 			body:           bytes.NewBufferString(""),
@@ -27,10 +26,22 @@ func AuditTrailMiddleware(svc service.AuditTrailServiceInterface) gin.HandlerFun
 
 		c.Next()
 
+		// Ambil userid dari header "userq" format: "pernr | nama"
+		userid := ""
+		userq := c.GetHeader("userq")
+		if userq != "" {
+			parts := strings.SplitN(userq, " | ", 2)
+			userid = strings.TrimSpace(parts[0])
+		}
+
+		// Hilangkan prefix "/api" dari full path
+		fullPath := c.FullPath()
+		function := strings.TrimPrefix(fullPath, "/api")
+
 		svc.SaveAuditTrail(&dto.AuditTrailRequest{
 			Ip:       c.ClientIP(),
-			Userid:   c.GetHeader("User"),
-			Function: c.FullPath(),
+			Userid:   userid,
+			Function: function,
 			Body:     reqBodyStr,
 			Response: blw.body.String(),
 			ErrSis:   "",
