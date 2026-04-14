@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	dto "permen_api/domain/audit_trail/dto"
@@ -10,6 +11,23 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+// isFileContentType mengembalikan true jika Content-Type adalah tipe binary/file.
+func isFileContentType(ct string) bool {
+	fileTypes := []string{
+		"application/vnd.openxmlformats-officedocument",
+		"application/vnd.ms-excel",
+		"application/pdf",
+		"application/zip",
+		"application/octet-stream",
+	}
+	for _, ft := range fileTypes {
+		if strings.HasPrefix(ct, ft) {
+			return true
+		}
+	}
+	return false
+}
 
 // AuditTrailMiddleware mencatat setiap request ke log_request setelah response dikirim.
 // userid diambil dari header "userq" (format: "pernr | nama"), diambil bagian pernr-nya.
@@ -38,12 +56,31 @@ func AuditTrailMiddleware(svc service.AuditTrailServiceInterface) gin.HandlerFun
 		fullPath := c.FullPath()
 		function := strings.TrimPrefix(fullPath, "/api")
 
+		// Jika response berupa file binary, simpan keterangan saja (bukan isi binary)
+		responseStr := blw.body.String()
+		contentType := c.Writer.Header().Get("Content-Type")
+		if isFileContentType(contentType) {
+			filename := ""
+			disposition := c.Writer.Header().Get("Content-Disposition")
+			if disposition != "" {
+				// Ambil nama file dari: attachment; filename="namafile.xlsx"
+				for part := range strings.SplitSeq(disposition, ";") {
+					part = strings.TrimSpace(part)
+					if val, ok := strings.CutPrefix(part, "filename="); ok {
+						filename = strings.Trim(val, "\"")
+						break
+					}
+				}
+			}
+			responseStr = fmt.Sprintf("[FILE RESPONSE] filename: %s, Content-Type: %s, Size: %d bytes", filename, contentType, blw.body.Len())
+		}
+
 		svc.SaveAuditTrail(&dto.AuditTrailRequest{
 			Ip:       c.ClientIP(),
 			Userid:   userid,
 			Function: function,
 			Body:     reqBodyStr,
-			Response: blw.body.String(),
+			Response: responseStr,
 			ErrSis:   "",
 		})
 	}
