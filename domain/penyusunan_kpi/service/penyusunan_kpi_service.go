@@ -1,18 +1,15 @@
 package service
 
 import (
-	"bytes"
 	"fmt"
 	"mime/multipart"
-	"strconv"
 	"strings"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
 	"permen_api/domain/penyusunan_kpi/utils"
 	customErrors "permen_api/errors"
-
-	"github.com/jung-kurt/gofpdf"
-	"github.com/xuri/excelize/v2"
+	file_export "permen_api/pkg/file_export"
+	"permen_api/pkg/idgen"
 )
 
 // =============================================================================
@@ -59,7 +56,7 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 	}
 
 	// Bangun idPengajuan di service agar bisa digunakan untuk build response sebelum repo insert.
-	idPengajuan := utils.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
+	idPengajuan := idgen.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
 
 	// Build ProcessList dan ContextList dari data Excel (kolom P,Q,R,S,T,U).
 	// Hanya diisi untuk TW2 dan TW4; untuk TW1 dan TW3 list kosong (tidak diinsert ke DB).
@@ -486,108 +483,7 @@ func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 		return nil, "", err
 	}
 
-	const sheetName = "Data KPI"
-
-	f := excelize.NewFile()
-	defer f.Close()
-
-	// Rename default sheet "Sheet1" → "Data KPI"
-	defaultSheet := f.GetSheetName(0)
-	if err := f.SetSheetName(defaultSheet, sheetName); err != nil {
-		return nil, "", fmt.Errorf("gagal set nama sheet: %w", err)
-	}
-
-	// -------------------------------------------------------------------------
-	// Lebar kolom
-	// A  = No             → sempit
-	// B  = KPI            → lebar (konten teks panjang)
-	// C  = Bobot (%)      → sedang
-	// D  = Target Tahunan → sedang
-	// E  = Capping        → sedang
-	// -------------------------------------------------------------------------
-	colWidths := map[string]float64{
-		"A": 6,
-		"B": 40,
-		"C": 14,
-		"D": 20,
-		"E": 14,
-	}
-	for col, width := range colWidths {
-		if err := f.SetColWidth(sheetName, col, col, width); err != nil {
-			return nil, "", fmt.Errorf("gagal set lebar kolom %s: %w", col, err)
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// Baris 1: Nama Divisi — merge A1:E1
-	// -------------------------------------------------------------------------
-	if err := f.MergeCell(sheetName, "A1", "E1"); err != nil {
-		return nil, "", fmt.Errorf("gagal merge cell baris 1: %w", err)
-	}
-	if err := f.SetCellValue(sheetName, "A1", exportData.NamaDivisi); err != nil {
-		return nil, "", fmt.Errorf("gagal menulis nama divisi: %w", err)
-	}
-
-	// -------------------------------------------------------------------------
-	// Baris 2: Tahun — merge A2:E2
-	// -------------------------------------------------------------------------
-	if err := f.MergeCell(sheetName, "A2", "E2"); err != nil {
-		return nil, "", fmt.Errorf("gagal merge cell baris 2: %w", err)
-	}
-	if err := f.SetCellValue(sheetName, "A2", "Tahun "+exportData.Tahun); err != nil {
-		return nil, "", fmt.Errorf("gagal menulis tahun: %w", err)
-	}
-
-	// -------------------------------------------------------------------------
-	// Baris 3: Kosong
-	// -------------------------------------------------------------------------
-	// (tidak perlu set value — cell default kosong)
-
-	// -------------------------------------------------------------------------
-	// Baris 4: Header kolom
-	// -------------------------------------------------------------------------
-	headers := []string{"No", "KPI", "Bobot (%)", "Target Tahunan", "Capping"}
-	for colIdx, header := range headers {
-		cell, _ := excelize.CoordinatesToCellName(colIdx+1, 4)
-		if err := f.SetCellValue(sheetName, cell, header); err != nil {
-			return nil, "", fmt.Errorf("gagal menulis header kolom '%s': %w", header, err)
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// Baris 5 dst: Data rows
-	// -------------------------------------------------------------------------
-	for i, row := range exportData.Rows {
-		rowNum := 5 + i
-
-		values := []interface{}{
-			strconv.Itoa(row.No),
-			row.KpiNama,
-			row.Bobot,
-			row.TargetTahunan,
-			row.Capping,
-		}
-
-		for colIdx, val := range values {
-			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowNum)
-			if err := f.SetCellValue(sheetName, cell, val); err != nil {
-				return nil, "", fmt.Errorf("gagal menulis data baris %d kolom %d: %w", rowNum, colIdx+1, err)
-			}
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// Write ke buffer
-	// -------------------------------------------------------------------------
-	var buf bytes.Buffer
-	if err := f.Write(&buf); err != nil {
-		return nil, "", fmt.Errorf("gagal menulis Excel ke buffer: %w", err)
-	}
-
-	filename := fmt.Sprintf("KPI_%s_%s_%s.xlsx",
-		exportData.NamaDivisi, exportData.Tahun, exportData.Triwulan)
-
-	return buf.Bytes(), filename, nil
+	return file_export.GenerateKpiExcel(exportData)
 }
 
 // =============================================================================
@@ -602,79 +498,5 @@ func (s *penyusunanKpiService) GetPdfPenyusunanKpi(
 		return nil, "", err
 	}
 
-	pdf := gofpdf.New("L", "mm", "A4", "")
-	pdf.SetMargins(15, 15, 15)
-	pdf.AddPage()
-
-	// Warna palette (sesuai gambar)
-	headerBgR, headerBgG, headerBgB := 31, 73, 125   // biru tua  (#1F497D)
-	headerFgR, headerFgG, headerFgB := 255, 255, 255 // putih
-	rowBlueR, rowBlueG, rowBlueB := 189, 215, 238    // biru muda (#BDD7EE)
-	rowPeachR, rowPeachG, rowPeachB := 252, 228, 214 // peach     (#FCE4D6)
-	rowGreenR, rowGreenG, rowGreenB := 226, 240, 217 // hijau muda (#E2F0D9)
-	textR, textG, textB := 0, 0, 0
-
-	// Judul
-	pdf.SetFont("Arial", "B", 12)
-	pdf.SetTextColor(textR, textG, textB)
-	pdf.CellFormat(0, 7, exportData.NamaDivisi, "", 1, "L", false, 0, "")
-	pdf.SetFont("Arial", "B", 11)
-	pdf.CellFormat(0, 7, "Tahun "+exportData.Tahun, "", 1, "L", false, 0, "")
-	pdf.Ln(4)
-
-	// Lebar kolom — total ~267mm untuk A4 landscape (297 - 15*2 margin)
-	// No | KPI | Bobot (%) | Target Tahunan | Capping
-	colWidths := []float64{12, 100, 25, 80, 25}
-	headers := []string{"No", "KPI", "Bobot (%)", "Target Tahunan", "Capping"}
-	rowHeight := 8.0
-
-	// Header tabel
-	pdf.SetFont("Arial", "B", 9)
-	pdf.SetFillColor(headerBgR, headerBgG, headerBgB)
-	pdf.SetTextColor(headerFgR, headerFgG, headerFgB)
-	pdf.SetDrawColor(255, 255, 255)
-	for i, h := range headers {
-		pdf.CellFormat(colWidths[i], rowHeight, h, "1", 0, "C", true, 0, "")
-	}
-	pdf.Ln(-1)
-
-	// Baris data — alternating per 3 baris
-	pdf.SetFont("Arial", "", 9)
-	pdf.SetDrawColor(200, 200, 200)
-	dataAligns := []string{"C", "L", "C", "L", "C"}
-
-	for _, row := range exportData.Rows {
-		group := ((row.No - 1) / 3) % 3
-		switch group {
-		case 0:
-			pdf.SetFillColor(rowBlueR, rowBlueG, rowBlueB)
-		case 1:
-			pdf.SetFillColor(rowPeachR, rowPeachG, rowPeachB)
-		default:
-			pdf.SetFillColor(rowGreenR, rowGreenG, rowGreenB)
-		}
-		pdf.SetTextColor(textR, textG, textB)
-
-		values := []string{
-			strconv.Itoa(row.No),
-			row.KpiNama,
-			row.Bobot,
-			row.TargetTahunan,
-			row.Capping,
-		}
-		for i, v := range values {
-			pdf.CellFormat(colWidths[i], rowHeight, v, "1", 0, dataAligns[i], true, 0, "")
-		}
-		pdf.Ln(-1)
-	}
-
-	var buf bytes.Buffer
-	if err := pdf.Output(&buf); err != nil {
-		return nil, "", fmt.Errorf("gagal generate PDF: %w", err)
-	}
-
-	filename := fmt.Sprintf("KPI_%s_%s_%s.pdf",
-		exportData.NamaDivisi, exportData.Tahun, exportData.Triwulan)
-
-	return buf.Bytes(), filename, nil
+	return file_export.GenerateKpiPDF(exportData)
 }

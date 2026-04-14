@@ -9,8 +9,8 @@ import (
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
 	"permen_api/domain/penyusunan_kpi/model"
-	"permen_api/domain/penyusunan_kpi/utils"
 	customErrors "permen_api/errors"
+	"permen_api/pkg/idgen"
 	notif "permen_api/pkg/notif"
 )
 
@@ -303,7 +303,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	contextList []dto.PenyusunanContext,
 ) (string, error) {
 
-	idPengajuan := utils.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
+	idPengajuan := idgen.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
 
 	var countExist int
 	if err := r.db.Raw(queryCheckExistKpi, req.Tahun, req.Triwulan, req.Kostl).
@@ -334,7 +334,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	idDetailMap := make(map[int]string) // kpiIndex → idDetail
 
 	for i, kpiRow := range kpiRows {
-		idDetail := utils.GenerateIDDetail(idPengajuan, i)
+		idDetail := idgen.GenerateIDDetail(idPengajuan, i)
 		idDetailMap[kpiRow.KpiIndex] = idDetail
 
 		kpiDetailPlaceholders = append(kpiDetailPlaceholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
@@ -367,7 +367,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		idDetail := idDetailMap[kpiRow.KpiIndex]
 
 		for _, subRow := range rows {
-			idSubDetail := utils.GenerateIDSubDetail(idPengajuan, subCounter)
+			idSubDetail := idgen.GenerateIDSubDetail(idPengajuan, subCounter)
 			subCounter++
 
 			itemQualifier, deskripsiQualifier, targetQualifier := "", "", ""
@@ -542,7 +542,7 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	idDetailMap := make(map[int]string) // kpiIndex → idDetail
 
 	for i, kpiRow := range kpiRows {
-		idDetail := utils.GenerateIDDetail(req.IdPengajuan, i)
+		idDetail := idgen.GenerateIDDetail(req.IdPengajuan, i)
 		idDetailMap[kpiRow.KpiIndex] = idDetail
 
 		kpiDetailPlaceholders = append(kpiDetailPlaceholders, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
@@ -575,7 +575,7 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		idDetail := idDetailMap[kpiRow.KpiIndex]
 
 		for _, subRow := range rows {
-			idSubDetail := utils.GenerateIDSubDetail(req.IdPengajuan, subCounter)
+			idSubDetail := idgen.GenerateIDSubDetail(req.IdPengajuan, subCounter)
 			subCounter++
 
 			itemQualifier, deskripsiQualifier, targetQualifier := "", "", ""

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
+	"permen_api/pkg/idgen"
 )
 
 // BuildKpiResponse membangun slice PenyusunanKpiDetailResponse dari kpiRows (hasil parse Excel + lookup mst_kpi)
@@ -23,13 +24,13 @@ func BuildKpiResponse(
 
 	subCounter := 1
 	for i, kpiRow := range kpiRows {
-		idDetail := GenerateIDDetail(idPengajuan, i)
+		idDetail := idgen.GenerateIDDetail(idPengajuan, i)
 
 		rows := kpiSubDetails[kpiRow.KpiIndex]
 		subDetails := make([]dto.DataKpiSubdetail, 0, len(rows))
 
 		for _, subRow := range rows {
-			idSubDetail := GenerateIDSubDetail(idPengajuan, subCounter)
+			idSubDetail := idgen.GenerateIDSubDetail(idPengajuan, subCounter)
 			subCounter++
 
 			qualifier, deskripsiQualifier, targetQualifier := "", "", ""
@@ -91,7 +92,7 @@ func BuildResultList(
 	for _, kpiRow := range kpiRows {
 		rows := kpiSubDetails[kpiRow.KpiIndex]
 		for _, subRow := range rows {
-			idSubDetail := GenerateIDSubDetail(idPengajuan, subCounter)
+			idSubDetail := idgen.GenerateIDSubDetail(idPengajuan, subCounter)
 			subCounter++
 
 			// Kolom P (Result) = namaResult, kolom Q (Deskripsi Result) = deskripsiResult
@@ -128,7 +129,7 @@ func BuildProcessList(
 	for _, kpiRow := range kpiRows {
 		rows := kpiSubDetails[kpiRow.KpiIndex]
 		for _, subRow := range rows {
-			idSubDetail := GenerateIDSubDetail(idPengajuan, subCounter)
+			idSubDetail := idgen.GenerateIDSubDetail(idPengajuan, subCounter)
 			subCounter++
 
 			// Kolom R (Process) = namaProcess, kolom S (Deskripsi Process) = deskripsiProcess
@@ -165,7 +166,7 @@ func BuildContextList(
 	for _, kpiRow := range kpiRows {
 		rows := kpiSubDetails[kpiRow.KpiIndex]
 		for _, subRow := range rows {
-			idSubDetail := GenerateIDSubDetail(idPengajuan, subCounter)
+			idSubDetail := idgen.GenerateIDSubDetail(idPengajuan, subCounter)
 			subCounter++
 
 			// Kolom T (Context) = namaContext, kolom U (Deskripsi Context) = deskripsiContext

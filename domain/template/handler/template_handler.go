@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	dto "permen_api/domain/template/dto"
 	service "permen_api/domain/template/service"
 	"permen_api/errors"
 	binder "permen_api/pkg/binder"
+	file_export "permen_api/pkg/file_export"
 	validator "permen_api/validation"
 
 	"github.com/gin-gonic/gin"
@@ -42,7 +42,7 @@ func (h *TemplateHandler) GetFormatPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	setExcelDownloadHeaders(c, filename)
+	file_export.SetExcelDownloadHeaders(c, filename)
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }
 
@@ -68,19 +68,7 @@ func (h *TemplateHandler) GetTolakanPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	setExcelDownloadHeaders(c, filename)
+	file_export.SetExcelDownloadHeaders(c, filename)
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }
 
-// =============================================================================
-// Helper
-// =============================================================================
-
-// setExcelDownloadHeaders menyetel header HTTP untuk response file Excel download.
-func setExcelDownloadHeaders(c *gin.Context, filename string) {
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Cache-Control", "no-cache")
-}

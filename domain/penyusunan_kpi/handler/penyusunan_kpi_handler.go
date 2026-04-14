@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -12,6 +10,7 @@ import (
 	"permen_api/errors"
 	response_helper "permen_api/helper/response"
 	binder "permen_api/pkg/binder"
+	file_export "permen_api/pkg/file_export"
 	validator "permen_api/validation"
 
 	"github.com/gin-gonic/gin"
@@ -454,14 +453,7 @@ func (h *PenyusunanKpiHandler) GetExcelPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	const mimeExcel = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-	c.Header("Content-Type", mimeExcel)
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Cache-Control", "no-cache")
-	c.Data(http.StatusOK, mimeExcel, fileBytes)
+	file_export.SendExcel(c, fileBytes, filename)
 }
 
 // GetPdfPenyusunanKpi handles POST /penyusunan-kpi/get-pdf
@@ -483,10 +475,5 @@ func (h *PenyusunanKpiHandler) GetPdfPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-	c.Header("Content-Type", "application/pdf")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Cache-Control", "no-cache")
-	c.Data(http.StatusOK, "application/pdf", fileBytes)
+	file_export.SendPDF(c, fileBytes, filename)
 }
