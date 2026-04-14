@@ -20,7 +20,7 @@ const (
 	// =============================================================================
 
 	// Use func : ValidatePenyusunanKpi
-	queryCheckExistKpi = `
+	queryCheckExistPenyusunan = `
 		SELECT COUNT(id_pengajuan) 
 		FROM data_kpi 
 		WHERE tahun = ? AND triwulan = ? AND kostl = ?`
@@ -31,7 +31,7 @@ const (
 		FROM data_kpi
 		WHERE id_pengajuan = ?`
 
-	// Use Func : GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, GetAllDaftarApprovalPenyusunanKpi
+	// Use func : GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, GetAllDaftarApprovalPenyusunanKpi
 	queryGetCountDataKpi = `
 		SELECT COUNT(1)
 		FROM data_kpi a
@@ -286,14 +286,6 @@ func (r *penyusunanKpiRepo) LookupPolarisasi(polarisasiText string) (idPolarisas
 // VALIDATE — simpan data KPI tanpa approval
 // =============================================================================
 
-// ValidatePenyusunanKpi menyimpan data KPI, SubKPI, ContextList, dan ProcessList ke DB.
-//
-// Perubahan dari versi sebelumnya:
-//   - Parameter req tidak lagi memiliki Kpi[], ContextList[], ProcessList[]
-//   - kpiRows: daftar KPI unik dari kolom B Excel (sudah dilookup ke mst_kpi oleh service)
-//   - contextList: dibangun dari kolom T/U Excel oleh service (hanya TW2 & TW4)
-//   - processList: dibangun dari kolom R/S Excel oleh service (hanya TW2 & TW4)
-//   - Persfektif (id_perspektif) diisi NULL di DB karena sudah tidak digunakan
 func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	req *dto.ValidatePenyusunanKpiRequest,
 	kpiRows []dto.PenyusunanKpiRow,
@@ -306,9 +298,8 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	idPengajuan := idgen.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
 
 	var countExist int
-	if err := r.db.Raw(queryCheckExistKpi, req.Tahun, req.Triwulan, req.Kostl).
-		Scan(&countExist).Error; err != nil {
-		return "", fmt.Errorf("gagal mengecek data KPI: %w", err)
+	if err := r.db.Raw(queryCheckExistPenyusunan, req.Tahun, req.Triwulan, req.Kostl).Scan(&countExist).Error; err != nil {
+		return "", fmt.Errorf("gagal mengecek data Penyusnan KPI: %w", err)
 	}
 	if countExist > 0 {
 		return "", &customErrors.BadRequestError{

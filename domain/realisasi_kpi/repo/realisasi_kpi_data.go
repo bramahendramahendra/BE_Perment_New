@@ -17,9 +17,9 @@ const (
 	// Check
 	// =============================================================================
 
-	// queryCheckStatusRealisasi memvalidasi bahwa id_pengajuan ada dan berstatus
+	// Use func : ValidateRealisasiKpi
 	// yang mengizinkan input realisasi (2=approved penyusunan, 4=tolak realisasi, 80=draft realisasi, 81).
-	queryCheckStatusRealisasi = `
+	queryCheckExistRealisasi = `
 		SELECT COUNT(id_pengajuan)
 		FROM data_kpi
 		WHERE id_pengajuan = ? AND status IN (2, 4, 80, 81)`
@@ -266,18 +266,16 @@ func (r *realisasiKpiRepo) LookupSubDetailByKpiSubKpi(
 // VALIDATE — simpan draft realisasi (status 80)
 // =============================================================================
 
-// ValidateRealisasiKpi meng-update data_kpi ke status 80 dan meng-update data_kpi_subdetail
-// (realisasi, pencapaian, skor) beserta data_challenge_detail dan data_method_detail.
 func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	req *dto.ValidateRealisasiKpiRequest,
 	rows []dto.RealisasiKpiRow,
 ) error {
 	// Validasi status: harus 2, 4, 80, atau 81 agar bisa input realisasi
-	var count int
-	if err := r.db.Raw(queryCheckStatusRealisasi, req.IdPengajuan).Scan(&count).Error; err != nil {
-		return fmt.Errorf("gagal mengecek status pengajuan: %w", err)
+	var countExist int
+	if err := r.db.Raw(queryCheckExistRealisasi, req.IdPengajuan).Scan(&countExist).Error; err != nil {
+		return fmt.Errorf("gagal mengecek data Realisasi KPI: %w", err)
 	}
-	if count == 0 {
+	if countExist == 0 {
 		return &customErrors.BadRequestError{
 			Message: fmt.Sprintf(
 				"id_pengajuan '%s' tidak ditemukan atau status tidak mengizinkan input realisasi",
