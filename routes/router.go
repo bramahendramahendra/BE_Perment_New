@@ -1,6 +1,8 @@
 package routes
 
 import (
+	audit_repo "permen_api/domain/audit_trail/repo"
+	audit_service "permen_api/domain/audit_trail/service"
 	"permen_api/errors"
 	error_helper "permen_api/helper/error"
 	log_helper "permen_api/helper/log"
@@ -23,10 +25,16 @@ const (
 
 func Router(r *gin.Engine) {
 	repository.LogRequestRepo = repository.NewLogRequestRepository(database.DB)
+
+	// Init AuditTrail
+	auditRepo := audit_repo.NewAuditTrailRepo(database.DB)
+	auditSvc := audit_service.NewAuditTrailService(auditRepo)
+
 	// Security: Add security headers first (including HSTS)
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.Cors())
 	r.Use(middleware.LogRequestMiddleware())
+	r.Use(middleware.AuditTrailMiddleware(auditSvc))
 	r.Use(middleware.ErrorHandlerMiddleware())
 	r.NoRoute(notFoundHandler)
 	r.NoMethod(methodNotAllowedHandler)
