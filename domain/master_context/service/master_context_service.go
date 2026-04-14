@@ -3,11 +3,11 @@ package service
 import (
 	"fmt"
 
-	dto "permen_api/domain/master_challenge/dto"
+	dto "permen_api/domain/master_context/dto"
 	customErrors "permen_api/errors"
 )
 
-func (s *masterChallengeService) GetAllMasterChallenge(req *dto.GetAllMasterChallengeRequest) (data []dto.MasterChallengeResponse, err error) {
+func (s *masterContextService) GetAllMasterContext(req *dto.GetAllMasterContextRequest) (data []dto.MasterContextResponse, err error) {
 	exists, err := s.repo.CheckTriwulanExists(req.Triwulan)
 	if err != nil {
 		return nil, err
@@ -18,16 +18,16 @@ func (s *masterChallengeService) GetAllMasterChallenge(req *dto.GetAllMasterChal
 		}
 	}
 
-	dataDB, err := s.repo.GetAllMasterChallenge(req)
+	dataDB, err := s.repo.GetAllMasterContext(req)
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, dto.MasterChallengeResponse{
-			IdChallenge:   v.IdChallenge,
-			NamaChallenge: v.NamaChallenge,
-			DescChallenge: v.DescChallenge,
+		data = append(data, dto.MasterContextResponse{
+			IdContext:   v.IdChallenge,
+			NamaContext: v.NamaChallenge,
+			DescContext: v.DescChallenge,
 		})
 	}
 

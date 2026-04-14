@@ -3,14 +3,14 @@ package repo
 import (
 	"strings"
 
-	dto "permen_api/domain/master_method/dto"
-	model "permen_api/domain/master_method/model"
+	dto "permen_api/domain/master_context/dto"
+	model "permen_api/domain/master_context/model"
 )
 
 const (
-	GetAllMasterMethodBaseQuery = `
-		SELECT id_method_use, nama_method, desc_method, tahun, triwulan, entry_user, entry_name, entry_time
-		FROM mst_method_use`
+	GetAllMasterContextBaseQuery = `
+		SELECT id_challenge, nama_challenge, desc_challenge, tahun, triwulan, entry_user, entry_name, entry_time
+		FROM mst_challenge`
 
 	CheckTriwulanExistsQuery = `
 		SELECT COUNT(1)
@@ -18,16 +18,16 @@ const (
 		WHERE id_triwulan = ?`
 )
 
-func (r *masterMethodRepo) GetAllMasterMethod(req *dto.GetAllMasterMethodRequest) ([]*model.MstMethod, error) {
-	var methods []*model.MstMethod
+func (r *masterContextRepo) GetAllMasterContext(req *dto.GetAllMasterContextRequest) ([]*model.MstChallenge, error) {
+	var contexts []*model.MstChallenge
 
-	query := GetAllMasterMethodBaseQuery
+	query := GetAllMasterContextBaseQuery
 
 	var conditions []string
 	var args []interface{}
 
 	if req.Search != "" {
-		conditions = append(conditions, "nama_method LIKE ?")
+		conditions = append(conditions, "nama_challenge LIKE ?")
 		args = append(args, "%"+req.Search+"%")
 	}
 
@@ -47,15 +47,15 @@ func (r *masterMethodRepo) GetAllMasterMethod(req *dto.GetAllMasterMethodRequest
 
 	query += " ORDER BY tahun DESC"
 
-	err := r.db.Raw(query, args...).Scan(&methods).Error
+	err := r.db.Raw(query, args...).Scan(&contexts).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return methods, nil
+	return contexts, nil
 }
 
-func (r *masterMethodRepo) CheckTriwulanExists(idTriwulan string) (bool, error) {
+func (r *masterContextRepo) CheckTriwulanExists(idTriwulan string) (bool, error) {
 	var count int
 	err := r.db.Raw(CheckTriwulanExistsQuery, idTriwulan).Scan(&count).Error
 	if err != nil {

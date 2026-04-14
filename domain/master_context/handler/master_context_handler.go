@@ -1,8 +1,8 @@
 package handler
 
 import (
-	dto "permen_api/domain/master_method/dto"
-	service "permen_api/domain/master_method/service"
+	dto "permen_api/domain/master_context/dto"
+	service "permen_api/domain/master_context/service"
 	globalDTO "permen_api/dto"
 	"permen_api/errors"
 	response_helper "permen_api/helper/response"
@@ -12,16 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type MasterMethodHandler struct {
-	service service.MasterMethodServiceInterface
+type MasterContextHandler struct {
+	service service.MasterContextServiceInterface
 }
 
-func NewMasterMethodHandler(service service.MasterMethodServiceInterface) *MasterMethodHandler {
-	return &MasterMethodHandler{service: service}
+func NewMasterContextHandler(service service.MasterContextServiceInterface) *MasterContextHandler {
+	return &MasterContextHandler{service: service}
 }
 
-func (h *MasterMethodHandler) GetAllMasterMethod(c *gin.Context) {
-	req, err := binder.BindJSON[dto.GetAllMasterMethodRequest](c)
+func (h *MasterContextHandler) GetAllMasterContext(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllMasterContextRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -32,7 +32,7 @@ func (h *MasterMethodHandler) GetAllMasterMethod(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.GetAllMasterMethod(&req)
+	data, err := h.service.GetAllMasterContext(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -41,7 +41,7 @@ func (h *MasterMethodHandler) GetAllMasterMethod(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
 		Status:  true,
-		Message: "Data Method berhasil diambil",
+		Message: "Data Context berhasil diambil",
 		Data:    data,
 	})
 }

@@ -24,6 +24,15 @@ type (
 		// Sheet 2 — nama sheet "KPI":
 		//   Kolom A (KPI) dan B (Polarisasi) dari join mst_kpi dan mst_polarisasi.
 		GenerateTolakanPenyusunanKpi(req *dto.TolakanPenyusunanKpiRequest) (fileBytes []byte, filename string, err error)
+
+		// GenerateFormatRealisasiKpi digunakan oleh endpoint POST /template/format-realisasi-kpi.
+		// Menghasilkan file Excel template realisasi KPI berdasarkan id_pengajuan dan triwulan dari request.
+		// Kolom A–I terisi data dari DB; kolom J–M dikosongkan untuk diisi user.
+		// Format kolom extended mengikuti triwulan dari request:
+		//   TW1/TW3 → kolom A–S (kolom N–S terisi data result/process/context dari DB).
+		//   TW2/TW4 → kolom A–Y (kolom N, O, R, S, V, W dari DB; kolom P, Q, T, U, X, Y kosong untuk user).
+		// Row 1 adalah header kolom; data dimulai dari row 2.
+		GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpiRequest) (fileBytes []byte, filename string, err error)
 	}
 
 	templateService struct {

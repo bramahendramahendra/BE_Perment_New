@@ -46,14 +46,14 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.MasterDivisiRoutes(r)
 
 	// =============================================
-	// DOMAIN: MASTER CHALLENGE
+	// DOMAIN: MASTER CONTEXT
 	// =============================================
-	segment.MasterChallengeRoutes(r)
+	segment.MasterContextRoutes(r)
 
 	// =============================================
-	// DOMAIN: MASTER METHOD
+	// DOMAIN: MASTER PROCESS
 	// =============================================
-	segment.MasterMethodRoutes(r)
+	segment.MasterProcessRoutes(r)
 
 	// =============================================
 	// DOMAIN: USER

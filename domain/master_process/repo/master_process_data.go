@@ -3,14 +3,14 @@ package repo
 import (
 	"strings"
 
-	dto "permen_api/domain/master_challenge/dto"
-	model "permen_api/domain/master_challenge/model"
+	dto "permen_api/domain/master_process/dto"
+	model "permen_api/domain/master_process/model"
 )
 
 const (
-	GetAllMasterChallengeBaseQuery = `
-		SELECT id_challenge, nama_challenge, desc_challenge, tahun, triwulan, entry_user, entry_name, entry_time
-		FROM mst_challenge`
+	GetAllMasterProcessBaseQuery = `
+		SELECT id_method_use, nama_method, desc_method, tahun, triwulan, entry_user, entry_name, entry_time
+		FROM mst_method_use`
 
 	CheckTriwulanExistsQuery = `
 		SELECT COUNT(1)
@@ -18,16 +18,16 @@ const (
 		WHERE id_triwulan = ?`
 )
 
-func (r *masterChallengeRepo) GetAllMasterChallenge(req *dto.GetAllMasterChallengeRequest) ([]*model.MstChallenge, error) {
-	var challenges []*model.MstChallenge
+func (r *masterProcessRepo) GetAllMasterProcess(req *dto.GetAllMasterProcessRequest) ([]*model.MstMethod, error) {
+	var processes []*model.MstMethod
 
-	query := GetAllMasterChallengeBaseQuery
+	query := GetAllMasterProcessBaseQuery
 
 	var conditions []string
 	var args []interface{}
 
 	if req.Search != "" {
-		conditions = append(conditions, "nama_challenge LIKE ?")
+		conditions = append(conditions, "nama_method LIKE ?")
 		args = append(args, "%"+req.Search+"%")
 	}
 
@@ -47,15 +47,15 @@ func (r *masterChallengeRepo) GetAllMasterChallenge(req *dto.GetAllMasterChallen
 
 	query += " ORDER BY tahun DESC"
 
-	err := r.db.Raw(query, args...).Scan(&challenges).Error
+	err := r.db.Raw(query, args...).Scan(&processes).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return challenges, nil
+	return processes, nil
 }
 
-func (r *masterChallengeRepo) CheckTriwulanExists(idTriwulan string) (bool, error) {
+func (r *masterProcessRepo) CheckTriwulanExists(idTriwulan string) (bool, error) {
 	var count int
 	err := r.db.Raw(CheckTriwulanExistsQuery, idTriwulan).Scan(&count).Error
 	if err != nil {

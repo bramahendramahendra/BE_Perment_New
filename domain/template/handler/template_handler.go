@@ -72,3 +72,33 @@ func (h *TemplateHandler) GetTolakanPenyusunanKpi(c *gin.Context) {
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }
 
+// GetFormatRealisasiKpi handles POST /template/format-realisasi-kpi
+// Menerima JSON body dengan field id_pengajuan dan triwulan (TW1/TW2/TW3/TW4).
+// Menghasilkan file Excel template realisasi KPI: kolom A–I terisi data dari DB,
+// kolom J–M dikosongkan untuk diisi user.
+// Format kolom extended mengikuti triwulan dari request:
+//
+//	TW1/TW3 → kolom N–S terisi data result/process/context dari DB.
+//	TW2/TW4 → kolom N–Y dengan sebagian dikosongkan untuk diisi user.
+func (h *TemplateHandler) GetFormatRealisasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.FormatRealisasiKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	fileBytes, filename, err := h.service.GenerateFormatRealisasiKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	file_export.SetExcelDownloadHeaders(c, filename)
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
+}
+
