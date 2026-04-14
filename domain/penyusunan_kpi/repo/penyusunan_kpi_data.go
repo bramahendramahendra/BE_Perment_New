@@ -513,6 +513,92 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	return idPengajuan, nil
 }
 
+// =============================================================================
+// CREATE — update approval pada data KPI yang sudah ada
+// =============================================================================
+
+func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
+	req *dto.CreatePenyusunanKpiRequest,
+) error {
+
+	// Cek apakah idPengajuan benar-benar ada di DB
+	var countExist int
+	if err := r.db.Raw(queryCheckExistIdPengajuan, req.IdPengajuan).
+		Scan(&countExist).Error; err != nil {
+		return fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
+	}
+	if countExist == 0 {
+		return &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
+
+	// Ambil userid pertama dari ApprovalList sebagai approval_posisi
+	approvalPosisi := ""
+	if len(req.ApprovalList) > 0 {
+		approvalPosisi = req.ApprovalList[0].Userid
+	}
+
+	approvalListBytes, err := json.Marshal(req.ApprovalList)
+	if err != nil {
+		// System error: seharusnya tidak terjadi karena struct sudah tervalidasi
+		return fmt.Errorf("gagal serialize approval_list: %w", err)
+	}
+
+	// System error: gagal update ke DB
+	if err := r.db.Exec(queryUpdateKpi,
+		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
+	).Error; err != nil {
+		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
+	}
+
+	// Ambil kostl_tx dari data_kpi untuk pesan notifikasi
+	var kpiBase struct {
+		KostlTx string `gorm:"column:kostl_tx"`
+	}
+	if err := r.db.Raw(queryGetKpiBaseData, req.IdPengajuan).Scan(&kpiBase).Error; err != nil {
+		return fmt.Errorf("gagal mengambil kostl_tx: %w", err)
+	}
+	kostlTx := kpiBase.KostlTx
+
+	// =========================================================================
+	// Jalankan dalam transaksi agar update + notif atomic
+	// =========================================================================
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+	}
+
+	if err := tx.Exec(queryUpdateKpi,
+		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
+	).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
+	}
+
+	if err := notif.Insert(
+		tx,
+		req.IdPengajuan,
+		kostlTx,
+		req.EntryUser,
+		approvalPosisi,
+		"approval_penyusunan",
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi: %w", err)
+	}
+
+	return nil
+}
+
+// =============================================================================
+// Revision — update data kpi
+// =============================================================================
+
 func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	req *dto.RevisionPenyusunanKpiRequest,
 	kpiRows []dto.PenyusunanKpiRow,
@@ -753,124 +839,6 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("gagal commit transaksi revision: %w", err)
-	}
-
-	return nil
-}
-
-// =============================================================================
-// CREATE — update approval pada data KPI yang sudah ada
-// =============================================================================
-
-func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
-	req *dto.CreatePenyusunanKpiRequest,
-) error {
-
-	// Cek apakah idPengajuan benar-benar ada di DB
-	var countExist int
-	if err := r.db.Raw(queryCheckExistIdPengajuan, req.IdPengajuan).
-		Scan(&countExist).Error; err != nil {
-		return fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
-	}
-	if countExist == 0 {
-		return &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-		}
-	}
-
-	// Ambil userid signer sebagai approval_posisi (posisi = "SIGNER")
-	approvalPosisi := ""
-	for _, a := range req.ApprovalList {
-		if strings.EqualFold(a.Posisi, "SIGNER") {
-			approvalPosisi = a.Userid
-			break
-		}
-	}
-	// Fallback: jika tidak ada SIGNER, pakai userid pertama
-	if approvalPosisi == "" && len(req.ApprovalList) > 0 {
-		approvalPosisi = req.ApprovalList[0].Userid
-	}
-
-	approvalListBytes, err := json.Marshal(req.ApprovalList)
-	if err != nil {
-		// System error: seharusnya tidak terjadi karena struct sudah tervalidasi
-		return fmt.Errorf("gagal serialize approval_list: %w", err)
-	}
-
-	// System error: gagal update ke DB
-	if err := r.db.Exec(queryUpdateKpi,
-		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
-	).Error; err != nil {
-		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
-	}
-
-	// Ambil kostl_tx dari data_kpi untuk pesan notifikasi
-	var kpiBase struct {
-		KostlTx string `gorm:"column:kostl_tx"`
-	}
-	if err := r.db.Raw(queryGetKpiBaseData, req.IdPengajuan).Scan(&kpiBase).Error; err != nil {
-		return fmt.Errorf("gagal mengambil kostl_tx: %w", err)
-	}
-	kostlTx := kpiBase.KostlTx
-
-	// =========================================================================
-	// Jalankan dalam transaksi agar update + notif atomic
-	// =========================================================================
-	tx := r.db.Begin()
-	if tx.Error != nil {
-		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
-	}
-
-	if err := tx.Exec(queryUpdateKpi,
-		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
-	).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
-	}
-
-	if err := notif.Insert(
-		tx,
-		req.IdPengajuan,
-		kostlTx,
-		req.EntryUser,
-		approvalPosisi,
-		"approval_penyusunan",
-	); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("gagal commit transaksi: %w", err)
-	}
-
-	return nil
-}
-
-// =============================================================================
-// BATAL PENYUSUNAN KPI
-// =============================================================================
-
-func (r *penyusunanKpiRepo) BatalPenyusunanKpi(
-	req *dto.BatalPenyusunanKpiRequest,
-) error {
-	var count int64
-
-	if err := r.db.Raw(
-		`SELECT COUNT(1) FROM data_kpi WHERE id_pengajuan = ?`,
-		req.IdPengajuan,
-	).Scan(&count).Error; err != nil {
-		return fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
-	}
-
-	if count == 0 {
-		return &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-		}
-	}
-
-	if err := r.db.Exec(queryBatalPenyusunanKpi, req.IdPengajuan).Error; err != nil {
-		return fmt.Errorf("gagal membatalkan penyusunan KPI: %w", err)
 	}
 
 	return nil

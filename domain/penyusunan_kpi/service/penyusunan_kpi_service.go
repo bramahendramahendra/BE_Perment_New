@@ -212,24 +212,6 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 }
 
 // =============================================================================
-// BATAL
-// =============================================================================
-
-func (s *penyusunanKpiService) BatalPenyusunanKpi(
-	req *dto.BatalPenyusunanKpiRequest,
-) (data dto.BatalPenyusunanKpiResponse, err error) {
-	if err = s.repo.BatalPenyusunanKpi(req); err != nil {
-		return data, err
-	}
-
-	data = dto.BatalPenyusunanKpiResponse{
-		IdPengajuan: req.IdPengajuan,
-	}
-
-	return data, nil
-}
-
-// =============================================================================
 // APPROVAL
 // =============================================================================
 
