@@ -37,18 +37,10 @@ const (
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status`
 
-	queryGetKostlTx = `
-		SELECT kostl_tx
-		FROM data_kpi
-		WHERE id_pengajuan = ?
-		LIMIT 1`
-
-	queryGetEntryUserPenyusunan = `
-		SELECT entry_user FROM data_kpi WHERE id_pengajuan = ?`
-
-	// queryGetKpiHeaderForExport dan queryGetSubDetailForExport digunakan oleh GetKpiExportData.
-	queryGetKpiHeaderForExport = `
-		SELECT kostl_tx, tahun, triwulan
+	// queryGetKpiBaseData digunakan oleh: SubmitPenyusunanKpi (kostl_tx),
+	// ApprovePenyusunanKpi (entry_user), dan GetKpiExportData (kostl_tx, tahun, triwulan).
+	queryGetKpiBaseData = `
+		SELECT kostl_tx, tahun, triwulan, entry_user
 		FROM data_kpi
 		WHERE id_pengajuan = ?
 		LIMIT 1`
@@ -813,10 +805,13 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 	}
 
 	// Ambil kostl_tx dari data_kpi untuk pesan notifikasi
-	var kostlTx string
-	if err := r.db.Raw(queryGetKostlTx, req.IdPengajuan).Scan(&kostlTx).Error; err != nil {
+	var kpiBase struct {
+		KostlTx string `gorm:"column:kostl_tx"`
+	}
+	if err := r.db.Raw(queryGetKpiBaseData, req.IdPengajuan).Scan(&kpiBase).Error; err != nil {
 		return fmt.Errorf("gagal mengambil kostl_tx: %w", err)
 	}
+	kostlTx := kpiBase.KostlTx
 
 	// =========================================================================
 	// Jalankan dalam transaksi agar update + notif atomic
@@ -943,11 +938,14 @@ func (r *penyusunanKpiRepo) ApprovalPenyusunanKpi(req *dto.ApprovalPenyusunanKpi
 
 	if req.Status == "reject" {
 		// Ambil entry_user untuk dikirim notifikasi penolakan
-		var entryUser string
-		if err := r.db.Raw(queryGetEntryUserPenyusunan, req.IdPengajuan).Scan(&entryUser).Error; err != nil {
+		var kpiBase struct {
+			EntryUser string `gorm:"column:entry_user"`
+		}
+		if err := r.db.Raw(queryGetKpiBaseData, req.IdPengajuan).Scan(&kpiBase).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("gagal mengambil entry_user: %w", err)
 		}
+		entryUser := kpiBase.EntryUser
 
 		if err := tx.Exec(queryRejectPenyusunan,
 			req.ApprovalList, req.CatatanTolak, req.IdPengajuan,
@@ -1665,7 +1663,7 @@ func (r *penyusunanKpiRepo) GetKpiExportData(
 		Triwulan string `gorm:"column:triwulan"`
 	}
 	var header kpiHeader
-	if err := r.db.Raw(queryGetKpiHeaderForExport, idPengajuan).Scan(&header).Error; err != nil {
+	if err := r.db.Raw(queryGetKpiBaseData, idPengajuan).Scan(&header).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil header KPI: %w", err)
 	}
 	if header.KostlTx == "" {
