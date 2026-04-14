@@ -14,7 +14,7 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /master-triwulan/get-all → GetAllTriwulan
+//	POST /master-triwulan/get-all → GetAllTriwulan   (application/json)
 func MasterTriwulanRoutes(r *gin.RouterGroup) {
 	masterTriwulanRepo := repo.NewMasterTriwulanRepo(db.DB)
 	masterTriwulanService := service.NewMasterTriwulanService(masterTriwulanRepo)

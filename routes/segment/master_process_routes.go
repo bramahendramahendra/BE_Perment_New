@@ -14,7 +14,7 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /master-process/get-all → GetAllMasterProcess
+//	POST /master-process/get-all → GetAllMasterProcess   (application/json)
 func MasterProcessRoutes(r *gin.RouterGroup) {
 	masterProcessRepo := repo.NewMasterProcessRepo(db.DB)
 	masterProcessService := service.NewMasterProcessService(masterProcessRepo)

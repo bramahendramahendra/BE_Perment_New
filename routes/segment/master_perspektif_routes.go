@@ -14,7 +14,7 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /master-perspektif/get-all → GetAllMasterPerspektif
+//	POST /master-perspektif/get-all → GetAllMasterPerspektif   (application/json)
 func MasterPerspektifRoutes(r *gin.RouterGroup) {
 	masterPerspektifRepo := repo.NewMasterPerspektifRepo(db.DB)
 	masterPerspektifService := service.NewMasterPerspektifService(masterPerspektifRepo)

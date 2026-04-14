@@ -14,7 +14,7 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /master-kpi/get-all → GetAllMasterKpi
+//	POST /master-kpi/get-all → GetAllMasterKpi   (application/json)
 func MasterKpiRoutes(r *gin.RouterGroup) {
 	masterKpiRepo := repo.NewMasterKpiRepo(db.DB)
 	masterKpiService := service.NewMasterKpiService(masterKpiRepo)

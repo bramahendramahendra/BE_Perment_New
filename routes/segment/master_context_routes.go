@@ -14,7 +14,7 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /master-context/get-all → GetAllMasterContext
+//	POST /master-context/get-all → GetAllMasterContext  (application/json)
 func MasterContextRoutes(r *gin.RouterGroup) {
 	masterContextRepo := repo.NewMasterContextRepo(db.DB)
 	masterContextService := service.NewMasterContextService(masterContextRepo)

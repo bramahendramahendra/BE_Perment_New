@@ -14,7 +14,7 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /user/get-all → GetAllUser
+//	POST /user/get-all → GetAllUser   (application/json)
 func UserRoutes(r *gin.RouterGroup) {
 	userRepo := repo.NewUserRepo(db.DB)
 	userService := service.NewUserService(userRepo)

@@ -14,7 +14,7 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /master-tahun/get-all → GetAllMasterTahun
+//	POST /master-tahun/get-all → GetAllMasterTahun   (application/json)
 func MasterTahunRoutes(r *gin.RouterGroup) {
 	masterTahunRepo := repo.NewMasterTahunRepo(db.DB)
 	masterTahunService := service.NewMasterTahunService(masterTahunRepo)

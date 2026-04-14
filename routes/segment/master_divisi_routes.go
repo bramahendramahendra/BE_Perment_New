@@ -14,7 +14,7 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /master-divisi/get-all → GetAllMasterDivisi
+//	POST /master-divisi/get-all → GetAllMasterDivisi   (application/json)
 func MasterDivisiRoutes(r *gin.RouterGroup) {
 	masterDivisiRepo := repo.NewMasterDivisiRepo(db.DB)
 	masterDivisiService := service.NewMasterDivisiService(masterDivisiRepo)

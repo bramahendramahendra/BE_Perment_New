@@ -15,14 +15,14 @@ import (
 // Daftar endpoint:
 //
 //	POST /penyusunan-kpi/validate                → ValidatePenyusunanKpi                (multipart/form-data + file Excel)
-//	POST /penyusunan-kpi/revision                → RevisionPenyusunanKpi               (multipart/form-data + file Excel)
+//	POST /penyusunan-kpi/revision                → RevisionPenyusunanKpi                (multipart/form-data + file Excel)
 //	POST /penyusunan-kpi/create                  → CreatePenyusunanKpi                  (application/json)
 //	POST /penyusunan-kpi/approval                → ApprovalPenyusunanKpi				(application/json)
 //	POST /penyusunan-kpi/batal                   → BatalPenyusunanKpi  					(application/json)
 //	POST /penyusunan-kpi/get-all-approval        → GetAllApprovalPenyusunanKpi          (application/json)
 //	POST /penyusunan-kpi/get-all-tolakan         → GetAllTolakanPenyusunanKpi           (application/json)
 //	POST /penyusunan-kpi/get-all-daftar-penyusunan → GetAllDaftarPenyusunanKpi          (application/json)
-//	POST /penyusunan-kpi/get-all-daftar-approval → GetAllDaftarApprovalPenyusunanKpi   (application/json)
+//	POST /penyusunan-kpi/get-all-daftar-approval → GetAllDaftarApprovalPenyusunanKpi    (application/json)
 //	POST /penyusunan-kpi/get-detail              → GetDetailPenyusunanKpi               (application/json)
 //	POST /penyusunan-kpi/get-excel               → GetExcelPenyusunanKpi                (application/json → file download .xlsx)
 //	POST /penyusunan-kpi/get-pdf                 → GetPdfPenyusunanKpi                  (application/json → file download)
