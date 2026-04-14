@@ -244,6 +244,20 @@ const (
 // LOOKUP
 // =============================================================================
 
+func (r *realisasiKpiRepo) GetTriwulanByIdPengajuan(idPengajuan string) (string, error) {
+	row := r.db.Raw(queryGetKpiHeaderRealisasi, idPengajuan).Row()
+	var kostlTx, tahun, triwulan, entryUserRealisasi string
+	if err := row.Scan(&kostlTx, &tahun, &triwulan, &entryUserRealisasi); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", &customErrors.BadRequestError{
+				Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", idPengajuan),
+			}
+		}
+		return "", fmt.Errorf("gagal mengambil triwulan untuk id_pengajuan '%s': %w", idPengajuan, err)
+	}
+	return triwulan, nil
+}
+
 func (r *realisasiKpiRepo) LookupSubDetailByKpiSubKpi(
 	idPengajuan, kpiName, subKpiName string,
 ) (idSubDetail, idDetail, rumus string, targetKuantitatifTriwulan float64, err error) {

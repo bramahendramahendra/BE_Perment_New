@@ -8,6 +8,9 @@ import (
 
 type (
 	RealisasiKpiRepoInterface interface {
+		// GetTriwulanByIdPengajuan mengambil nilai triwulan dari data_kpi berdasarkan id_pengajuan.
+		GetTriwulanByIdPengajuan(idPengajuan string) (string, error)
+
 		// LookupSubDetailByKpiSubKpi mencari id_sub_detail, id_detail, target_kuantitatif_triwulan,
 		// dan rumus (id_polarisasi) berdasarkan id_pengajuan + kpi_name + sub_kpi_name dari Excel.
 		LookupSubDetailByKpiSubKpi(

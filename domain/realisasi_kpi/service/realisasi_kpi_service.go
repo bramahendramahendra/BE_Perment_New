@@ -32,6 +32,13 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 		}
 	}
 
+	// Ambil triwulan dari DB berdasarkan id_pengajuan
+	triwulan, err := s.repo.GetTriwulanByIdPengajuan(req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	req.Triwulan = triwulan
+
 	// Parse Excel realisasi
 	rows, err := utils.ParseAndValidateRealisasiExcel(file, req.Triwulan)
 	if err != nil {
@@ -88,6 +95,13 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 			Message: fmt.Sprintf("file '%s' bukan format Excel (.xlsx)", file.Filename),
 		}
 	}
+
+	// Ambil triwulan dari DB berdasarkan id_pengajuan
+	triwulan, err := s.repo.GetTriwulanByIdPengajuan(req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	req.Triwulan = triwulan
 
 	rows, err := utils.ParseAndValidateRealisasiExcel(file, req.Triwulan)
 	if err != nil {
@@ -444,7 +458,7 @@ func buildSubKpiDetailList(rows []dto.RealisasiKpiRow) []dto.RealisasiSubKpiDeta
 			Realisasi:                     r.Realisasi,
 			RealisasiKuantitatif:          r.RealisasiKuantitatif,
 			RealisasiQualifier:            r.RealisasiQualifierVal,
-			RealisasiKuantitatifQualifier: r.RealisasiKuantitatifQualifier,
+			RealisasiKuantitatifQualifier: r.RealisasiKuantitatifQualifier, // string
 			Pencapaian:                    r.Pencapaian,
 			Skor:                          r.Skor,
 		})

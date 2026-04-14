@@ -31,13 +31,13 @@ func IsExtendedTriwulan(triwulan string) bool {
 }
 
 // ParseAndValidateRealisasiExcel membaca file Excel realisasi, memvalidasi, dan mengembalikan
-// slice RealisasiKpiRow yang sudah terisi data dari kolom A–M (atau A–Y untuk TW2/TW4).
+// slice RealisasiKpiRow yang sudah terisi data dari kolom A–S (TW1/TW3) atau A–Y (TW2/TW4).
 //
-// Kolom template realisasi:
+// Aturan kolom:
 //
 //	A=No, B=KPI, C=SubKPI, D=Polarisasi, E=Capping, F=Bobot%,
-//	G=TargetTriwulan, H=Qualifier, I=TargetQualifier,
-//	J=Realisasi, K=RealisasiKuantitatif, L=RealisasiQualifier, M=RealisasiKuantitatifQualifier
+//	G=TargetTriwulan, H=Qualifier (auto-fill "-"), I=TargetQualifier (auto-fill "-"),
+//	J=Realisasi, K=RealisasiKuantitatif, L=RealisasiQualifier, M=RealisasiQualifierKuantitatif
 //	TW1/TW3: N=Result, O=DeskripsiResult, P=Process, Q=DeskripsiProcess, R=Context, S=DeskripsiContext
 //	TW2/TW4: N=Result, O=DeskripsiResult, P=RealisasiResult, Q=LinkResult,
 //	         R=Process, S=DeskripsiProcess, T=RealisasiProcess, U=LinkProcess,
@@ -90,14 +90,15 @@ func ParseAndValidateRealisasiExcel(
 	limitedRows := allRows[dataStartIdx:dataEndIdx]
 
 	// Jumlah kolom minimum yang dibutuhkan
-	expectedCols := 13 // A–M
+	var expectedCols int
 	if isTW24 {
 		expectedCols = 25 // A–Y
 	} else {
-		expectedCols = 19 // A–S (TW1/TW3 extended A–S)
+		expectedCols = 19 // A–S
 	}
 
 	var rows []dto.RealisasiKpiRow
+	var totalBobot float64
 
 	for rowIdx, row := range limitedRows {
 		displayRow := dataStartIdx + rowIdx + 1
@@ -118,7 +119,7 @@ func ParseAndValidateRealisasiExcel(
 		colJ := strings.TrimSpace(row[9])  // Realisasi
 		colK := strings.TrimSpace(row[10]) // Realisasi Kuantitatif
 		colL := strings.TrimSpace(row[11]) // Realisasi Qualifier
-		colM := strings.TrimSpace(row[12]) // Realisasi Kuantitatif Qualifier
+		colM := strings.TrimSpace(row[12]) // Realisasi Qualifier Kuantitatif (free text)
 
 		// Lewati baris kosong
 		if colA == "" && colB == "" && colC == "" {
@@ -141,17 +142,23 @@ func ParseAndValidateRealisasiExcel(
 			return nil, fmt.Errorf("baris %d, Kolom C (Sub KPI): tidak boleh kosong", displayRow)
 		}
 
-		// Kolom D: Polarisasi — wajib
-		if colD == "" {
-			return nil, fmt.Errorf("baris %d, Kolom D (Polarisasi): tidak boleh kosong", displayRow)
+		// Kolom D: Polarisasi — dropdown [Maximize, Minimize]
+		if colD != "Maximize" && colD != "Minimize" {
+			return nil, fmt.Errorf(
+				"baris %d, Kolom D (Polarisasi): harus 'Maximize' atau 'Minimize', nilai saat ini: '%s'",
+				displayRow, colD,
+			)
 		}
 
-		// Kolom E: Capping — wajib
-		if colE == "" {
-			return nil, fmt.Errorf("baris %d, Kolom E (Capping): tidak boleh kosong", displayRow)
+		// Kolom E: Capping — dropdown [100%, 110%]
+		if colE != "100%" && colE != "110%" {
+			return nil, fmt.Errorf(
+				"baris %d, Kolom E (Capping): harus '100%%' atau '110%%', nilai saat ini: '%s'",
+				displayRow, colE,
+			)
 		}
 
-		// Kolom F: Bobot — wajib angka
+		// Kolom F: Bobot — wajib angka 2 desimal
 		bobot, errBobot := parseFloat2Decimal(colF)
 		if errBobot != nil {
 			return nil, fmt.Errorf(
@@ -159,8 +166,29 @@ func ParseAndValidateRealisasiExcel(
 				displayRow, colF,
 			)
 		}
+		totalBobot += bobot
 
-		// Kolom K: Realisasi Kuantitatif — wajib angka
+		// Kolom G: Target Triwulanan — wajib
+		if colG == "" {
+			return nil, fmt.Errorf("baris %d, Kolom G (Target Triwulanan): tidak boleh kosong", displayRow)
+		}
+
+		// Kolom H: Qualifier — auto-fill "-" jika kosong
+		if colH == "" {
+			colH = "-"
+		}
+
+		// Kolom I: Target Qualifier — auto-fill "-" jika kosong
+		if colI == "" {
+			colI = "-"
+		}
+
+		// Kolom J: Realisasi — wajib
+		if colJ == "" {
+			return nil, fmt.Errorf("baris %d, Kolom J (Realisasi): tidak boleh kosong", displayRow)
+		}
+
+		// Kolom K: Realisasi Kuantitatif — wajib angka 2 desimal
 		realisasiKuantitatif, errK := parseFloat2Decimal(colK)
 		if errK != nil {
 			return nil, fmt.Errorf(
@@ -169,16 +197,17 @@ func ParseAndValidateRealisasiExcel(
 			)
 		}
 
-		// Kolom M: Realisasi Kuantitatif Qualifier — boleh kosong (berarti 0)
-		realisasiKuantitatifQualifier := 0.0
-		if colM != "" {
-			realisasiKuantitatifQualifier, err = parseFloat2Decimal(colM)
-			if err != nil {
-				return nil, fmt.Errorf(
-					"baris %d, Kolom M (Realisasi Kuantitatif Qualifier): harus berupa angka jika diisi, nilai saat ini: '%s'",
-					displayRow, colM,
-				)
-			}
+		// Kolom L: Realisasi Qualifier — dropdown [Ya, Tidak]
+		if colL != "Ya" && colL != "Tidak" {
+			return nil, fmt.Errorf(
+				"baris %d, Kolom L (Realisasi Qualifier): harus 'Ya' atau 'Tidak', nilai saat ini: '%s'",
+				displayRow, colL,
+			)
+		}
+
+		// Kolom M: Realisasi Qualifier Kuantitatif — free text, wajib diisi
+		if colM == "" {
+			return nil, fmt.Errorf("baris %d, Kolom M (Realisasi Qualifier Kuantitatif): tidak boleh kosong", displayRow)
 		}
 
 		r := dto.RealisasiKpiRow{
@@ -195,12 +224,12 @@ func ParseAndValidateRealisasiExcel(
 			Realisasi:                     colJ,
 			RealisasiKuantitatif:          realisasiKuantitatif,
 			RealisasiQualifierVal:         colL,
-			RealisasiKuantitatifQualifier: realisasiKuantitatifQualifier,
+			RealisasiKuantitatifQualifier: colM,
 			IsTW24:                        isTW24,
 		}
 
 		// Kolom extended
-		if isTW24 && len(row) >= 25 {
+		if isTW24 {
 			// TW2/TW4: N=Result, O=DeskripsiResult, P=RealisasiResult, Q=LinkResult,
 			//          R=Process, S=DeskripsiProcess, T=RealisasiProcess, U=LinkProcess,
 			//          V=Context, W=DeskripsiContext, X=RealisasiContext, Y=LinkContext
@@ -217,6 +246,43 @@ func ParseAndValidateRealisasiExcel(
 			colX := strings.TrimSpace(row[23])
 			colY := strings.TrimSpace(row[24])
 
+			if colN == "" {
+				return nil, fmt.Errorf("baris %d, Kolom N (Result): tidak boleh kosong", displayRow)
+			}
+			if colO == "" {
+				return nil, fmt.Errorf("baris %d, Kolom O (Deskripsi Result): tidak boleh kosong", displayRow)
+			}
+			if colP == "" {
+				return nil, fmt.Errorf("baris %d, Kolom P (Realisasi Result): tidak boleh kosong", displayRow)
+			}
+			if colQ == "" {
+				return nil, fmt.Errorf("baris %d, Kolom Q (Link Result): tidak boleh kosong", displayRow)
+			}
+			if colR == "" {
+				return nil, fmt.Errorf("baris %d, Kolom R (Process): tidak boleh kosong", displayRow)
+			}
+			if colS == "" {
+				return nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Process): tidak boleh kosong", displayRow)
+			}
+			if colT == "" {
+				return nil, fmt.Errorf("baris %d, Kolom T (Realisasi Process): tidak boleh kosong", displayRow)
+			}
+			if colU == "" {
+				return nil, fmt.Errorf("baris %d, Kolom U (Link Process): tidak boleh kosong", displayRow)
+			}
+			if colV == "" {
+				return nil, fmt.Errorf("baris %d, Kolom V (Context): tidak boleh kosong", displayRow)
+			}
+			if colW == "" {
+				return nil, fmt.Errorf("baris %d, Kolom W (Deskripsi Context): tidak boleh kosong", displayRow)
+			}
+			if colX == "" {
+				return nil, fmt.Errorf("baris %d, Kolom X (Realisasi Context): tidak boleh kosong", displayRow)
+			}
+			if colY == "" {
+				return nil, fmt.Errorf("baris %d, Kolom Y (Link Context): tidak boleh kosong", displayRow)
+			}
+
 			r.Result = &colN
 			r.DeskripsiResult = &colO
 			r.RealisasiResult = &colP
@@ -229,7 +295,7 @@ func ParseAndValidateRealisasiExcel(
 			r.DeskripsiContext = &colW
 			r.RealisasiContext = &colX
 			r.LinkContext = &colY
-		} else if !isTW24 && len(row) >= 19 {
+		} else {
 			// TW1/TW3: N=Result, O=DeskripsiResult, P=Process, Q=DeskripsiProcess, R=Context, S=DeskripsiContext
 			colN := strings.TrimSpace(row[13])
 			colO := strings.TrimSpace(row[14])
@@ -237,6 +303,25 @@ func ParseAndValidateRealisasiExcel(
 			colQ := strings.TrimSpace(row[16])
 			colR := strings.TrimSpace(row[17])
 			colS := strings.TrimSpace(row[18])
+
+			if colN == "" {
+				return nil, fmt.Errorf("baris %d, Kolom N (Result): tidak boleh kosong", displayRow)
+			}
+			if colO == "" {
+				return nil, fmt.Errorf("baris %d, Kolom O (Deskripsi Result): tidak boleh kosong", displayRow)
+			}
+			if colP == "" {
+				return nil, fmt.Errorf("baris %d, Kolom P (Process): tidak boleh kosong", displayRow)
+			}
+			if colQ == "" {
+				return nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Process): tidak boleh kosong", displayRow)
+			}
+			if colR == "" {
+				return nil, fmt.Errorf("baris %d, Kolom R (Context): tidak boleh kosong", displayRow)
+			}
+			if colS == "" {
+				return nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Context): tidak boleh kosong", displayRow)
+			}
 
 			r.Result = &colN
 			r.DeskripsiResult = &colO
@@ -251,6 +336,15 @@ func ParseAndValidateRealisasiExcel(
 
 	if len(rows) == 0 {
 		return nil, fmt.Errorf("file Excel '%s' sheet '%s' tidak memiliki data yang valid", file.Filename, targetSheet)
+	}
+
+	// Validasi total bobot harus 100% (toleransi 0.01)
+	totalBobot = math.Round(totalBobot*100) / 100
+	if math.Abs(totalBobot-100) > 0.01 {
+		return nil, fmt.Errorf(
+			"total Kolom F (Bobot %%) harus 100%%, saat ini: %.2f%%",
+			totalBobot,
+		)
 	}
 
 	return rows, nil

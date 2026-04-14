@@ -24,7 +24,7 @@ type RealisasiKpiRow struct {
 	Realisasi                     string
 	RealisasiKuantitatif          float64
 	RealisasiQualifierVal         string
-	RealisasiKuantitatifQualifier float64
+	RealisasiKuantitatifQualifier string
 
 	// Extended kolom (semua triwulan: N–S atau N–Y)
 	Result           *string
@@ -62,7 +62,9 @@ type RealisasiKpiRow struct {
 // ValidateRealisasiKpiRequest adalah request untuk endpoint POST /realisasi-kpi/validate.
 type ValidateRealisasiKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Triwulan    string `json:"triwulan"     validate:"required,oneof=TW1 TW2 TW3 TW4"`
+
+	// Di-populate dari DB berdasarkan IdPengajuan oleh service, tidak dari body
+	Triwulan string `json:"-"`
 
 	// Di-populate dari header "userq" oleh handler, tidak dari body
 	EntryUser string `json:"-"`
@@ -73,7 +75,9 @@ type ValidateRealisasiKpiRequest struct {
 // RevisionRealisasiKpiRequest adalah request untuk endpoint POST /realisasi-kpi/revision.
 type RevisionRealisasiKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Triwulan    string `json:"triwulan"     validate:"required,oneof=TW1 TW2 TW3 TW4"`
+
+	// Di-populate dari DB berdasarkan IdPengajuan oleh service, tidak dari body
+	Triwulan string `json:"-"`
 
 	EntryUser string `json:"-"`
 	EntryName string `json:"-"`
@@ -210,8 +214,8 @@ type RealisasiSubKpiDetail struct {
 	TargetQualifier               string  `json:"target_qualifier"`
 	Realisasi                     string  `json:"realisasi"`
 	RealisasiKuantitatif          float64 `json:"realisasi_kuantitatif"`
-	RealisasiQualifier            string  `json:"realisasi_qualifier"`
-	RealisasiKuantitatifQualifier float64 `json:"realisasi_kuantitatif_qualifier"`
+	RealisasiQualifier            string `json:"realisasi_qualifier"`
+	RealisasiKuantitatifQualifier string `json:"realisasi_kuantitatif_qualifier"`
 	Pencapaian                    float64 `json:"pencapaian"`
 	Skor                          float64 `json:"skor"`
 }
