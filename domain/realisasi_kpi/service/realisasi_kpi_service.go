@@ -47,10 +47,26 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 		}
 	}
 
-	// Lookup DB per baris: ambil id_sub_detail, id_detail, target_kuantitatif, rumus
+	// Lookup DB per baris: isi IdSubDetail, IdDetail, TargetKuantitatifTriwulan, Rumus,
 	// lalu hitung Pencapaian dan Skor
-	if err := s.enrichRowsFromDB(req.IdPengajuan, kpiSubDetails); err != nil {
+	if err := s.enrichRowsFromDB(req.IdPengajuan, kpiRows, kpiSubDetails); err != nil {
 		return data, err
+	}
+
+	// Ambil header (tahun, kostl, kostlTx) untuk response
+	tahun, _, kostl, kostlTx, err := s.repo.GetKpiHeaderByIdPengajuan(req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+
+	// Build resultList, processList, contextList (hanya TW2 dan TW4)
+	resultList := []dto.RealisasiResult{}
+	processList := []dto.RealisasiProcess{}
+	contextList := []dto.RealisasiContext{}
+	if utils.IsExtendedTriwulan(req.Triwulan) {
+		resultList = utils.BuildResultList(kpiRows, kpiSubDetails)
+		processList = utils.BuildProcessList(kpiRows, kpiSubDetails)
+		contextList = utils.BuildContextList(kpiRows, kpiSubDetails)
 	}
 
 	// Simpan ke DB (status 80 = draft realisasi)
@@ -66,18 +82,29 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 	}
 
 	// Build response
-	subKpiList := buildSubKpiDetailList(rows)
+	totalSubKpi := 0
+	for _, kpiRow := range kpiRows {
+		totalSubKpi += len(kpiSubDetails[kpiRow.KpiIndex])
+	}
 
 	data = dto.ValidateRealisasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
+		Tahun:       tahun,
 		Triwulan:    req.Triwulan,
+		Divisi: dto.DivisiRealisasiResponse{
+			Kostl:   kostl,
+			KostlTx: kostlTx,
+		},
 		Entry: dto.EntryRealisasiResponse{
 			EntryUser: req.EntryUser,
 			EntryName: req.EntryName,
 			EntryTime: req.EntryTime,
 		},
-		TotalSubKpi: len(rows),
-		SubKpiList:  subKpiList,
+		TotalSubKpi: totalSubKpi,
+		SubKpiList:  utils.BuildSubKpiDetailList(kpiRows, kpiSubDetails),
+		ResultList:  resultList,
+		ProcessList: processList,
+		ContextList: contextList,
 	}
 
 	return data, nil
@@ -110,37 +137,61 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 	}
 	req.Triwulan = triwulan
 
-	rows, err := utils.ParseAndValidateRealisasiExcel(file, req.Triwulan)
+	kpiRows, kpiSubDetails, err := utils.ParseAndValidateRealisasiExcel(file, req.Triwulan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("validasi file Excel '%s' gagal: %s", file.Filename, err.Error()),
 		}
 	}
 
-	if err := s.enrichRowsFromDB(req.IdPengajuan, rows); err != nil {
+	// Lookup DB per baris: isi IdSubDetail, IdDetail, TargetKuantitatifTriwulan, Rumus,
+	// lalu hitung Pencapaian dan Skor
+	if err := s.enrichRowsFromDB(req.IdPengajuan, kpiRows, kpiSubDetails); err != nil {
 		return data, err
 	}
 
-	// Gunakan RevisionRealisasiKpiRequest wrapper untuk repo
-	repoReq := &dto.RevisionRealisasiKpiRequest{
-		IdPengajuan: req.IdPengajuan,
-		Triwulan:    req.Triwulan,
-		EntryUser:   req.EntryUser,
-		EntryName:   req.EntryName,
-		EntryTime:   req.EntryTime,
-	}
-
-	if err := s.repo.RevisionRealisasiKpi(repoReq, rows); err != nil {
+	// Ambil header (tahun) untuk response
+	tahun, _, _, _, err := s.repo.GetKpiHeaderByIdPengajuan(req.IdPengajuan)
+	if err != nil {
 		return data, err
 	}
 
-	subKpiList := buildSubKpiDetailList(rows)
+	// Build resultList, processList, contextList (hanya TW2 dan TW4)
+	resultList := []dto.RealisasiResult{}
+	processList := []dto.RealisasiProcess{}
+	contextList := []dto.RealisasiContext{}
+	if utils.IsExtendedTriwulan(req.Triwulan) {
+		resultList = utils.BuildResultList(kpiRows, kpiSubDetails)
+		processList = utils.BuildProcessList(kpiRows, kpiSubDetails)
+		contextList = utils.BuildContextList(kpiRows, kpiSubDetails)
+	}
+
+	if err := s.repo.RevisionRealisasiKpi(
+		req,
+		kpiRows,
+		kpiSubDetails,
+		resultList,
+		processList,
+		contextList,
+	); err != nil {
+		return data, err
+	}
+
+	// Build response
+	totalSubKpi := 0
+	for _, kpiRow := range kpiRows {
+		totalSubKpi += len(kpiSubDetails[kpiRow.KpiIndex])
+	}
 
 	data = dto.RevisionRealisasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
+		Tahun:       tahun,
 		Triwulan:    req.Triwulan,
-		TotalSubKpi: len(rows),
-		SubKpiList:  subKpiList,
+		TotalSubKpi: totalSubKpi,
+		SubKpiList:  utils.BuildSubKpiDetailList(kpiRows, kpiSubDetails),
+		ResultList:  resultList,
+		ProcessList: processList,
+		ContextList: contextList,
 	}
 
 	return data, nil
@@ -336,7 +387,7 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 // PRIVATE HELPERS
 // =============================================================================
 
-// enrichRowsFromDB melakukan lookup ke DB untuk setiap baris Excel:
+// enrichRowsFromDB melakukan lookup ke DB untuk setiap baris sub KPI Excel:
 //   - Mencari id_sub_detail, id_detail, target_kuantitatif_triwulan, rumus
 //     berdasarkan id_pengajuan + kpi_name + sub_kpi_name
 //   - Menghitung Pencapaian dan Skor mengikuti logika bisnis BE_Perment_Old
@@ -349,33 +400,37 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 //	Skor = (Pencapaian * Bobot) / 100
 func (s *realisasiKpiService) enrichRowsFromDB(
 	idPengajuan string,
-	rows map[int][]dto.KpiSubDetailRow,
+	kpiRows []dto.KpiRow,
+	kpiSubDetails map[int][]dto.KpiSubDetailRow,
 ) error {
-	for i := range rows {
-		row := &rows[i]
+	for _, kpiRow := range kpiRows {
+		subRows := kpiSubDetails[kpiRow.KpiIndex]
+		for i := range subRows {
+			sub := &kpiSubDetails[kpiRow.KpiIndex][i]
 
-		idSubDetail, idDetail, rumus, targetKuantitatif, err :=
-			s.repo.LookupSubDetailByKpiSubKpi(idPengajuan, row.KPI, row.SubKPI)
-		if err != nil {
-			return err
+			idSubDetail, idDetail, rumus, targetKuantitatif, err :=
+				s.repo.LookupSubDetailByKpiSubKpi(idPengajuan, kpiRow.Kpi, sub.SubKPI)
+			if err != nil {
+				return err
+			}
+
+			sub.IdSubDetail = idSubDetail
+			sub.IdDetail = idDetail
+			sub.Rumus = rumus
+			sub.TargetKuantitatifTriwulan = targetKuantitatif
+
+			// Hitung Pencapaian dan Skor
+			pencapaian, skor := calculatePencapaianSkor(
+				rumus,
+				sub.RealisasiKuantitatif,
+				targetKuantitatif,
+				sub.Capping,
+				sub.Bobot,
+			)
+
+			sub.Pencapaian = pencapaian
+			sub.Skor = skor
 		}
-
-		row.IdSubDetail = idSubDetail
-		row.IdDetail = idDetail
-		row.Rumus = rumus
-		row.TargetKuantitatifTriwulan = targetKuantitatif
-
-		// Hitung Pencapaian dan Skor
-		pencapaian, skor := calculatePencapaianSkor(
-			rumus,
-			row.RealisasiKuantitatif,
-			targetKuantitatif,
-			row.Capping,
-			row.Bobot,
-		)
-
-		row.Pencapaian = pencapaian
-		row.Skor = skor
 	}
 
 	return nil
@@ -446,29 +501,3 @@ func parseCapping(cappingStr string) float64 {
 	}
 }
 
-// buildSubKpiDetailList membangun slice RealisasiSubKpiDetail dari rows yang sudah di-enrich.
-func buildSubKpiDetailList(rows []dto.RealisasiKpiRow) []dto.RealisasiSubKpiDetail {
-	result := make([]dto.RealisasiSubKpiDetail, 0, len(rows))
-	for _, r := range rows {
-		result = append(result, dto.RealisasiSubKpiDetail{
-			IdSubDetail:                   r.IdSubDetail,
-			IdDetail:                      r.IdDetail,
-			KPI:                           r.KPI,
-			SubKPI:                        r.SubKPI,
-			Polarisasi:                    r.Polarisasi,
-			Capping:                       r.Capping,
-			Bobot:                         r.Bobot,
-			TargetTriwulan:                r.TargetTriwulan,
-			TargetKuantitatifTriwulan:     r.TargetKuantitatifTriwulan,
-			Qualifier:                     r.Qualifier,
-			TargetQualifier:               r.TargetQualifier,
-			Realisasi:                     r.Realisasi,
-			RealisasiKuantitatif:          r.RealisasiKuantitatif,
-			RealisasiQualifier:            r.RealisasiQualifierVal,
-			RealisasiKuantitatifQualifier: r.RealisasiKuantitatifQualifier, // string
-			Pencapaian:                    r.Pencapaian,
-			Skor:                          r.Skor,
-		})
-	}
-	return result
-}

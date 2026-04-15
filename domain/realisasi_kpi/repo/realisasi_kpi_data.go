@@ -258,6 +258,25 @@ func (r *realisasiKpiRepo) GetTriwulanByIdPengajuan(idPengajuan string) (string,
 	return triwulan, nil
 }
 
+func (r *realisasiKpiRepo) GetKpiHeaderByIdPengajuan(
+	idPengajuan string,
+) (tahun, triwulan, kostl, kostlTx string, err error) {
+	row := r.db.Raw(`
+		SELECT kostl_tx, tahun, triwulan, IFNULL(kostl, '') AS kostl
+		FROM data_kpi
+		WHERE id_pengajuan = ?
+		LIMIT 1`, idPengajuan).Row()
+	if scanErr := row.Scan(&kostlTx, &tahun, &triwulan, &kostl); scanErr != nil {
+		if errors.Is(scanErr, sql.ErrNoRows) {
+			return "", "", "", "", &customErrors.BadRequestError{
+				Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", idPengajuan),
+			}
+		}
+		return "", "", "", "", fmt.Errorf("gagal mengambil header kpi '%s': %w", idPengajuan, scanErr)
+	}
+	return tahun, triwulan, kostl, kostlTx, nil
+}
+
 func (r *realisasiKpiRepo) LookupSubDetailByKpiSubKpi(
 	idPengajuan, kpiName, subKpiName string,
 ) (idSubDetail, idDetail, rumus string, targetKuantitatifTriwulan float64, err error) {
@@ -282,7 +301,11 @@ func (r *realisasiKpiRepo) LookupSubDetailByKpiSubKpi(
 
 func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	req *dto.ValidateRealisasiKpiRequest,
-	rows []dto.RealisasiKpiRow,
+	kpiRows []dto.KpiRow,
+	kpiSubDetails map[int][]dto.KpiSubDetailRow,
+	resultList []dto.RealisasiResult,
+	processList []dto.RealisasiProcess,
+	contextList []dto.RealisasiContext,
 ) error {
 	// Validasi status: harus 2, 4, 80, atau 81 agar bisa input realisasi
 	var countExist int
@@ -303,7 +326,68 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
 	}
 
-	// Update header data_kpi → status 80
+	// -------------------------------------------------------------------------
+	// UPDATE setiap baris sub KPI
+	// -------------------------------------------------------------------------
+	for _, kpiRow := range kpiRows {
+		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
+			if err := tx.Exec(queryUpdateSubDetailRealisasi,
+				row.Realisasi,
+				row.RealisasiKuantitatif,
+				row.Realisasi,            // realisasi_validated = sama dengan realisasi
+				row.RealisasiKuantitatif, // realisasi_kuantitatif_validated = sama
+				row.Pencapaian,
+				row.Skor,
+				row.RealisasiQualifierVal,
+				row.RealisasiKuantitatifQualifier,
+				req.IdPengajuan,
+				row.IdSubDetail,
+			).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("gagal update sub detail '%s': %w", row.IdSubDetail, err)
+			}
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// UPDATE result (data_challenge_detail.realisasi_challenge) — TW2/TW4
+	// -------------------------------------------------------------------------
+	for _, r2 := range resultList {
+		if err := tx.Exec(queryUpdateChallengeRealisasi,
+			r2.RealisasiResult, req.IdPengajuan, r2.IdDetailResult,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal update challenge result '%s': %w", r2.IdDetailResult, err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// UPDATE process (data_method_detail.realisasi_method) — TW2/TW4
+	// -------------------------------------------------------------------------
+	for _, p := range processList {
+		if err := tx.Exec(queryUpdateMethodRealisasi,
+			p.RealisasiProcess, req.IdPengajuan, p.IdDetailProcess,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal update method process '%s': %w", p.IdDetailProcess, err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// UPDATE context (data_challenge_detail.realisasi_challenge untuk context) — TW2/TW4
+	// -------------------------------------------------------------------------
+	for _, c := range contextList {
+		if err := tx.Exec(queryUpdateChallengeRealisasi,
+			c.RealisasiContext, req.IdPengajuan, c.IdDetailContext,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal update challenge context '%s': %w", c.IdDetailContext, err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// UPDATE header data_kpi → status 80
+	// -------------------------------------------------------------------------
 	if err := tx.Exec(queryUpdateKpiStatusDraft,
 		req.EntryUser, req.EntryName, req.IdPengajuan,
 	).Error; err != nil {
@@ -311,46 +395,10 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 		return fmt.Errorf("gagal update header realisasi: %w", err)
 	}
 
-	// Update setiap baris sub KPI
-	for _, row := range rows {
-		if err := tx.Exec(queryUpdateSubDetailRealisasi,
-			row.Realisasi,
-			row.RealisasiKuantitatif,
-			row.Realisasi,            // realisasi_validated = sama dengan realisasi
-			row.RealisasiKuantitatif, // realisasi_kuantitatif_validated = sama
-			row.Pencapaian,
-			row.Skor,
-			row.RealisasiQualifierVal,
-			row.RealisasiKuantitatifQualifier,
-			req.IdPengajuan,
-			row.IdSubDetail,
-		).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("gagal update sub detail '%s': %w", row.IdSubDetail, err)
-		}
-
-		// Update challenge (context) jika ada extended data
-		if row.Result != nil && *row.Result != "" {
-			if err := tx.Exec(queryUpdateChallengeRealisasi,
-				row.Result, req.IdPengajuan, row.IdSubDetail,
-			).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("gagal update challenge detail '%s': %w", row.IdSubDetail, err)
-			}
-		}
-
-		// Update method (process) jika ada extended data
-		if row.Process != nil && *row.Process != "" {
-			if err := tx.Exec(queryUpdateMethodRealisasi,
-				row.Process, req.IdPengajuan, row.IdSubDetail,
-			).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("gagal update method detail '%s': %w", row.IdSubDetail, err)
-			}
-		}
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi validate realisasi: %w", err)
 	}
 
-	tx.Commit()
 	return nil
 }
 
@@ -360,7 +408,11 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 
 func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	req *dto.RevisionRealisasiKpiRequest,
-	rows []dto.RealisasiKpiRow,
+	kpiRows []dto.KpiRow,
+	kpiSubDetails map[int][]dto.KpiSubDetailRow,
+	resultList []dto.RealisasiResult,
+	processList []dto.RealisasiProcess,
+	contextList []dto.RealisasiContext,
 ) error {
 	// Validasi status: harus 80 (draft) atau 4 (ditolak) untuk revisi
 	var count int
@@ -381,7 +433,68 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
 	}
 
-	// Update header → status tetap 80 (draft), update entry time
+	// -------------------------------------------------------------------------
+	// UPDATE setiap baris sub KPI
+	// -------------------------------------------------------------------------
+	for _, kpiRow := range kpiRows {
+		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
+			if err := tx.Exec(queryUpdateSubDetailRealisasi,
+				row.Realisasi,
+				row.RealisasiKuantitatif,
+				row.Realisasi,
+				row.RealisasiKuantitatif,
+				row.Pencapaian,
+				row.Skor,
+				row.RealisasiQualifierVal,
+				row.RealisasiKuantitatifQualifier,
+				req.IdPengajuan,
+				row.IdSubDetail,
+			).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("gagal update sub detail '%s': %w", row.IdSubDetail, err)
+			}
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// UPDATE result (data_challenge_detail.realisasi_challenge) — TW2/TW4
+	// -------------------------------------------------------------------------
+	for _, r2 := range resultList {
+		if err := tx.Exec(queryUpdateChallengeRealisasi,
+			r2.RealisasiResult, req.IdPengajuan, r2.IdDetailResult,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal update challenge result '%s': %w", r2.IdDetailResult, err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// UPDATE process (data_method_detail.realisasi_method) — TW2/TW4
+	// -------------------------------------------------------------------------
+	for _, p := range processList {
+		if err := tx.Exec(queryUpdateMethodRealisasi,
+			p.RealisasiProcess, req.IdPengajuan, p.IdDetailProcess,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal update method process '%s': %w", p.IdDetailProcess, err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// UPDATE context (data_challenge_detail.realisasi_challenge untuk context) — TW2/TW4
+	// -------------------------------------------------------------------------
+	for _, c := range contextList {
+		if err := tx.Exec(queryUpdateChallengeRealisasi,
+			c.RealisasiContext, req.IdPengajuan, c.IdDetailContext,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal update challenge context '%s': %w", c.IdDetailContext, err)
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// UPDATE header → status tetap 80 (draft), update entry time
+	// -------------------------------------------------------------------------
 	if err := tx.Exec(queryUpdateKpiStatusDraft,
 		req.EntryUser, req.EntryName, req.IdPengajuan,
 	).Error; err != nil {
@@ -389,44 +502,10 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 		return fmt.Errorf("gagal update header revisi realisasi: %w", err)
 	}
 
-	// Update setiap baris sub KPI
-	for _, row := range rows {
-		if err := tx.Exec(queryUpdateSubDetailRealisasi,
-			row.Realisasi,
-			row.RealisasiKuantitatif,
-			row.Realisasi,
-			row.RealisasiKuantitatif,
-			row.Pencapaian,
-			row.Skor,
-			row.RealisasiQualifierVal,
-			row.RealisasiKuantitatifQualifier,
-			req.IdPengajuan,
-			row.IdSubDetail,
-		).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("gagal update sub detail '%s': %w", row.IdSubDetail, err)
-		}
-
-		if row.Result != nil && *row.Result != "" {
-			if err := tx.Exec(queryUpdateChallengeRealisasi,
-				row.Result, req.IdPengajuan, row.IdSubDetail,
-			).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("gagal update challenge detail '%s': %w", row.IdSubDetail, err)
-			}
-		}
-
-		if row.Process != nil && *row.Process != "" {
-			if err := tx.Exec(queryUpdateMethodRealisasi,
-				row.Process, req.IdPengajuan, row.IdSubDetail,
-			).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("gagal update method detail '%s': %w", row.IdSubDetail, err)
-			}
-		}
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi revision realisasi: %w", err)
 	}
 
-	tx.Commit()
 	return nil
 }
 

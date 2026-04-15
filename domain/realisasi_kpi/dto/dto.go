@@ -43,6 +43,39 @@ type KpiSubDetailRow struct {
 	DeskripsiContext              *string
 	RealisasiContext              *string
 	LinkContext                   *string
+
+	// Di-populate dari DB oleh service setelah parse (via enrichRowsFromDB)
+	IdSubDetail               string
+	IdDetail                  string
+	TargetKuantitatifTriwulan float64
+	Rumus                     string
+	Pencapaian                float64
+	Skor                      float64
+}
+
+// =============================================================================
+// INTERNAL LIST — result / process / context untuk update DB (TW2 & TW4)
+// =============================================================================
+
+// RealisasiResult berisi data untuk UPDATE data_challenge_detail (result).
+type RealisasiResult struct {
+	IdDetailResult  string // = id_sub_detail (FK di data_challenge_detail)
+	RealisasiResult string
+	LinkResult      string
+}
+
+// RealisasiProcess berisi data untuk UPDATE data_method_detail (process).
+type RealisasiProcess struct {
+	IdDetailProcess  string // = id_sub_detail (FK di data_method_detail)
+	RealisasiProcess string
+	LinkProcess      string
+}
+
+// RealisasiContext berisi data untuk UPDATE data_challenge_detail (context).
+type RealisasiContext struct {
+	IdDetailContext  string // = id_sub_detail (FK di data_challenge_detail)
+	RealisasiContext string
+	LinkContext      string
 }
 
 type RealisasiKpiRow struct {
@@ -202,6 +235,9 @@ type ValidateRealisasiKpiResponse struct {
 	Entry       EntryRealisasiResponse  `json:"entry"`
 	TotalSubKpi int                     `json:"total_sub_kpi"`
 	SubKpiList  []RealisasiSubKpiDetail `json:"sub_kpi_list"`
+	ResultList  []RealisasiResult       `json:"result_list"`
+	ProcessList []RealisasiProcess      `json:"process_list"`
+	ContextList []RealisasiContext      `json:"context_list"`
 }
 
 // RevisionRealisasiKpiResponse adalah response untuk endpoint /realisasi-kpi/revision.
@@ -211,6 +247,9 @@ type RevisionRealisasiKpiResponse struct {
 	Triwulan    string                  `json:"triwulan"`
 	TotalSubKpi int                     `json:"total_sub_kpi"`
 	SubKpiList  []RealisasiSubKpiDetail `json:"sub_kpi_list"`
+	ResultList  []RealisasiResult       `json:"result_list"`
+	ProcessList []RealisasiProcess      `json:"process_list"`
+	ContextList []RealisasiContext      `json:"context_list"`
 }
 
 // CreateRealisasiKpiResponse adalah response untuk endpoint /realisasi-kpi/create.
