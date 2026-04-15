@@ -127,7 +127,7 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		}
 	}
 
-	// Parse dan validasi file Excel (logika sama dengan /validate)
+	// Parse dan validasi file Excel
 	kpiRows, kpiSubDetails, err := utils.ParseAndValidateExcel(file, req.Triwulan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{

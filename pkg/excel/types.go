@@ -34,7 +34,7 @@ type KpiSubDetailRow struct {
 	Qualifier                 string
 	DeskripsiQualifier        string
 	TargetQualifier           string
-	IsTW4                     bool
+	IsTW24                    bool
 	Result                    *string
 	DeskripsiResult           *string
 	Process                   *string

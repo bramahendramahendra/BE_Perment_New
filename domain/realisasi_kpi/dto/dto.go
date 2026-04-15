@@ -6,6 +6,45 @@ package dto
 
 // RealisasiKpiRow merepresentasikan satu baris data dari file Excel realisasi
 // yang sudah diparse, divalidasi, dan diperkaya dari DB (lookup id_sub_detail, target, dll).
+
+type KpiRow struct {
+	KpiIndex int
+	IdKpi    string
+	Kpi      string
+	Rumus    string
+}
+
+type KpiSubDetailRow struct {
+	No                            int
+	KPI                           string
+	SubKPI                        string
+	IdSubKpi                      string
+	Polarisasi                    string
+	IdPolarisasi                  string
+	Capping                       string
+	Bobot                         float64
+	TargetTriwulan                string
+	Qualifier                     string
+	TargetQualifier               string
+	Realisasi                     string
+	RealisasiKuantitatif          float64
+	RealisasiQualifierVal         string
+	RealisasiKuantitatifQualifier string
+	IsTW24                        bool
+	Result                        *string
+	DeskripsiResult               *string
+	RealisasiResult               *string
+	LinkResult                    *string
+	Process                       *string
+	DeskripsiProcess              *string
+	RealisasiProcess              *string
+	LinkProcess                   *string
+	Context                       *string
+	DeskripsiContext              *string
+	RealisasiContext              *string
+	LinkContext                   *string
+}
+
 type RealisasiKpiRow struct {
 	RowIndex int
 	No       int
@@ -64,12 +103,12 @@ type ValidateRealisasiKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
 
 	// Di-populate dari DB berdasarkan IdPengajuan oleh service, tidak dari body
-	Triwulan string `json:"-"`
+	Triwulan string `json:"triwulan"`
 
 	// Di-populate dari header "userq" oleh handler, tidak dari body
-	EntryUser string `json:"-"`
-	EntryName string `json:"-"`
-	EntryTime string `json:"-"`
+	EntryUser string `json:"entry_user"`
+	EntryName string `json:"entry_name"`
+	EntryTime string `json:"entry_time"`
 }
 
 // RevisionRealisasiKpiRequest adalah request untuk endpoint POST /realisasi-kpi/revision.
@@ -214,8 +253,8 @@ type RealisasiSubKpiDetail struct {
 	TargetQualifier               string  `json:"target_qualifier"`
 	Realisasi                     string  `json:"realisasi"`
 	RealisasiKuantitatif          float64 `json:"realisasi_kuantitatif"`
-	RealisasiQualifier            string `json:"realisasi_qualifier"`
-	RealisasiKuantitatifQualifier string `json:"realisasi_kuantitatif_qualifier"`
+	RealisasiQualifier            string  `json:"realisasi_qualifier"`
+	RealisasiKuantitatifQualifier string  `json:"realisasi_kuantitatif_qualifier"`
 	Pencapaian                    float64 `json:"pencapaian"`
 	Skor                          float64 `json:"skor"`
 }

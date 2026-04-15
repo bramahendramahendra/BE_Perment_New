@@ -39,8 +39,8 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 	}
 	req.Triwulan = triwulan
 
-	// Parse Excel realisasi
-	rows, err := utils.ParseAndValidateRealisasiExcel(file, req.Triwulan)
+	// Parse dan validasi file Excel
+	kpiRows, kpiSubDetails, err := utils.ParseAndValidateRealisasiExcel(file, req.Triwulan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("validasi file Excel '%s' gagal: %s", file.Filename, err.Error()),
@@ -49,12 +49,19 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 
 	// Lookup DB per baris: ambil id_sub_detail, id_detail, target_kuantitatif, rumus
 	// lalu hitung Pencapaian dan Skor
-	if err := s.enrichRowsFromDB(req.IdPengajuan, rows); err != nil {
+	if err := s.enrichRowsFromDB(req.IdPengajuan, kpiSubDetails); err != nil {
 		return data, err
 	}
 
 	// Simpan ke DB (status 80 = draft realisasi)
-	if err := s.repo.ValidateRealisasiKpi(req, rows); err != nil {
+	if err := s.repo.ValidateRealisasiKpi(
+		req,
+		kpiRows,
+		kpiSubDetails,
+		resultList,
+		processList,
+		contextList,
+	); err != nil {
 		return data, err
 	}
 
@@ -342,7 +349,7 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 //	Skor = (Pencapaian * Bobot) / 100
 func (s *realisasiKpiService) enrichRowsFromDB(
 	idPengajuan string,
-	rows []dto.RealisasiKpiRow,
+	rows map[int][]dto.KpiSubDetailRow,
 ) error {
 	for i := range rows {
 		row := &rows[i]

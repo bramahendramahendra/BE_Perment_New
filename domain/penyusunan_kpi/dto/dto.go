@@ -101,11 +101,12 @@ type PenyusunanContext struct {
 
 // ValidatePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/validate.
 type ValidatePenyusunanKpiRequest struct {
-	Divisi    Divisi `json:"divisi"    validate:"required"`
-	Tahun     string `json:"tahun"     validate:"required"`
-	Triwulan  string `json:"triwulan"  validate:"required"`
-	Kostl     string `json:"kostl"`
-	KostlTx   string `json:"kostl_tx"`
+	Divisi   Divisi `json:"divisi"    validate:"required"`
+	Tahun    string `json:"tahun"     validate:"required"`
+	Triwulan string `json:"triwulan"  validate:"required"`
+	Kostl    string `json:"kostl"`
+	KostlTx  string `json:"kostl_tx"`
+
 	EntryUser string `json:"entry_user"`
 	EntryName string `json:"entry_name"`
 	EntryTime string `json:"entry_time"`

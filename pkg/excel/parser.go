@@ -335,7 +335,7 @@ func parseInternal(
 			Qualifier:                 itemQualifier,
 			DeskripsiQualifier:        deskripsiQualifier,
 			TargetQualifier:           targetQualifier,
-			IsTW4:                     isTW4,
+			IsTW24:                    isTW4,
 			Result:                    nullableString(colP, isExtendedTriwulan),
 			DeskripsiResult:           nullableString(colQ, isExtendedTriwulan),
 			Process:                   nullableString(colR, isExtendedTriwulan),
