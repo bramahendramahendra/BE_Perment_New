@@ -1,0 +1,553 @@
+# ============================================================
+# BRIPerment Backend - Contoh Semua Request API
+# ============================================================
+# Cara penggunaan:
+#   1. Install ekstensi "REST Client" di VS Code
+#   2. Klik "Send Request" di atas setiap request
+#   3. Ganti variabel @token setelah login
+# ============================================================
+
+@baseUrl = http://localhost:8080
+@token = eyJhbGciOiJIUzI1NiIs...
+
+
+# ============================================================
+# PUBLIC ROUTES (Tanpa Autentikasi)
+# ============================================================
+
+# ------------------------------------------------------------
+# 1. AUTH - Generate Token
+# ------------------------------------------------------------
+
+### [AUTH] Generate JWT Token
+POST {{baseUrl}}/api/auth
+Content-Type: application/json
+
+{
+  "pernr": "12345",
+  "nama": "John Doe",
+  "branchCode": "001",
+  "organisasiUnit": "1001",
+  "hilfm": "1",
+  "costCenter": "CC001"
+}
+
+
+# ------------------------------------------------------------
+# 2. USER INTEGRATION
+# ------------------------------------------------------------
+
+### [USER INTEGRATION] Create User Integration
+POST {{baseUrl}}/api/user-integration/create
+Content-Type: application/json
+
+{
+  "username": "username123",
+  "creds": "credential_string"
+}
+
+###
+
+### [USER INTEGRATION] Get User Integration by Username
+POST {{baseUrl}}/api/user-integration/get/username123
+Content-Type: application/json
+
+###
+
+### [USER INTEGRATION] Get All User Integrations
+POST {{baseUrl}}/api/user-integration/get-all
+Content-Type: application/json
+
+###
+
+### [INTEGRATION] Inquiry CASAVA
+POST {{baseUrl}}/api/integration/inquiry-casava
+Content-Type: application/json
+
+{
+  "accountNo": "1234567890123456"
+}
+
+
+# ============================================================
+# PROTECTED ROUTES (Memerlukan Bearer Token)
+# ============================================================
+
+# ------------------------------------------------------------
+# 3. TEMPLATE
+# ------------------------------------------------------------
+
+### [TEMPLATE] Download Format Penyusunan KPI (TW1/TW2/TW3/TW4)
+POST {{baseUrl}}/api/template/format-penyusunan-kpi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "triwulan": "TW1"
+}
+
+###
+
+### [TEMPLATE] Download Tolakan Penyusunan KPI (untuk Revisi)
+POST {{baseUrl}}/api/template/tolakan-penyusunan-kpi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001"
+}
+
+###
+
+### [TEMPLATE] Download Format Realisasi KPI
+POST {{baseUrl}}/api/template/format-realisasi-kpi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001",
+  "triwulan": "TW1"
+}
+
+
+# ------------------------------------------------------------
+# 4. PENYUSUNAN KPI
+# ------------------------------------------------------------
+
+### [PENYUSUNAN KPI] Validate & Simpan Draft (Upload Excel)
+# Catatan: Ganti path file Excel sesuai lokasi file di komputer Anda
+POST {{baseUrl}}/api/penyusunan-kpi/validate
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
+Content-Disposition: form-data; name="REQUEST"
+
+{"divisi":{"kostl":"1001","kostl_tx":"Branch Jakarta"},"tahun":"2024","triwulan":"TW1"}
+------FormBoundary
+Content-Disposition: form-data; name="files"; filename="kpi_template.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ./kpi_template.xlsx
+------FormBoundary--
+
+###
+
+### [PENYUSUNAN KPI] Revisi Draft (Upload Excel Baru)
+POST {{baseUrl}}/api/penyusunan-kpi/revision
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
+Content-Disposition: form-data; name="REQUEST"
+
+{"id_pengajuan":"PNG20240101001","divisi":{"kostl":"1001","kostl_tx":"Branch Jakarta"},"tahun":"2024","triwulan":"TW1"}
+------FormBoundary
+Content-Disposition: form-data; name="files"; filename="kpi_template_revised.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ./kpi_template_revised.xlsx
+------FormBoundary--
+
+###
+
+### [PENYUSUNAN KPI] Submit Pengajuan (Draft → Pending Approval)
+POST {{baseUrl}}/api/penyusunan-kpi/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001",
+  "approval_list": [
+    {
+      "userid": "EMP001",
+      "nama": "Manager Name",
+      "status": "pending",
+      "keterangan": "Manager approval",
+      "posisi": "Manager",
+      "level": "3",
+      "fungsi": "Operations"
+    }
+  ]
+}
+
+###
+
+### [PENYUSUNAN KPI] Approval / Tolak Pengajuan
+POST {{baseUrl}}/api/penyusunan-kpi/approval
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001",
+  "status": "approve",
+  "approval_list": "EMP001",
+  "approval_posisi": "Manager",
+  "catatan_tolak": ""
+}
+
+###
+
+### [PENYUSUNAN KPI] Approval / Tolak Pengajuan - Contoh Tolak
+POST {{baseUrl}}/api/penyusunan-kpi/approval
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001",
+  "status": "reject",
+  "approval_list": "EMP001",
+  "approval_posisi": "Manager",
+  "catatan_tolak": "Data KPI perlu direvisi kembali"
+}
+
+###
+
+### [PENYUSUNAN KPI] Get All Pending Approval (untuk approver)
+POST {{baseUrl}}/api/penyusunan-kpi/get-all-approval
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "divisi": "1001",
+  "tahun": "2024",
+  "triwulan": "TW1",
+  "page": 1,
+  "limit": 10
+}
+
+###
+
+### [PENYUSUNAN KPI] Get All Tolakan
+POST {{baseUrl}}/api/penyusunan-kpi/get-all-tolakan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "divisi": "1001",
+  "tahun": "2024",
+  "triwulan": "TW1",
+  "page": 1,
+  "limit": 10
+}
+
+###
+
+### [PENYUSUNAN KPI] Get All Daftar Penyusunan
+POST {{baseUrl}}/api/penyusunan-kpi/get-all-daftar-penyusunan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "divisi": "1001",
+  "tahun": "2024",
+  "triwulan": "TW1",
+  "status": "pending",
+  "page": 1,
+  "limit": 10
+}
+
+###
+
+### [PENYUSUNAN KPI] Get All Daftar Approval
+POST {{baseUrl}}/api/penyusunan-kpi/get-all-daftar-approval
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "divisi": "1001",
+  "tahun": "2024",
+  "triwulan": "TW1",
+  "page": 1,
+  "limit": 10
+}
+
+###
+
+### [PENYUSUNAN KPI] Get Detail Pengajuan
+POST {{baseUrl}}/api/penyusunan-kpi/get-detail
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001"
+}
+
+###
+
+### [PENYUSUNAN KPI] Export ke Excel
+POST {{baseUrl}}/api/penyusunan-kpi/get-excel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001"
+}
+
+###
+
+### [PENYUSUNAN KPI] Export ke PDF
+POST {{baseUrl}}/api/penyusunan-kpi/get-pdf
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001"
+}
+
+
+# ------------------------------------------------------------
+# 5. REALISASI KPI
+# ------------------------------------------------------------
+
+### [REALISASI KPI] Validate & Simpan Draft (Upload Excel)
+POST {{baseUrl}}/api/realisasi-kpi/validate
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
+Content-Disposition: form-data; name="REQUEST"
+
+{"divisi":{"kostl":"1001","kostl_tx":"Branch Jakarta"},"tahun":"2024","triwulan":"TW1"}
+------FormBoundary
+Content-Disposition: form-data; name="files"; filename="realisasi_template.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ./realisasi_template.xlsx
+------FormBoundary--
+
+###
+
+### [REALISASI KPI] Revisi Draft (Upload Excel Baru)
+POST {{baseUrl}}/api/realisasi-kpi/revision
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
+Content-Disposition: form-data; name="REQUEST"
+
+{"id_pengajuan":"PNG20240101001","divisi":{"kostl":"1001","kostl_tx":"Branch Jakarta"},"tahun":"2024","triwulan":"TW1"}
+------FormBoundary
+Content-Disposition: form-data; name="files"; filename="realisasi_revised.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ./realisasi_revised.xlsx
+------FormBoundary--
+
+###
+
+### [REALISASI KPI] Submit Realisasi (Draft → Pending Approval)
+POST {{baseUrl}}/api/realisasi-kpi/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001"
+}
+
+###
+
+### [REALISASI KPI] Approval / Tolak Realisasi
+POST {{baseUrl}}/api/realisasi-kpi/approval
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001",
+  "status": "approve",
+  "approval_list": "EMP001",
+  "catatan_tolak": ""
+}
+
+###
+
+### [REALISASI KPI] Approval / Tolak Realisasi - Contoh Tolak
+POST {{baseUrl}}/api/realisasi-kpi/approval
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001",
+  "status": "reject",
+  "approval_list": "EMP001",
+  "catatan_tolak": "Data realisasi tidak sesuai target"
+}
+
+###
+
+### [REALISASI KPI] Get All Pending Approval (untuk approver)
+POST {{baseUrl}}/api/realisasi-kpi/get-all-approval
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "divisi": "1001",
+  "tahun": "2024",
+  "triwulan": "TW1",
+  "page": 1,
+  "limit": 10
+}
+
+###
+
+### [REALISASI KPI] Get All Tolakan
+POST {{baseUrl}}/api/realisasi-kpi/get-all-tolakan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "divisi": "1001",
+  "tahun": "2024",
+  "triwulan": "TW1",
+  "page": 1,
+  "limit": 10
+}
+
+###
+
+### [REALISASI KPI] Get All Daftar Realisasi
+POST {{baseUrl}}/api/realisasi-kpi/get-all-daftar-realisasi
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "divisi": "1001",
+  "tahun": "2024",
+  "triwulan": "TW1",
+  "status": "pending",
+  "page": 1,
+  "limit": 10
+}
+
+###
+
+### [REALISASI KPI] Get All Daftar Approval
+POST {{baseUrl}}/api/realisasi-kpi/get-all-daftar-approval
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "divisi": "1001",
+  "tahun": "2024",
+  "triwulan": "TW1",
+  "page": 1,
+  "limit": 10
+}
+
+###
+
+### [REALISASI KPI] Get Detail Realisasi
+POST {{baseUrl}}/api/realisasi-kpi/get-detail
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id_pengajuan": "PNG20240101001"
+}
+
+
+# ------------------------------------------------------------
+# 6. MASTER DATA
+# ------------------------------------------------------------
+
+### [MASTER] Get All Context
+POST {{baseUrl}}/api/master-context/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+
+### [MASTER] Get All Divisi
+POST {{baseUrl}}/api/master-divisi/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+
+### [MASTER] Get All KPI
+POST {{baseUrl}}/api/master-kpi/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+
+### [MASTER] Get All Perspektif
+POST {{baseUrl}}/api/master-perspektif/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+
+### [MASTER] Get All Process
+POST {{baseUrl}}/api/master-process/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+
+### [MASTER] Get All Status
+POST {{baseUrl}}/api/master-status/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+
+### [MASTER] Get Status Draft
+POST {{baseUrl}}/api/master-status/get-draft
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+
+### [MASTER] Get All Tahun
+POST {{baseUrl}}/api/master-tahun/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+
+### [MASTER] Get All Triwulan
+POST {{baseUrl}}/api/master-triwulan/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+
+# ------------------------------------------------------------
+# 7. USER
+# ------------------------------------------------------------
+
+### [USER] Get All User (Tanpa Filter)
+POST {{baseUrl}}/api/user/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+###
+
+### [USER] Get All User (Filter by Branch)
+POST {{baseUrl}}/api/user/get-all
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "branch": "001"
+}

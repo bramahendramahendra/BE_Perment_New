@@ -803,6 +803,9 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	}
 
 	styleData, err := f.NewStyle(&excelize.Style{
+		Protection: &excelize.Protection{
+			Locked: true,
+		},
 		Border: borderStyle(),
 		Alignment: &excelize.Alignment{
 			Vertical: "top",
@@ -1062,6 +1065,56 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		ActivePane:  "bottomLeft",
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set freeze pane: %v", err)}
+	}
+
+	// -------------------------------------------------------------------------
+	// Sheet Protection: kunci semua sel, unlock hanya kolom input user
+	// -------------------------------------------------------------------------
+	// Tentukan kolom yang boleh diisi user sesuai triwulan:
+	//   TW1/TW3 : J (Realisasi), K (Realisasi Kuantitatif),
+	//             L (Realisasi Qualifier), M (Realisasi Qualifier Kuantitatif)
+	//   TW2/TW4 : tambah P (Realisasi Result), Q (Link Result),
+	//             T (Realisasi Process), U (Link Process),
+	//             X (Realisasi Context), Y (Link Context)
+	userInputCols := []string{"J", "K", "L", "M"}
+	if isTW24 {
+		userInputCols = append(userInputCols, "P", "Q", "T", "U", "X", "Y")
+	}
+
+	// Jumlah baris data aktual dari DB (baris 2 s.d. lastDataRow-1)
+	totalDataRows := len(excelData.Rows)
+	if totalDataRows > 0 {
+		// Style "unlocked" untuk sel input user
+		styleUnlocked, err := f.NewStyle(&excelize.Style{
+			Protection: &excelize.Protection{
+				Locked: false,
+			},
+			Border: borderStyle(),
+			Alignment: &excelize.Alignment{
+				Vertical: "top",
+				WrapText: true,
+			},
+		})
+		if err != nil {
+			return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style unlocked: %v", err)}
+		}
+
+		dataEndRow := realisasiDataStartRow + totalDataRows - 1
+		for _, col := range userInputCols {
+			rangeRef := fmt.Sprintf("%s%d:%s%d", col, realisasiDataStartRow, col, dataEndRow)
+			if err := f.SetCellStyle(sheetName, fmt.Sprintf("%s%d", col, realisasiDataStartRow),
+				fmt.Sprintf("%s%d", col, dataEndRow), styleUnlocked); err != nil {
+				return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style unlocked %s: %v", rangeRef, err)}
+			}
+		}
+	}
+
+	// Aktifkan proteksi sheet — semua sel terkunci kecuali yang sudah di-unlock di atas
+	if err := f.ProtectSheet(sheetName, &excelize.SheetProtectionOptions{
+		SelectLockedCells:   true,
+		SelectUnlockedCells: true,
+	}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal protect sheet: %v", err)}
 	}
 
 	// =========================================================================
