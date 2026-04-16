@@ -156,6 +156,26 @@ type ApprovalPenyusunanKpiRequest struct {
 	User string `json:"user"`
 }
 
+// ApprovePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/approve.
+type ApprovePenyusunanKpiRequest struct {
+	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+	Catatan     string `json:"catatan"`
+
+	// Diisi handler dari header 'userq', tidak boleh dari body.
+	User     string `json:"user"`
+	UserName string `json:"user_name"`
+}
+
+// RejectPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/reject.
+type RejectPenyusunanKpiRequest struct {
+	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+	Catatan     string `json:"catatan"`
+
+	// Diisi handler dari header 'userq', tidak boleh dari body.
+	User     string `json:"user"`
+	UserName string `json:"user_name"`
+}
+
 // GetAllApprovalPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-approval.
 type GetAllApprovalPenyusunanKpiRequest struct {
 	Divisi   string `json:"divisi"`
@@ -271,6 +291,18 @@ type BatalPenyusunanKpiResponse struct {
 
 // ApprovalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/approval.
 type ApprovalPenyusunanKpiResponse struct {
+	IdPengajuan string `json:"id_pengajuan"`
+	Status      string `json:"status"`
+}
+
+// ApprovePenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/approve.
+type ApprovePenyusunanKpiResponse struct {
+	IdPengajuan string `json:"id_pengajuan"`
+	Status      string `json:"status"`
+}
+
+// RejectPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/reject.
+type RejectPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
 	Status      string `json:"status"`
 }

@@ -45,6 +45,17 @@ type (
 			req *dto.ApprovalPenyusunanKpiRequest,
 		) error
 
+		// Digunakan oleh endpoint POST /penyusunan-kpi/approve.
+		// approvalPosisi kosong jika ini adalah approve final (tidak ada approver berikutnya).
+		ApprovePenyusunanKpi(idPengajuan, approvalList, approvalPosisi, user string) error
+
+		// Digunakan oleh endpoint POST /penyusunan-kpi/reject.
+		RejectPenyusunanKpi(idPengajuan, approvalList, catatan, user string) error
+
+		// Digunakan oleh endpoint POST /penyusunan-kpi/approve dan /reject.
+		// Mengambil approval_list JSON untuk id_pengajuan jika user adalah approval_posisi aktif.
+		GetApprovalListJSON(idPengajuan, userID string) (string, error)
+
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
 		GetAllApprovalPenyusunanKpi(
 			req *dto.GetAllApprovalPenyusunanKpiRequest,

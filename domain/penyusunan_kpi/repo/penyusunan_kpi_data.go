@@ -163,6 +163,10 @@ const (
 	queryCheckApprovalPenyusunan = `
 		SELECT COUNT(*) FROM data_kpi
 		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
+
+	queryGetApprovalListJSON = `
+		SELECT approval_list FROM data_kpi
+		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
 	// =============================================================================
 	// Insert
 	// =============================================================================
@@ -930,6 +934,99 @@ func (r *penyusunanKpiRepo) ApprovalPenyusunanKpi(req *dto.ApprovalPenyusunanKpi
 
 	tx.Rollback()
 	return &customErrors.BadRequestError{Message: "status tidak valid"}
+}
+
+// ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
+// Menerima approval_list (JSON string sudah diupdate) dan approval_posisi (next approver, kosong jika final).
+func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, approvalPosisi, user string) error {
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+	}
+
+	if approvalPosisi == "" {
+		// ── Approve final: set status=2 ──
+		if err := tx.Exec(queryApproveFinalPenyusunan,
+			approvalList, idPengajuan,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal approve final penyusunan: %w", err)
+		}
+		tx.Commit()
+		return nil
+	}
+
+	// ── Approve chain: pindah approval_posisi ke level berikutnya + notif ──
+	if err := tx.Exec(queryApproveChainPenyusunan,
+		approvalPosisi, approvalList, idPengajuan,
+	).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal approve chain penyusunan: %w", err)
+	}
+
+	if err := notif.Insert(tx,
+		idPengajuan,
+		"Approval Penyusunan, ID : "+idPengajuan,
+		user,
+		approvalPosisi,
+		"approval_penyusunan",
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// RejectPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/reject.
+// Menerima approval_list (JSON string sudah diupdate) dan catatan penolakan.
+func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catatan, user string) error {
+	// Ambil entry_user untuk notifikasi ke pengaju
+	var kpiBase struct {
+		EntryUser string `gorm:"column:entry_user"`
+	}
+	if err := r.db.Raw(queryGetKpiBaseData, idPengajuan).Scan(&kpiBase).Error; err != nil {
+		return fmt.Errorf("gagal mengambil entry_user: %w", err)
+	}
+	entryUser := kpiBase.EntryUser
+
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+	}
+
+	if err := tx.Exec(queryRejectPenyusunan,
+		approvalList, catatan, idPengajuan,
+	).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal reject penyusunan: %w", err)
+	}
+
+	if err := notif.Insert(tx,
+		idPengajuan,
+		"Penyusunan Ditolak, ID : "+idPengajuan,
+		user,
+		entryUser,
+		"penyusunan_ditolak",
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+func (r *penyusunanKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (string, error) {
+	var approvalList string
+	if err := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Scan(&approvalList).Error; err != nil {
+		return "", fmt.Errorf("gagal mengambil data approval: %w", err)
+	}
+	if approvalList == "" {
+		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+	return approvalList, nil
 }
 
 // =============================================================================

@@ -202,6 +202,90 @@ func (h *PenyusunanKpiHandler) ApprovalPenyusunanKpi(c *gin.Context) {
 	})
 }
 
+// ApprovePenyusunanKpi handles POST /penyusunan-kpi/approve
+func (h *PenyusunanKpiHandler) ApprovePenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.ApprovePenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+
+	req.User = strings.TrimSpace(parts[0])
+	req.UserName = strings.TrimSpace(parts[1])
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.ApprovePenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:    "00",
+		Status:  true,
+		Message: "Penyusunan KPI berhasil diapprove",
+		Data:    data,
+	})
+}
+
+// RejectPenyusunanKpi handles POST /penyusunan-kpi/reject
+func (h *PenyusunanKpiHandler) RejectPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.RejectPenyusunanKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+
+	req.User = strings.TrimSpace(parts[0])
+	req.UserName = strings.TrimSpace(parts[1])
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.RejectPenyusunanKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:    "00",
+		Status:  true,
+		Message: "Penyusunan KPI berhasil ditolak",
+		Data:    data,
+	})
+}
+
 // GetAllApprovalPenyusunanKpi handles POST /penyusunan-kpi/get-all-approval
 func (h *PenyusunanKpiHandler) GetAllApprovalPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllApprovalPenyusunanKpiRequest](c)

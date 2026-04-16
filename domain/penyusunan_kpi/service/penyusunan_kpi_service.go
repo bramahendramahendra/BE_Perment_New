@@ -1,9 +1,11 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"mime/multipart"
 	"strings"
+	"time"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
 	"permen_api/domain/penyusunan_kpi/utils"
@@ -225,6 +227,104 @@ func (s *penyusunanKpiService) ApprovalPenyusunanKpi(
 	data = dto.ApprovalPenyusunanKpiResponse{
 		IdPengajuan: req.IdPengajuan,
 		Status:      req.Status,
+	}
+
+	return data, nil
+}
+
+func (s *penyusunanKpiService) ApprovePenyusunanKpi(
+	req *dto.ApprovePenyusunanKpiRequest,
+) (data dto.ApprovePenyusunanKpiResponse, err error) {
+	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.User)
+	if err != nil {
+		return data, err
+	}
+
+	var approvalList []dto.ApprovalUser
+	if err = json.Unmarshal([]byte(approvalListJSON), &approvalList); err != nil {
+		return data, fmt.Errorf("gagal parse approval_list: %w", err)
+	}
+
+	now := time.Now().Format("2006-01-02 15:04:05")
+	currentIdx := -1
+	for i := range approvalList {
+		if strings.EqualFold(approvalList[i].Userid, req.User) && approvalList[i].Status == "" {
+			approvalList[i].Status = "approve"
+			approvalList[i].Waktu = now
+			currentIdx = i
+			break
+		}
+	}
+	if currentIdx == -1 {
+		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+
+	// Cari approver berikutnya yang belum approve
+	nextApprover := ""
+	for i := currentIdx + 1; i < len(approvalList); i++ {
+		if approvalList[i].Status == "" {
+			nextApprover = approvalList[i].Userid
+			break
+		}
+	}
+
+	updatedJSON, err := json.Marshal(approvalList)
+	if err != nil {
+		return data, fmt.Errorf("gagal serialize approval_list: %w", err)
+	}
+
+	if err = s.repo.ApprovePenyusunanKpi(req.IdPengajuan, string(updatedJSON), nextApprover, req.User); err != nil {
+		return data, err
+	}
+
+	data = dto.ApprovePenyusunanKpiResponse{
+		IdPengajuan: req.IdPengajuan,
+		Status:      "approve",
+	}
+
+	return data, nil
+}
+
+func (s *penyusunanKpiService) RejectPenyusunanKpi(
+	req *dto.RejectPenyusunanKpiRequest,
+) (data dto.RejectPenyusunanKpiResponse, err error) {
+	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.User)
+	if err != nil {
+		return data, err
+	}
+
+	var approvalList []dto.ApprovalUser
+	if err = json.Unmarshal([]byte(approvalListJSON), &approvalList); err != nil {
+		return data, fmt.Errorf("gagal parse approval_list: %w", err)
+	}
+
+	now := time.Now().Format("2006-01-02 15:04:05")
+	found := false
+	for i := range approvalList {
+		if strings.EqualFold(approvalList[i].Userid, req.User) && approvalList[i].Status == "" {
+			approvalList[i].Status = "reject"
+			approvalList[i].Keterangan = req.Catatan
+			approvalList[i].Waktu = now
+			found = true
+			break
+		}
+	}
+	if !found {
+		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+
+	updatedJSON, err := json.Marshal(approvalList)
+	if err != nil {
+		return data, fmt.Errorf("gagal serialize approval_list: %w", err)
+	}
+
+	if err = s.repo.RejectPenyusunanKpi(req.IdPengajuan, string(updatedJSON), req.Catatan, req.User); err != nil {
+		return data, err
+	}
+
+	data = dto.RejectPenyusunanKpiResponse{
+		IdPengajuan: req.IdPengajuan,
+		Status:      "reject",
 	}
 
 	return data, nil
