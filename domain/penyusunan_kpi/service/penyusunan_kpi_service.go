@@ -249,8 +249,9 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	currentIdx := -1
 	for i := range approvalList {
 		if strings.EqualFold(approvalList[i].Userid, req.User) && approvalList[i].Status == "" {
-			approvalList[i].Status = "approve"
-			approvalList[i].Waktu = now
+			approvalList[i].Status     = "approve"
+			approvalList[i].Keterangan = req.Catatan
+			approvalList[i].Waktu      = now
 			currentIdx = i
 			break
 		}

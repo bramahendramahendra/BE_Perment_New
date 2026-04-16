@@ -159,7 +159,7 @@ type ApprovalPenyusunanKpiRequest struct {
 // ApprovePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/approve.
 type ApprovePenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Catatan     string `json:"catatan"`
+	Catatan     string `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	User     string `json:"user"`
@@ -169,7 +169,7 @@ type ApprovePenyusunanKpiRequest struct {
 // RejectPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Catatan     string `json:"catatan"`
+	Catatan     string `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	User     string `json:"user"`

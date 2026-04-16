@@ -921,7 +921,7 @@ func (r *penyusunanKpiRepo) ApprovalPenyusunanKpi(req *dto.ApprovalPenyusunanKpi
 			req.IdPengajuan,
 			"Penyusunan Ditolak, ID : "+req.IdPengajuan,
 			req.User,
-			entryUser,
+			req.ApprovalPosisi,
 			"penyusunan_ditolak",
 		); err != nil {
 			tx.Rollback()
@@ -939,6 +939,14 @@ func (r *penyusunanKpiRepo) ApprovalPenyusunanKpi(req *dto.ApprovalPenyusunanKpi
 // ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
 // Menerima approval_list (JSON string sudah diupdate) dan approval_posisi (next approver, kosong jika final).
 func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, approvalPosisi, user string) error {
+	var count int64
+	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
+		return fmt.Errorf("gagal mengecek data pengajuan: %w", err)
+	}
+	if count == 0 {
+		return &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+
 	tx := r.db.Begin()
 	if tx.Error != nil {
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
@@ -982,7 +990,15 @@ func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, appr
 // RejectPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/reject.
 // Menerima approval_list (JSON string sudah diupdate) dan catatan penolakan.
 func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catatan, user string) error {
-	// Ambil entry_user untuk notifikasi ke pengaju
+	var count int64
+	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
+		return fmt.Errorf("gagal mengecek data pengajuan: %w", err)
+	}
+	if count == 0 {
+		return &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+
+	// Ambil entry_user untuk dikirim notifikasi penolakan
 	var kpiBase struct {
 		EntryUser string `gorm:"column:entry_user"`
 	}
