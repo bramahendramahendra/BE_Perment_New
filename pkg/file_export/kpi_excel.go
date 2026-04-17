@@ -69,6 +69,31 @@ func GenerateKpiExcel(exportData *dto.KpiExportData) ([]byte, string, error) {
 	// (tidak perlu set value — cell default kosong)
 
 	// -------------------------------------------------------------------------
+	// Style: border tipis untuk semua sisi
+	// -------------------------------------------------------------------------
+	borderStyle, err := f.NewStyle(&excelize.Style{
+		Border: []excelize.Border{
+			{Type: "left", Color: "000000", Style: 1},
+			{Type: "right", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+		},
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("gagal membuat style border: %w", err)
+	}
+
+	applyBorderRow := func(rowNum int) error {
+		for colIdx := 1; colIdx <= 5; colIdx++ {
+			cell, _ := excelize.CoordinatesToCellName(colIdx, rowNum)
+			if err := f.SetCellStyle(sheetName, cell, cell, borderStyle); err != nil {
+				return fmt.Errorf("gagal set border baris %d kolom %d: %w", rowNum, colIdx, err)
+			}
+		}
+		return nil
+	}
+
+	// -------------------------------------------------------------------------
 	// Baris 4: Header kolom
 	// -------------------------------------------------------------------------
 	headers := []string{"No", "KPI", "Bobot (%)", "Target Tahunan", "Capping"}
@@ -77,6 +102,9 @@ func GenerateKpiExcel(exportData *dto.KpiExportData) ([]byte, string, error) {
 		if err := f.SetCellValue(sheetName, cell, header); err != nil {
 			return nil, "", fmt.Errorf("gagal menulis header kolom '%s': %w", header, err)
 		}
+	}
+	if err := applyBorderRow(4); err != nil {
+		return nil, "", err
 	}
 
 	// -------------------------------------------------------------------------
@@ -98,6 +126,10 @@ func GenerateKpiExcel(exportData *dto.KpiExportData) ([]byte, string, error) {
 			if err := f.SetCellValue(sheetName, cell, val); err != nil {
 				return nil, "", fmt.Errorf("gagal menulis data baris %d kolom %d: %w", rowNum, colIdx+1, err)
 			}
+		}
+
+		if err := applyBorderRow(rowNum); err != nil {
+			return nil, "", err
 		}
 	}
 

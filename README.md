@@ -111,8 +111,8 @@ Base URL: `http://localhost:8006/api`
 | POST | `/penyusunan-kpi/get-all-daftar-penyusunan` | Daftar penyusunan KPI | ✅
 | POST | `/penyusunan-kpi/get-all-daftar-approval` | Daftar approval KPI | ✅
 | POST | `/penyusunan-kpi/get-detail` | Detail KPI | ✅
-| POST | `/penyusunan-kpi/get-excel` | Download KPI format Excel |
-| POST | `/penyusunan-kpi/get-pdf` | Download KPI format PDF |
+| POST | `/penyusunan-kpi/get-excel` | Download KPI format Excel | ✅
+| POST | `/penyusunan-kpi/get-pdf` | Download KPI format PDF | ✅
 
 ---
 
@@ -120,8 +120,8 @@ Base URL: `http://localhost:8006/api`
 
 | Method | Endpoint | Keterangan |
 |--------|----------|------------|
-| POST | `/template/format-penyusunan-kpi` | Download template penyusunan KPI |
-| POST | `/template/tolakan-penyusunan-kpi` | Download template tolakan KPI |
+| POST | `/template/format-penyusunan-kpi` | Download template penyusunan KPI | ✅
+| POST | `/template/revision-penyusunan-kpi` | Download template revision KPI | ✅
 | POST | `/template/format-realisasi-kpi` | Download template realisasi KPI |
 
 ---

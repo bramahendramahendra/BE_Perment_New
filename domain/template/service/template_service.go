@@ -363,13 +363,13 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 }
 
 // =============================================================================
-// GenerateTolakanPenyusunanKpi
+// GenerateRevisionPenyusunanKpi
 // =============================================================================
 
-func (s *templateService) GenerateTolakanPenyusunanKpi(req *dto.TolakanPenyusunanKpiRequest) ([]byte, string, error) {
+func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusunanKpiRequest) ([]byte, string, error) {
 
 	// Ambil data dari DB (header + seluruh baris sub KPI)
-	excelData, err := s.repo.GetTolakanPenyusunanKpiData(req.IdPengajuan)
+	excelData, err := s.repo.GetRevisionPenyusunanKpiData(req.IdPengajuan)
 	if err != nil {
 		return nil, "", err
 	}
@@ -717,7 +717,7 @@ func (s *templateService) GenerateTolakanPenyusunanKpi(req *dto.TolakanPenyusuna
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal write file Excel: %v", err)}
 	}
 
-	filename := fmt.Sprintf("Tolakan Penyusunan KPI Aplikasi Performance Management %s %s %s.xlsx", excelData.KostlTx, excelData.Tahun, excelData.Triwulan)
+	filename := fmt.Sprintf("Revisi Penyusunan KPI Aplikasi Performance Management %s %s %s.xlsx", excelData.Triwulan, excelData.Tahun, excelData.KostlTx)
 	return buf.Bytes(), filename, nil
 }
 
@@ -770,7 +770,7 @@ var columnsRealisasiExtendedTW24 = []string{
 
 func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpiRequest) ([]byte, string, error) {
 	// Ambil data dari DB (header + seluruh baris sub KPI)
-	excelData, err := s.repo.GetTolakanPenyusunanKpiData(req.IdPengajuan)
+	excelData, err := s.repo.GetRevisionPenyusunanKpiData(req.IdPengajuan)
 	if err != nil {
 		return nil, "", err
 	}

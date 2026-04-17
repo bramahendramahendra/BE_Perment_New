@@ -46,12 +46,12 @@ func (h *TemplateHandler) GetFormatPenyusunanKpi(c *gin.Context) {
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }
 
-// GetTolakanPenyusunanKpi handles POST /template/tolakan-penyusunan-kpi
+// GetRevisionPenyusunanKpi handles POST /template/tolakan-penyusunan-kpi
 // Menerima JSON body dengan field id_pengajuan.
 // Menghasilkan file Excel yang sudah terisi data baris sub KPI berdasarkan id_pengajuan,
 // sehingga user dapat langsung merevisi dan mengupload ulang via /penyusunan-kpi/revision.
-func (h *TemplateHandler) GetTolakanPenyusunanKpi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.TolakanPenyusunanKpiRequest](c)
+func (h *TemplateHandler) GetRevisionPenyusunanKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.RevisionPenyusunanKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -62,7 +62,7 @@ func (h *TemplateHandler) GetTolakanPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	fileBytes, filename, err := h.service.GenerateTolakanPenyusunanKpi(&req)
+	fileBytes, filename, err := h.service.GenerateRevisionPenyusunanKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -101,4 +101,3 @@ func (h *TemplateHandler) GetFormatRealisasiKpi(c *gin.Context) {
 	file_export.SetExcelDownloadHeaders(c, filename)
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }
-
