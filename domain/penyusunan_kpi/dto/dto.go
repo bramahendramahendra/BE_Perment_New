@@ -298,12 +298,14 @@ type ApprovalPenyusunanKpiResponse struct {
 type ApprovePenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
 	Status      string `json:"status"`
+	Catatan     string `json:"catatan"`
 }
 
 // RejectPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
 	Status      string `json:"status"`
+	Catatan     string `json:"catatan"`
 }
 
 // GetAllApprovalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-all-approval.

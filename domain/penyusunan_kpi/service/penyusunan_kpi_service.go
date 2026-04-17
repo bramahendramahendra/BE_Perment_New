@@ -270,6 +270,7 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	data = dto.ApprovePenyusunanKpiResponse{
 		IdPengajuan: req.IdPengajuan,
 		Status:      "approve",
+		Catatan:     req.Catatan,
 	}
 
 	return data, nil
@@ -319,6 +320,7 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	data = dto.RejectPenyusunanKpiResponse{
 		IdPengajuan: req.IdPengajuan,
 		Status:      "reject",
+		Catatan:     req.Catatan,
 	}
 
 	return data, nil
