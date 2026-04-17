@@ -25,6 +25,11 @@ type (
 			contextList []dto.PenyusunanContext,
 		) (string, error)
 
+		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
+		CreatePenyusunanKpi(
+			req *dto.CreatePenyusunanKpiRequest,
+		) error
+
 		// Digunakan oleh endpoint POST /penyusunan-kpi/revision.
 		RevisionPenyusunanKpi(
 			req *dto.RevisionPenyusunanKpiRequest,
@@ -33,11 +38,6 @@ type (
 			resultList []dto.PenyusunanResult,
 			processList []dto.PenyusunanProcess,
 			contextList []dto.PenyusunanContext,
-		) error
-
-		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
-		CreatePenyusunanKpi(
-			req *dto.CreatePenyusunanKpiRequest,
 		) error
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/approve.

@@ -107,6 +107,30 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 }
 
 // =============================================================================
+// CREATE
+// =============================================================================
+
+func (s *penyusunanKpiService) CreatePenyusunanKpi(
+	req *dto.CreatePenyusunanKpiRequest,
+) (data dto.CreatePenyusunanKpiResponse, err error) {
+	// User error (idPengajuan tidak ada) atau system error (DB) — repo sudah wrap dengan tipe yang tepat
+	if err = s.repo.CreatePenyusunanKpi(req); err != nil {
+		return data, err
+	}
+
+	simpleList := make([]dto.ApprovalUserSimple, len(req.ApprovalList))
+	for i, a := range req.ApprovalList {
+		simpleList[i] = dto.ApprovalUserSimple{Userid: a.Userid, Nama: a.Nama}
+	}
+	data = dto.CreatePenyusunanKpiResponse{
+		IdPengajuan:  req.IdPengajuan,
+		ApprovalList: simpleList,
+	}
+
+	return data, nil
+}
+
+// =============================================================================
 // REVISION
 // =============================================================================
 
@@ -188,26 +212,6 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		ResultList:  resultList,
 		ProcessList: processList,
 		ContextList: contextList,
-	}
-
-	return data, nil
-}
-
-// =============================================================================
-// CREATE
-// =============================================================================
-
-func (s *penyusunanKpiService) CreatePenyusunanKpi(
-	req *dto.CreatePenyusunanKpiRequest,
-) (data dto.CreatePenyusunanKpiResponse, err error) {
-	// User error (idPengajuan tidak ada) atau system error (DB) — repo sudah wrap dengan tipe yang tepat
-	if err = s.repo.CreatePenyusunanKpi(req); err != nil {
-		return data, err
-	}
-
-	data = dto.CreatePenyusunanKpiResponse{
-		IdPengajuan:  req.IdPengajuan,
-		ApprovalList: req.ApprovalList,
 	}
 
 	return data, nil
@@ -434,11 +438,8 @@ func (s *penyusunanKpiService) GetAllApprovalPenyusunanKpi(
 			IdPengajuan: v.IdPengajuan,
 			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
-			Kostl:       v.Kostl,
 			KostlTx:     v.KostlTx,
-			Orgeh:       v.Orgeh,
 			OrgehTx:     v.OrgehTx,
-			Status:      v.Status,
 			StatusDesc:  v.StatusDesc,
 		})
 	}
@@ -463,11 +464,8 @@ func (s *penyusunanKpiService) GetAllTolakanPenyusunanKpi(
 			IdPengajuan: v.IdPengajuan,
 			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
-			Kostl:       v.Kostl,
 			KostlTx:     v.KostlTx,
-			Orgeh:       v.Orgeh,
 			OrgehTx:     v.OrgehTx,
-			Status:      v.Status,
 			StatusDesc:  v.StatusDesc,
 		})
 	}
@@ -492,11 +490,8 @@ func (s *penyusunanKpiService) GetAllDaftarPenyusunanKpi(
 			IdPengajuan: v.IdPengajuan,
 			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
-			Kostl:       v.Kostl,
 			KostlTx:     v.KostlTx,
-			Orgeh:       v.Orgeh,
 			OrgehTx:     v.OrgehTx,
-			Status:      v.Status,
 			StatusDesc:  v.StatusDesc,
 		})
 	}
@@ -521,11 +516,8 @@ func (s *penyusunanKpiService) GetAllDaftarApprovalPenyusunanKpi(
 			IdPengajuan: v.IdPengajuan,
 			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
-			Kostl:       v.Kostl,
 			KostlTx:     v.KostlTx,
-			Orgeh:       v.Orgeh,
 			OrgehTx:     v.OrgehTx,
-			Status:      v.Status,
 			StatusDesc:  v.StatusDesc,
 		})
 	}

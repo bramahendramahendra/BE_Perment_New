@@ -278,10 +278,15 @@ type RevisionPenyusunanKpiResponse struct {
 	ContextList []PenyusunanContext `json:"context_list"`
 }
 
+type ApprovalUserSimple struct {
+	Userid string `json:"userid"`
+	Nama   string `json:"nama"`
+}
+
 // CreatePenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/create.
 type CreatePenyusunanKpiResponse struct {
-	IdPengajuan  string         `json:"id_pengajuan"`
-	ApprovalList []ApprovalUser `json:"approval_list"`
+	IdPengajuan  string               `json:"id_pengajuan"`
+	ApprovalList []ApprovalUserSimple `json:"approval_list"`
 }
 
 // BatalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/batal.
@@ -312,11 +317,8 @@ type GetAllApprovalPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
 	Tahun       string `json:"tahun"`
 	Triwulan    string `json:"triwulan"`
-	Kostl       string `json:"kostl"`
 	KostlTx     string `json:"kostl_tx"`
-	Orgeh       string `json:"orgeh"`
 	OrgehTx     string `json:"orgeh_tx"`
-	Status      string `json:"status"`
 	StatusDesc  string `json:"status_desc"`
 }
 
@@ -325,11 +327,8 @@ type GetAllTolakanPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
 	Tahun       string `json:"tahun"`
 	Triwulan    string `json:"triwulan"`
-	Kostl       string `json:"kostl"`
 	KostlTx     string `json:"kostl_tx"`
-	Orgeh       string `json:"orgeh"`
 	OrgehTx     string `json:"orgeh_tx"`
-	Status      string `json:"status"`
 	StatusDesc  string `json:"status_desc"`
 }
 
@@ -338,11 +337,8 @@ type GetAllDaftarPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
 	Tahun       string `json:"tahun"`
 	Triwulan    string `json:"triwulan"`
-	Kostl       string `json:"kostl"`
 	KostlTx     string `json:"kostl_tx"`
-	Orgeh       string `json:"orgeh"`
 	OrgehTx     string `json:"orgeh_tx"`
-	Status      string `json:"status"`
 	StatusDesc  string `json:"status_desc"`
 }
 
@@ -351,11 +347,8 @@ type GetAllDaftarApprovalPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
 	Tahun       string `json:"tahun"`
 	Triwulan    string `json:"triwulan"`
-	Kostl       string `json:"kostl"`
 	KostlTx     string `json:"kostl_tx"`
-	Orgeh       string `json:"orgeh"`
 	OrgehTx     string `json:"orgeh_tx"`
-	Status      string `json:"status"`
 	StatusDesc  string `json:"status_desc"`
 }
 

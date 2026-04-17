@@ -15,16 +15,16 @@ type (
 			file *multipart.FileHeader,
 		) (data dto.ValidatePenyusunanKpiResponse, err error)
 
+		// CreatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/create.
+		CreatePenyusunanKpi(
+			req *dto.CreatePenyusunanKpiRequest,
+		) (data dto.CreatePenyusunanKpiResponse, err error)
+
 		// RevisionPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/revision.
 		RevisionPenyusunanKpi(
 			req *dto.RevisionPenyusunanKpiRequest,
 			file *multipart.FileHeader,
 		) (data dto.RevisionPenyusunanKpiResponse, err error)
-
-		// CreatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/create.
-		CreatePenyusunanKpi(
-			req *dto.CreatePenyusunanKpiRequest,
-		) (data dto.CreatePenyusunanKpiResponse, err error)
 
 		// ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
 		ApprovePenyusunanKpi(

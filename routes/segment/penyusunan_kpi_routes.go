@@ -15,8 +15,8 @@ import (
 // Daftar endpoint:
 //
 //	POST /penyusunan-kpi/validate                	→ ValidatePenyusunanKpi             (multipart/form-data + file Excel)
-//	POST /penyusunan-kpi/revision                	→ RevisionPenyusunanKpi             (multipart/form-data + file Excel)
 //	POST /penyusunan-kpi/create                  	→ CreatePenyusunanKpi               (application/json)
+//	POST /penyusunan-kpi/revision                	→ RevisionPenyusunanKpi             (multipart/form-data + file Excel)
 //	POST /penyusunan-kpi/approve                 	→ ApprovePenyusunanKpi				(application/json)
 //	POST /penyusunan-kpi/reject                  	→ RejectPenyusunanKpi				(application/json)
 //	POST /penyusunan-kpi/get-all-approval        	→ GetAllApprovalPenyusunanKpi       (application/json)
