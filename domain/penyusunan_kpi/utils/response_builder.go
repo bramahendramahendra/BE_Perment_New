@@ -100,8 +100,6 @@ func BuildResultList(
 			if subRow.Result != nil && *subRow.Result != "" {
 				results = append(results, dto.PenyusunanResult{
 					IdDetailResult:  idSubDetail,
-					Tahun:           tahun,
-					Triwulan:        triwulan,
 					NamaResult:      *subRow.Result,
 					DeskripsiResult: safeDeref(subRow.DeskripsiResult),
 				})
@@ -137,8 +135,6 @@ func BuildProcessList(
 			if subRow.Process != nil && *subRow.Process != "" {
 				processses = append(processses, dto.PenyusunanProcess{
 					IdDetailProcess:  idSubDetail,
-					Tahun:            tahun,
-					Triwulan:         triwulan,
 					NamaProcess:      *subRow.Process,
 					DeskripsiProcess: safeDeref(subRow.DeskripsiProcess),
 				})
@@ -174,8 +170,6 @@ func BuildContextList(
 			if subRow.Context != nil && *subRow.Context != "" {
 				contexts = append(contexts, dto.PenyusunanContext{
 					IdDetailContext:  idSubDetail,
-					Tahun:            tahun,
-					Triwulan:         triwulan,
 					NamaContext:      *subRow.Context,
 					DeskripsiContext: safeDeref(subRow.DeskripsiContext),
 				})

@@ -95,7 +95,7 @@ const (
 			IFNULL(a.id_perspektif, '')         id_perspektif,
 			IFNULL(b.perspektif, '')            perspektif,
 			IFNULL(a.id_keterangan_project, '') id_keterangan_project,
-			IFNULL(c.keterangan_project, '')    keterangan_project,
+			IFNULL(c.keterangan_project, '')    keterangan_project
 		FROM data_kpi_detail a
 		LEFT JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
 		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
@@ -127,14 +127,14 @@ const (
 
 	queryGetDataResultDetail = `
 		SELECT
-			id_detail_result, tahun, triwulan,
+			id_detail_result,
 			nama_result, deskripsi_result
 		FROM data_result_detail
 		WHERE id_pengajuan = ?`
 
 	queryGetDataProcessDetail = `
 		SELECT
-			id_detail_method, tahun, triwulan,
+			id_detail_method,
 			nama_method, deskripsi_method,
 			IFNULL(realisasi_method, '')   realisasi_method,
 			IFNULL(lampiran_evidence, '')  lampiran_evidence
@@ -143,7 +143,7 @@ const (
 
 	queryGetDataContextDetail = `
 		SELECT
-			id_detail_challenge, tahun, triwulan,
+			id_detail_challenge,
 			nama_challenge, deskripsi_challenge,
 			IFNULL(realisasi_challenge, '')  realisasi_challenge,
 			IFNULL(lampiran_evidence, '')    lampiran_evidence
@@ -398,8 +398,6 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		resultArgs = append(resultArgs,
 			idPengajuan,
 			rs.IdDetailResult,
-			rs.Tahun,
-			rs.Triwulan,
 			rs.NamaResult,
 			rs.DeskripsiResult,
 		)
@@ -417,8 +415,6 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		processArgs = append(processArgs,
 			idPengajuan,
 			mt.IdDetailProcess,
-			mt.Tahun,
-			mt.Triwulan,
 			mt.NamaProcess,
 			mt.DeskripsiProcess,
 		)
@@ -436,8 +432,6 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		contextArgs = append(contextArgs,
 			idPengajuan,
 			ch.IdDetailContext,
-			ch.Tahun,
-			ch.Triwulan,
 			ch.NamaContext,
 			ch.DeskripsiContext,
 		)
@@ -690,8 +684,6 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		resultArgs = append(resultArgs,
 			req.IdPengajuan,
 			rs.IdDetailResult,
-			rs.Tahun,
-			rs.Triwulan,
 			rs.NamaResult,
 			rs.DeskripsiResult,
 		)
@@ -707,8 +699,6 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		processArgs = append(processArgs,
 			req.IdPengajuan,
 			mt.IdDetailProcess,
-			mt.Tahun,
-			mt.Triwulan,
 			mt.NamaProcess,
 			mt.DeskripsiProcess,
 		)
@@ -724,8 +714,6 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		contextArgs = append(contextArgs,
 			req.IdPengajuan,
 			ch.IdDetailContext,
-			ch.Tahun,
-			ch.Triwulan,
 			ch.NamaContext,
 			ch.DeskripsiContext,
 		)
@@ -1549,7 +1537,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 	for resultRows.Next() {
 		var re dto.PenyusunanResult
 		if err := resultRows.Scan(
-			&re.IdDetailResult, &re.Tahun, &re.Triwulan,
+			&re.IdDetailResult,
 			&re.NamaResult, &re.DeskripsiResult,
 		); err != nil {
 			resultRows.Close()
@@ -1580,7 +1568,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 		var mt dto.PenyusunanProcess
 		var dummyRealisasi, dummyLampiran string
 		if err := processRows.Scan(
-			&mt.IdDetailProcess, &mt.Tahun, &mt.Triwulan,
+			&mt.IdDetailProcess,
 			&mt.NamaProcess, &mt.DeskripsiProcess,
 			&dummyRealisasi, &dummyLampiran,
 		); err != nil {
@@ -1612,7 +1600,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 		var ch dto.PenyusunanContext
 		var dummyRealisasi, dummyLampiran string
 		if err := contextRows.Scan(
-			&ch.IdDetailContext, &ch.Tahun, &ch.Triwulan,
+			&ch.IdDetailContext,
 			&ch.NamaContext, &ch.DeskripsiContext,
 			&dummyRealisasi, &dummyLampiran,
 		); err != nil {
