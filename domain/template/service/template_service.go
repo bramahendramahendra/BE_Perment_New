@@ -142,6 +142,22 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 	}
 
 	// -------------------------------------------------------------------------
+	// Row 1: E1 = "Total Bobot", F1 = SUM(F3:F100)
+	// -------------------------------------------------------------------------
+	if err := f.SetCellValue(sheetName, "E1", "Total Bobot"); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set nilai E1: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, "E1", "E1", styleRow1); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style E1: %v", err)}
+	}
+	if err := f.SetCellFormula(sheetName, "F1", "SUM(F3:F100)"); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set formula F1: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, "F1", "F1", styleRow1); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style F1: %v", err)}
+	}
+
+	// -------------------------------------------------------------------------
 	// Row 2: Tulis header kolom
 	// -------------------------------------------------------------------------
 	for colIdx, header := range allColumns {
@@ -844,44 +860,44 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		var values []interface{}
 		if isTW24 {
 			values = []interface{}{
-				rowIdx + 1,                              // A: No
-				row.KpiNama,                             // B: KPI
-				row.SubKpi,                              // C: Sub KPI
-				row.Polarisasi,                          // D: Polarisasi
-				row.Capping,                             // E: Capping
-				parseFloatOrString(row.Bobot),           // F: Bobot %
-				row.TargetTriwulan,                      // G: Target Triwulanan
+				rowIdx + 1,                    // A: No
+				row.KpiNama,                   // B: KPI
+				row.SubKpi,                    // C: Sub KPI
+				row.Polarisasi,                // D: Polarisasi
+				row.Capping,                   // E: Capping
+				parseFloatOrString(row.Bobot), // F: Bobot %
+				row.TargetTriwulan,            // G: Target Triwulanan
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
 				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
-				"", "", "", "",                          // J–M: kosong (diisi user)
-				row.NamaResult,                          // N: Result
-				row.DeskripsiResult,                     // O: Deskripsi Result
-				"", "",                                  // P–Q: kosong (diisi user)
-				row.NamaProcess,                         // R: Process
-				row.DeskripsiProcess,                    // S: Deskripsi Process
-				"", "",                                  // T–U: kosong (diisi user)
-				row.NamaContext,                         // V: Context
-				row.DeskripsiContext,                    // W: Deskripsi Context
-				"", "",                                  // X–Y: kosong (diisi user)
+				"", "", "", "", // J–M: kosong (diisi user)
+				row.NamaResult,      // N: Result
+				row.DeskripsiResult, // O: Deskripsi Result
+				"", "",              // P–Q: kosong (diisi user)
+				row.NamaProcess,      // R: Process
+				row.DeskripsiProcess, // S: Deskripsi Process
+				"", "",               // T–U: kosong (diisi user)
+				row.NamaContext,      // V: Context
+				row.DeskripsiContext, // W: Deskripsi Context
+				"", "",               // X–Y: kosong (diisi user)
 			}
 		} else {
 			values = []interface{}{
-				rowIdx + 1,                              // A: No
-				row.KpiNama,                             // B: KPI
-				row.SubKpi,                              // C: Sub KPI
-				row.Polarisasi,                          // D: Polarisasi
-				row.Capping,                             // E: Capping
-				parseFloatOrString(row.Bobot),           // F: Bobot %
-				row.TargetTriwulan,                      // G: Target Triwulanan
+				rowIdx + 1,                    // A: No
+				row.KpiNama,                   // B: KPI
+				row.SubKpi,                    // C: Sub KPI
+				row.Polarisasi,                // D: Polarisasi
+				row.Capping,                   // E: Capping
+				parseFloatOrString(row.Bobot), // F: Bobot %
+				row.TargetTriwulan,            // G: Target Triwulanan
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
 				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
-				"", "", "", "",                          // J–M: kosong (diisi user)
-				row.NamaResult,                          // N: Result
-				row.DeskripsiResult,                     // O: Deskripsi Result
-				row.NamaProcess,                         // P: Process
-				row.DeskripsiProcess,                    // Q: Deskripsi Process
-				row.NamaContext,                         // R: Context
-				row.DeskripsiContext,                    // S: Deskripsi Context
+				"", "", "", "", // J–M: kosong (diisi user)
+				row.NamaResult,       // N: Result
+				row.DeskripsiResult,  // O: Deskripsi Result
+				row.NamaProcess,      // P: Process
+				row.DeskripsiProcess, // Q: Deskripsi Process
+				row.NamaContext,      // R: Context
+				row.DeskripsiContext, // S: Deskripsi Context
 			}
 		}
 
