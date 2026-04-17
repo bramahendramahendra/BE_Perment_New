@@ -214,23 +214,8 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 }
 
 // =============================================================================
-// APPROVAL
+// APPROVE
 // =============================================================================
-
-func (s *penyusunanKpiService) ApprovalPenyusunanKpi(
-	req *dto.ApprovalPenyusunanKpiRequest,
-) (data dto.ApprovalPenyusunanKpiResponse, err error) {
-	if err = s.repo.ApprovalPenyusunanKpi(req); err != nil {
-		return data, err
-	}
-
-	data = dto.ApprovalPenyusunanKpiResponse{
-		IdPengajuan: req.IdPengajuan,
-		Status:      req.Status,
-	}
-
-	return data, nil
-}
 
 func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	req *dto.ApprovePenyusunanKpiRequest,
@@ -249,9 +234,9 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	currentIdx := -1
 	for i := range approvalList {
 		if strings.EqualFold(approvalList[i].Userid, req.User) && approvalList[i].Status == "" {
-			approvalList[i].Status     = "approve"
+			approvalList[i].Status = "approve"
 			approvalList[i].Keterangan = req.Catatan
-			approvalList[i].Waktu      = now
+			approvalList[i].Waktu = now
 			currentIdx = i
 			break
 		}
@@ -285,6 +270,10 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 
 	return data, nil
 }
+
+// =============================================================================
+// REJECT
+// =============================================================================
 
 func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	req *dto.RejectPenyusunanKpiRequest,

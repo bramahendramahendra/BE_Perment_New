@@ -40,13 +40,7 @@ type (
 			req *dto.CreatePenyusunanKpiRequest,
 		) error
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/approval.
-		ApprovalPenyusunanKpi(
-			req *dto.ApprovalPenyusunanKpiRequest,
-		) error
-
 		// Digunakan oleh endpoint POST /penyusunan-kpi/approve.
-		// approvalPosisi kosong jika ini adalah approve final (tidak ada approver berikutnya).
 		ApprovePenyusunanKpi(idPengajuan, approvalList, approvalPosisi, user string) error
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/reject.

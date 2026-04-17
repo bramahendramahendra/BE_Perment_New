@@ -26,11 +26,6 @@ type (
 			req *dto.CreatePenyusunanKpiRequest,
 		) (data dto.CreatePenyusunanKpiResponse, err error)
 
-		// ApprovalPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approval.
-		ApprovalPenyusunanKpi(
-			req *dto.ApprovalPenyusunanKpiRequest,
-		) (data dto.ApprovalPenyusunanKpiResponse, err error)
-
 		// ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
 		ApprovePenyusunanKpi(
 			req *dto.ApprovePenyusunanKpiRequest,
