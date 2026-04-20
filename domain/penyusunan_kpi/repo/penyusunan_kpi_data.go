@@ -48,7 +48,7 @@ const (
 	// queryGetKpiHeader digunakan oleh: RevisionPenyusunanKpi (service) untuk mengambil
 	// tahun, triwulan, kostl, kostl_tx berdasarkan id_pengajuan.
 	queryGetKpiHeader = `
-		SELECT a.tahun, a.triwulan, a.kostl, a.kostl_tx, a.status, b.status_desc
+		SELECT a.tahun, a.triwulan, a.kostl, a.kostl_tx, a.status, b.status_desc, a.entry_user, a.entry_name
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status
 		WHERE a.id_pengajuan = ?
@@ -252,7 +252,7 @@ const (
 	// status = 0 → langsung ke approval (tidak perlu draft lagi).
 	queryUpdateKpiRevision = `
 		UPDATE data_kpi
-		SET entry_user = ?, entry_name = ?, entry_time = ?, approval_list = ?, status = 0
+		SET entry_time = ?, approval_list = ?, status = 0
 		WHERE id_pengajuan = ?`
 
 	// =============================================================================
@@ -871,7 +871,7 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	// status = 0 → langsung ke approval
 	// -------------------------------------------------------------------------
 	if err := tx.Exec(queryUpdateKpiRevision,
-		req.EntryUser, req.EntryName, req.EntryTime, updatedApprovalList, req.IdPengajuan,
+		req.EntryTime, updatedApprovalList, req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal update data_kpi saat revision: %w", err)
@@ -1736,7 +1736,7 @@ func (r *penyusunanKpiRepo) GetKpiExportData(
 // GetKpiHeader
 // =============================================================================
 
-func (r *penyusunanKpiRepo) GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx string, status int, statusDesc string, err error) {
+func (r *penyusunanKpiRepo) GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error) {
 	type kpiHeader struct {
 		Tahun      string `gorm:"column:tahun"`
 		Triwulan   string `gorm:"column:triwulan"`
@@ -1744,13 +1744,15 @@ func (r *penyusunanKpiRepo) GetKpiHeader(idPengajuan string) (tahun, triwulan, k
 		KostlTx    string `gorm:"column:kostl_tx"`
 		Status     int    `gorm:"column:status"`
 		StatusDesc string `gorm:"column:status_desc"`
+		EntryUser  string `gorm:"column:entry_user"`
+		EntryName  string `gorm:"column:entry_name"`
 	}
 	var h kpiHeader
 	if err = r.db.Raw(queryGetKpiHeader, idPengajuan).Scan(&h).Error; err != nil {
-		return "", "", "", "", 0, "", fmt.Errorf("gagal mengambil header KPI: %w", err)
+		return "", "", "", "", "", "", 0, "", fmt.Errorf("gagal mengambil header KPI: %w", err)
 	}
 	if h.Tahun == "" {
-		return "", "", "", "", 0, "", fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
+		return "", "", "", "", "", "", 0, "", fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
 	}
-	return h.Tahun, h.Triwulan, h.Kostl, h.KostlTx, h.Status, h.StatusDesc, nil
+	return h.Tahun, h.Triwulan, h.Kostl, h.KostlTx, h.EntryUser, h.EntryName, h.Status, h.StatusDesc, nil
 }

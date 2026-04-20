@@ -154,7 +154,7 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 	}
 
 	// Ambil header dari DB berdasarkan id_pengajuan
-	dbTahun, dbTriwulan, dbKostl, kostlTx, dbStatus, dbStatusDesc, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	dbTahun, dbTriwulan, dbKostl, kostlTx, dbEntryUser, _, dbStatus, dbStatusDesc, err := s.repo.GetKpiHeader(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
@@ -163,6 +163,13 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 	if dbStatus != 1 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+		}
+	}
+
+	// Validasi: hanya pembuat pengajuan yang boleh merevisi
+	if req.EntryUser != dbEntryUser {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("user '%s' tidak berhak merevisi pengajuan ini", req.EntryUser),
 		}
 	}
 
@@ -256,7 +263,7 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	req *dto.ApprovePenyusunanKpiRequest,
 ) (data dto.ApprovePenyusunanKpiResponse, err error) {
-	dbTahun, dbTriwulan, dbKostl, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	dbTahun, dbTriwulan, dbKostl, _, _, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
@@ -335,7 +342,7 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	req *dto.RejectPenyusunanKpiRequest,
 ) (data dto.RejectPenyusunanKpiResponse, err error) {
-	dbTahun, dbTriwulan, dbKostl, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	dbTahun, dbTriwulan, dbKostl, _, _, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
