@@ -153,11 +153,36 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		}
 	}
 
-	// Ambil kostlTx dari DB berdasarkan id_pengajuan; tahun, triwulan, kostl dari body
-	_, _, _, kostlTx, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	dbTahun, dbTriwulan, dbKostl, kostlTx, dbStatus, dbStatusDesc, err := s.repo.GetKpiHeader(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
+
+	// Validasi: status harus 1
+	if dbStatus != 1 {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+		}
+	}
+
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
+	if req.Kostl != dbKostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
+		}
+	}
+	if req.Triwulan != dbTriwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+		}
+	}
+	if req.Tahun != dbTahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+		}
+	}
+
 	req.Divisi = dto.Divisi{Kostl: req.Kostl, KostlTx: kostlTx}
 
 	// Parse dan validasi file Excel

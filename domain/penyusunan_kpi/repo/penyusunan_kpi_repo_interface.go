@@ -81,7 +81,7 @@ type (
 		GetKpiExportData(idPengajuan string) (*dto.KpiExportData, error)
 
 		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
-		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx string, err error)
+		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx string, status int, statusDesc string, err error)
 
 		GetDB() *gorm.DB
 	}
