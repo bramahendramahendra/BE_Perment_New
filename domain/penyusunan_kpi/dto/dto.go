@@ -162,9 +162,9 @@ type ApprovalPenyusunanKpiRequest struct {
 // ApprovePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/approve.
 type ApprovePenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Kostl       string `json:"kostl"`
-	Tahun       string `json:"tahun"`
-	Triwulan    string `json:"triwulan"`
+	Kostl       string `json:"kostl"        validate:"required"`
+	Tahun       string `json:"tahun"        validate:"required"`
+	Triwulan    string `json:"triwulan"     validate:"required"`
 	Catatan     string `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
@@ -175,9 +175,9 @@ type ApprovePenyusunanKpiRequest struct {
 // RejectPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Kostl       string `json:"kostl"`
-	Tahun       string `json:"tahun"`
-	Triwulan    string `json:"triwulan"`
+	Kostl       string `json:"kostl"        validate:"required"`
+	Tahun       string `json:"tahun"        validate:"required"`
+	Triwulan    string `json:"triwulan"     validate:"required"`
 	Catatan     string `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.

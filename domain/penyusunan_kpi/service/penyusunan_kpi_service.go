@@ -256,6 +256,26 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	req *dto.ApprovePenyusunanKpiRequest,
 ) (data dto.ApprovePenyusunanKpiResponse, err error) {
+	dbTahun, dbTriwulan, dbKostl, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	if err != nil {
+		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
+	}
+	if req.Kostl != dbKostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
+		}
+	}
+	if req.Tahun != dbTahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+		}
+	}
+	if req.Triwulan != dbTriwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+		}
+	}
+
 	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.User)
 	if err != nil {
 		return data, err
@@ -315,6 +335,26 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	req *dto.RejectPenyusunanKpiRequest,
 ) (data dto.RejectPenyusunanKpiResponse, err error) {
+	dbTahun, dbTriwulan, dbKostl, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	if err != nil {
+		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
+	}
+	if req.Kostl != dbKostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
+		}
+	}
+	if req.Tahun != dbTahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+		}
+	}
+	if req.Triwulan != dbTriwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+		}
+	}
+
 	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.User)
 	if err != nil {
 		return data, err
