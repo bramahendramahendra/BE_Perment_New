@@ -406,6 +406,8 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		resultArgs = append(resultArgs,
 			idPengajuan,
 			rs.IdDetailResult,
+			req.Tahun,
+			req.Triwulan,
 			rs.NamaResult,
 			rs.DeskripsiResult,
 		)
@@ -423,6 +425,8 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		processArgs = append(processArgs,
 			idPengajuan,
 			mt.IdDetailProcess,
+			req.Tahun,
+			req.Triwulan,
 			mt.NamaProcess,
 			mt.DeskripsiProcess,
 		)
@@ -440,6 +444,8 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 		contextArgs = append(contextArgs,
 			idPengajuan,
 			ch.IdDetailContext,
+			req.Tahun,
+			req.Triwulan,
 			ch.NamaContext,
 			ch.DeskripsiContext,
 		)
@@ -692,6 +698,8 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		resultArgs = append(resultArgs,
 			req.IdPengajuan,
 			rs.IdDetailResult,
+			req.Tahun,
+			req.Triwulan,
 			rs.NamaResult,
 			rs.DeskripsiResult,
 		)
@@ -707,6 +715,8 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		processArgs = append(processArgs,
 			req.IdPengajuan,
 			mt.IdDetailProcess,
+			req.Tahun,
+			req.Triwulan,
 			mt.NamaProcess,
 			mt.DeskripsiProcess,
 		)
@@ -722,6 +732,8 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		contextArgs = append(contextArgs,
 			req.IdPengajuan,
 			ch.IdDetailContext,
+			req.Tahun,
+			req.Triwulan,
 			ch.NamaContext,
 			ch.DeskripsiContext,
 		)

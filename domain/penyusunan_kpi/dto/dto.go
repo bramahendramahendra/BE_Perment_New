@@ -73,18 +73,24 @@ type DataKpiSubdetail struct {
 
 type PenyusunanResult struct {
 	IdDetailResult  string `json:"id_detail_result"`
+	Tahun           string `json:"tahun"`
+	Triwulan        string `json:"triwulan"`
 	NamaResult      string `json:"nama_result"`
 	DeskripsiResult string `json:"deskripsi_result"`
 }
 
 type PenyusunanProcess struct {
 	IdDetailProcess  string `json:"id_detail_process"`
+	Tahun            string `json:"tahun"`
+	Triwulan         string `json:"triwulan"`
 	NamaProcess      string `json:"nama_process"`
 	DeskripsiProcess string `json:"deskripsi_process"`
 }
 
 type PenyusunanContext struct {
 	IdDetailContext  string `json:"id_detail_context"`
+	Tahun            string `json:"tahun"`
+	Triwulan         string `json:"triwulan"`
 	NamaContext      string `json:"nama_context"`
 	DeskripsiContext string `json:"deskripsi_context"`
 }
