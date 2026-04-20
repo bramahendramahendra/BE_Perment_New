@@ -109,11 +109,12 @@ type ValidatePenyusunanKpiRequest struct {
 // RevisionPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/revision.
 type RevisionPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+	Kostl       string `json:"kostl" validate:"required"`
+	Tahun       string `json:"tahun" validate:"required"`
+	Triwulan    string `json:"triwulan" validate:"required"`
 
 	// Diisi service dari DB berdasarkan id_pengajuan, tidak boleh dari body.
-	Tahun    string `json:"-"`
-	Triwulan string `json:"-"`
-	Divisi   Divisi `json:"-" validate:"-"`
+	Divisi Divisi `json:"-" validate:"-"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	EntryUser string `json:"entry_user"`
@@ -155,6 +156,9 @@ type ApprovalPenyusunanKpiRequest struct {
 // ApprovePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/approve.
 type ApprovePenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+	Kostl       string `json:"kostl"`
+	Tahun       string `json:"tahun"`
+	Triwulan    string `json:"triwulan"`
 	Catatan     string `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
@@ -165,6 +169,9 @@ type ApprovePenyusunanKpiRequest struct {
 // RejectPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+	Kostl       string `json:"kostl"`
+	Tahun       string `json:"tahun"`
+	Triwulan    string `json:"triwulan"`
 	Catatan     string `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
