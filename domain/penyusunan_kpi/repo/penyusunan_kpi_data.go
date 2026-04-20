@@ -241,11 +241,17 @@ const (
 	queryRejectPenyusunan = `
 		UPDATE data_kpi SET status = 1, approval_list = ?, catatan_tolakan = ? WHERE id_pengajuan = ?`
 
+	// queryGetApprovalForRevision digunakan oleh RevisionPenyusunanKpi untuk membaca
+	// approval_posisi dan approval_list sebelum dikosongkan.
+	queryGetApprovalForRevision = `
+		SELECT approval_posisi, approval_list FROM data_kpi
+		WHERE id_pengajuan = ? LIMIT 1`
+
 	// queryUpdateKpiRevision digunakan oleh RevisionPenyusunanKpi untuk update header data_kpi.
 	// status = 0 → langsung ke approval (tidak perlu draft lagi).
 	queryUpdateKpiRevision = `
 		UPDATE data_kpi
-		SET entry_user = ?, entry_name = ?, entry_time = ?, status = 0
+		SET entry_user = ?, entry_name = ?, entry_time = ?, approval_list = ?, status = 0
 		WHERE id_pengajuan = ?`
 
 	// =============================================================================
@@ -624,6 +630,36 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	}
 
 	// =========================================================================
+	// Ambil approval_posisi dan approval_list lama, lalu kosongkan entry
+	// yang posisi-nya sama dengan approval_posisi (yaitu approver yang reject).
+	// =========================================================================
+	var approvalPosisi string
+	var approvalListRaw []byte
+	row := r.db.Raw(queryGetApprovalForRevision, req.IdPengajuan).Row()
+	if err := row.Scan(&approvalPosisi, &approvalListRaw); err != nil {
+		return fmt.Errorf("gagal membaca approval data: %w", err)
+	}
+
+	var approvalList []dto.ApprovalUser
+	if err := json.Unmarshal(approvalListRaw, &approvalList); err != nil {
+		return fmt.Errorf("gagal parse approval_list: %w", err)
+	}
+
+	for i := range approvalList {
+		if approvalList[i].Userid == approvalPosisi {
+			approvalList[i].Status = ""
+			approvalList[i].Keterangan = ""
+			approvalList[i].Waktu = ""
+		}
+	}
+
+	updatedApprovalListBytes, err := json.Marshal(approvalList)
+	if err != nil {
+		return fmt.Errorf("gagal serialize approval_list: %w", err)
+	}
+	updatedApprovalList := string(updatedApprovalListBytes)
+
+	// =========================================================================
 	// Build INSERT data_kpi_detail
 	// =========================================================================
 	kpiDetailPlaceholders := []string{}
@@ -834,7 +870,7 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	// status = 0 → langsung ke approval
 	// -------------------------------------------------------------------------
 	if err := tx.Exec(queryUpdateKpiRevision,
-		req.EntryUser, req.EntryName, req.EntryTime, req.IdPengajuan,
+		req.EntryUser, req.EntryName, req.EntryTime, updatedApprovalList, req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal update data_kpi saat revision: %w", err)
@@ -954,10 +990,12 @@ func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catat
 }
 
 func (r *penyusunanKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (string, error) {
-	var approvalList string
-	if err := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Scan(&approvalList).Error; err != nil {
-		return "", fmt.Errorf("gagal mengambil data approval: %w", err)
+	var approvalListBytes []byte
+	row := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Row()
+	if err := row.Scan(&approvalListBytes); err != nil {
+		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
 	}
+	approvalList := string(approvalListBytes)
 	if approvalList == "" {
 		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
 	}
