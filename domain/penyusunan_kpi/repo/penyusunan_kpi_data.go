@@ -45,6 +45,14 @@ const (
 		WHERE id_pengajuan = ?
 		LIMIT 1`
 
+	// queryGetKpiHeader digunakan oleh: RevisionPenyusunanKpi (service) untuk mengambil
+	// tahun, triwulan, kostl, kostl_tx berdasarkan id_pengajuan.
+	queryGetKpiHeader = `
+		SELECT tahun, triwulan, kostl, kostl_tx
+		FROM data_kpi
+		WHERE id_pengajuan = ?
+		LIMIT 1`
+
 	// Use func : ValidatePenyusunanKpi
 	queryGetOrgeh = `
 		SELECT orgeh, orgeh_tx 
@@ -1671,4 +1679,25 @@ func (r *penyusunanKpiRepo) GetKpiExportData(
 		Triwulan:   header.Triwulan,
 		Rows:       rows,
 	}, nil
+}
+
+// =============================================================================
+// GetKpiHeader
+// =============================================================================
+
+func (r *penyusunanKpiRepo) GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx string, err error) {
+	type kpiHeader struct {
+		Tahun    string `gorm:"column:tahun"`
+		Triwulan string `gorm:"column:triwulan"`
+		Kostl    string `gorm:"column:kostl"`
+		KostlTx  string `gorm:"column:kostl_tx"`
+	}
+	var h kpiHeader
+	if err = r.db.Raw(queryGetKpiHeader, idPengajuan).Scan(&h).Error; err != nil {
+		return "", "", "", "", fmt.Errorf("gagal mengambil header KPI: %w", err)
+	}
+	if h.Tahun == "" {
+		return "", "", "", "", fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
+	}
+	return h.Tahun, h.Triwulan, h.Kostl, h.KostlTx, nil
 }

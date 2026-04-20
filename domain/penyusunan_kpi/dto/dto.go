@@ -109,9 +109,11 @@ type ValidatePenyusunanKpiRequest struct {
 // RevisionPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/revision.
 type RevisionPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Divisi      Divisi `json:"divisi"      validate:"required"`
-	Tahun       string `json:"tahun"       validate:"required"`
-	Triwulan    string `json:"triwulan"    validate:"required"`
+
+	// Diisi service dari DB berdasarkan id_pengajuan, tidak boleh dari body.
+	Tahun    string `json:"-"`
+	Triwulan string `json:"-"`
+	Divisi   Divisi `json:"-" validate:"-"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	EntryUser string `json:"entry_user"`

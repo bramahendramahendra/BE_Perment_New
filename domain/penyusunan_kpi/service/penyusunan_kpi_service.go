@@ -153,6 +153,15 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		}
 	}
 
+	// Ambil tahun, triwulan, kostl, kostlTx dari DB berdasarkan id_pengajuan
+	tahun, triwulan, kostl, kostlTx, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	if err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
+	}
+	req.Tahun = tahun
+	req.Triwulan = triwulan
+	req.Divisi = dto.Divisi{Kostl: kostl, KostlTx: kostlTx}
+
 	// Parse dan validasi file Excel
 	kpiRows, kpiSubDetails, err := utils.ParseAndValidateExcel(file, req.Triwulan)
 	if err != nil {

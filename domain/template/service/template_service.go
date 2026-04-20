@@ -463,6 +463,22 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 	}
 
 	// -------------------------------------------------------------------------
+	// Row 1: E1 = "Total Bobot", F1 = SUM(F3:F100)
+	// -------------------------------------------------------------------------
+	if err := f.SetCellValue(sheetName, "E1", "Total Bobot"); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set nilai E1: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, "E1", "E1", styleRow1); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style E1: %v", err)}
+	}
+	if err := f.SetCellFormula(sheetName, "F1", "SUM(F3:F100)"); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set formula F1: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, "F1", "F1", styleRow1); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style F1: %v", err)}
+	}
+
+	// -------------------------------------------------------------------------
 	// Row 2: Tulis header kolom
 	// -------------------------------------------------------------------------
 	for colIdx, header := range allColumns {

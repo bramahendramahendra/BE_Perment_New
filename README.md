@@ -102,8 +102,8 @@ Base URL: `http://localhost:8006/api`
 | Method | Endpoint | Keterangan |
 |--------|----------|------------|
 | POST | `/penyusunan-kpi/validate` | Validasi file Excel KPI | ✅
-| POST | `/penyusunan-kpi/revision` | Revisi KPI (upload ulang) |
 | POST | `/penyusunan-kpi/create` | Simpan data KPI | ✅
+| POST | `/penyusunan-kpi/revision` | Revisi KPI (upload ulang) |
 | POST | `/penyusunan-kpi/approve` | Approval disetujuai KPI | ✅
 | POST | `/penyusunan-kpi/reject` | Approval ditolak KPI | ✅
 | POST | `/penyusunan-kpi/get-all-approval` | Daftar KPI menunggu approval | ✅

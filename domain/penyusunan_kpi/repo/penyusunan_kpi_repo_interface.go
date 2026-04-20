@@ -80,6 +80,9 @@ type (
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /get-pdf.
 		GetKpiExportData(idPengajuan string) (*dto.KpiExportData, error)
 
+		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
+		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx string, err error)
+
 		GetDB() *gorm.DB
 	}
 
