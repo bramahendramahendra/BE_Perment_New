@@ -19,19 +19,3 @@ func (s *masterStatusService) GetAllMasterStatus() (data []dto.MasterStatusRespo
 
 	return data, nil
 }
-
-func (s *masterStatusService) GetDraftMasterStatus() (data []dto.MasterStatusResponse, err error) {
-	dataDB, err := s.repo.GetDraftMasterStatus()
-	if err != nil {
-		return data, err
-	}
-
-	for _, v := range dataDB {
-		data = append(data, dto.MasterStatusResponse{
-			IdStatus:   v.IdStatus,
-			StatusDesc: v.StatusDesc,
-		})
-	}
-
-	return data, nil
-}

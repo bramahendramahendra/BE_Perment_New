@@ -103,7 +103,7 @@ Base URL: `http://localhost:8006/api`
 |--------|----------|------------|
 | POST | `/penyusunan-kpi/validate` | Validasi file Excel KPI | ✅
 | POST | `/penyusunan-kpi/create` | Simpan data KPI | ✅
-| POST | `/penyusunan-kpi/revision` | Revisi KPI (upload ulang) |
+| POST | `/penyusunan-kpi/revision` | Revisi KPI (upload ulang) | ✅
 | POST | `/penyusunan-kpi/approve` | Approval disetujuai KPI | ✅
 | POST | `/penyusunan-kpi/reject` | Approval ditolak KPI | ✅
 | POST | `/penyusunan-kpi/get-all-approval` | Daftar KPI menunggu approval | ✅
@@ -130,13 +130,14 @@ Base URL: `http://localhost:8006/api`
 
 | Method | Endpoint | Keterangan |
 |--------|----------|------------|
-| POST | `/master-triwulan/get-all` | Daftar triwulan |
-| POST | `/master-perspektif/get-all` | Daftar perspektif |
-| POST | `/master-tahun/get-all` | Daftar tahun |
-| POST | `/master-divisi/get-all` | Daftar divisi |
-| POST | `/master-kpi/get-all` | Daftar master KPI |
-| POST | `/master-status/get-all` | Semua status |
-| POST | `/master-status/get-draft` | Status draft |
-| POST | `/master-challenge/get-all` | Daftar challenge |
-| POST | `/master-method/get-all` | Daftar method |
+| POST | `/master-triwulan/get-all` | Daftar triwulan | ✅
+| POST | `/master-perspektif/get-all` | Daftar perspektif | ✅
+| POST | `/master-tahun/get-all` | Daftar tahun | ✅
+| POST | `/master-divisi/get-all` | Daftar divisi | ✅
+| POST | `/master-kpi/get-all` | Daftar master KPI | ✅
+| POST | `/master-status/get-all` | Semua status | ✅
+
+| POST | `/master-result/get-all` | Daftar result | ✅
+| POST | `/master-process/get-all` | Daftar process | ✅
+| POST | `/master-context/get-all` | Daftar context | ✅
 | POST | `/user/get-all` | Daftar user |

@@ -9,7 +9,6 @@ import (
 type (
 	MasterStatusRepoInterface interface {
 		GetAllMasterStatus() ([]*model.MstStatus, error)
-		GetDraftMasterStatus() ([]*model.MstStatus, error)
 		GetDB() *gorm.DB
 	}
 

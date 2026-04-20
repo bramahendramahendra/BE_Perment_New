@@ -8,7 +8,6 @@ import (
 type (
 	MasterStatusServiceInterface interface {
 		GetAllMasterStatus() (data []dto.MasterStatusResponse, err error)
-		GetDraftMasterStatus() (data []dto.MasterStatusResponse, err error)
 	}
 
 	masterStatusService struct {
