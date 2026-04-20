@@ -136,8 +136,6 @@ Base URL: `http://localhost:8006/api`
 | POST | `/master-divisi/get-all` | Daftar divisi | ✅
 | POST | `/master-kpi/get-all` | Daftar master KPI | ✅
 | POST | `/master-status/get-all` | Semua status | ✅
-
-| POST | `/master-result/get-all` | Daftar result | ✅
 | POST | `/master-process/get-all` | Daftar process | ✅
 | POST | `/master-context/get-all` | Daftar context | ✅
-| POST | `/user/get-all` | Daftar user |
+| POST | `/user/get-all` | Daftar user | ✅
