@@ -2,6 +2,7 @@ package repo
 
 import (
 	dto "permen_api/domain/realisasi_kpi/dto"
+	model "permen_api/domain/realisasi_kpi/model"
 
 	"gorm.io/gorm"
 )
@@ -25,64 +26,72 @@ type (
 		// Juga meng-update data_challenge_detail dan data_method_detail jika ada extended data (TW2/TW4).
 		ValidateRealisasiKpi(
 			req *dto.ValidateRealisasiKpiRequest,
-			kpiRows []dto.KpiRow,
-			kpiSubDetails map[int][]dto.KpiSubDetailRow,
-			resultList []dto.RealisasiResult,
-			processList []dto.RealisasiProcess,
-			contextList []dto.RealisasiContext,
+			kpiRows []dto.RealisasiKpiRow,
+			kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
+			resultList []dto.DataResult,
+			processList []dto.DataProcess,
+			contextList []dto.DataContext,
 		) error
 
-		// RevisionRealisasiKpi meng-update ulang data realisasi di DB.
-		// Mengizinkan update dari status 80 (draft) atau 4 (ditolak).
-		RevisionRealisasiKpi(
-			req *dto.RevisionRealisasiKpiRequest,
-			kpiRows []dto.KpiRow,
-			kpiSubDetails map[int][]dto.KpiSubDetailRow,
-			resultList []dto.RealisasiResult,
-			processList []dto.RealisasiProcess,
-			contextList []dto.RealisasiContext,
-		) error
-
-		// CreateRealisasiKpi mengubah status dari 80 → 3 (pending approval realisasi)
-		// dan menyimpan approval chain.
+		// Digunakan oleh endpoint POST /realisasi-kpi/create.
+		// CreateRealisasiKpi mengubah status dari 80 → 3 (pending approval realisasi) dan menyimpan approval chain.
 		CreateRealisasiKpi(
 			req *dto.CreateRealisasiKpiRequest,
 		) error
 
-		// ApprovalRealisasiKpi memproses approve/reject realisasi.
-		ApprovalRealisasiKpi(
-			req *dto.ApprovalRealisasiKpiRequest,
+		// Digunakan oleh endpoint POST /realisasi-kpi/revision.
+		// RevisionRealisasiKpi meng-update ulang data realisasi di DB.
+		// Mengizinkan update dari status 80 (draft) atau 4 (ditolak).
+		RevisionRealisasiKpi(
+			req *dto.RevisionRealisasiKpiRequest,
+			kpiRows []dto.RealisasiKpiRow,
+			kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
+			resultList []dto.DataResult,
+			processList []dto.DataProcess,
+			contextList []dto.DataContext,
 		) error
 
-		// GetAllApprovalRealisasiKpi mengembalikan list pengajuan berstatus 3 (pending approval realisasi)
-		// yang approval_posisi-nya adalah user yang sedang login.
+		// Digunakan oleh endpoint POST /realisasi-kpi/approve.
+		ApproveRealisasiKpi(idPengajuan, approvalList, approvalPosisi, user string) error
+
+		// Digunakan oleh endpoint POST /realisasi-kpi/reject.
+		RejectRealisasiKpi(idPengajuan, approvalList, catatan, user string) error
+
+		// Digunakan oleh endpoint POST /realisasi-kpi/approve dan /reject.
+		// Mengambil approval_list JSON untuk id_pengajuan jika user adalah approval_posisi aktif.
+		GetApprovalListJSON(idPengajuan, userID string) (string, error)
+
+		// Digunakan oleh endpoint POST /realisasi-kpi/get-all-approval.
+		// GetAllApprovalRealisasiKpi mengembalikan list pengajuan berstatus 3 (pending approval realisasi) yang approval_posisi-nya adalah user yang sedang login.
 		GetAllApprovalRealisasiKpi(
 			req *dto.GetAllApprovalRealisasiKpiRequest,
-		) ([]*dto.DataKpiRealisasi, int64, error)
+		) ([]*model.DataKpi, int64, error)
 
-		// GetAllTolakanRealisasiKpi mengembalikan list pengajuan berstatus 4 (realisasi ditolak)
-		// milik entry_user_realisasi tertentu.
+		// Digunakan oleh endpoint POST /realisasi-kpi/get-all-tolakan.
+		// GetAllTolakanRealisasiKpi mengembalikan list pengajuan berstatus 4 (realisasi ditolak) milik entry_user_realisasi tertentu.
 		GetAllTolakanRealisasiKpi(
 			req *dto.GetAllTolakanRealisasiKpiRequest,
-		) ([]*dto.DataKpiRealisasi, int64, error)
+		) ([]*model.DataKpi, int64, error)
 
-		// GetAllDaftarRealisasiKpi mengembalikan semua pengajuan dalam konteks realisasi
-		// (status 2, 3, 4, 5, 80) dengan filter opsional.
+		// Digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-penyusunan.
+		// GetAllDaftarRealisasiKpi mengembalikan semua pengajuan dalam konteks realisasi (status 2, 3, 4, 5, 80) dengan filter opsional.
 		GetAllDaftarRealisasiKpi(
 			req *dto.GetAllDaftarRealisasiKpiRequest,
-		) ([]*dto.DataKpiRealisasi, int64, error)
+		) ([]*model.DataKpi, int64, error)
 
-		// GetAllDaftarApprovalRealisasiKpi mengembalikan semua pengajuan realisasi
-		// yang pernah melewati approval (status 3 atau 5) dengan filter opsional.
+		// Digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-approval.
+		// GetAllDaftarApprovalRealisasiKpi mengembalikan semua pengajuan realisasi yang pernah melewati approval (status 3 atau 5) dengan filter opsional.
 		GetAllDaftarApprovalRealisasiKpi(
 			req *dto.GetAllDaftarApprovalRealisasiKpiRequest,
-		) ([]*dto.DataKpiRealisasi, int64, error)
+		) ([]*model.DataKpi, int64, error)
 
-		// GetDetailRealisasiKpi mengembalikan detail lengkap satu pengajuan beserta
-		// sub KPI, context list, dan process list.
+		// Digunakan oleh endpoint POST /realisasi-kpi/get-detail.
 		GetDetailRealisasiKpi(
 			req *dto.GetDetailRealisasiKpiRequest,
 		) (*dto.GetDetailRealisasiKpiResponse, error)
+
+		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
+		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error)
 
 		GetDB() *gorm.DB
 	}

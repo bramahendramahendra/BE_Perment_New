@@ -10,19 +10,10 @@ import (
 type (
 	RealisasiKpiServiceInterface interface {
 		// ValidateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/validate.
-		// Menerima file Excel realisasi, mem-parse, menghitung Pencapaian/Skor,
-		// dan menyimpan ke DB sebagai draft realisasi (status 80).
 		ValidateRealisasiKpi(
 			req *dto.ValidateRealisasiKpiRequest,
 			file *multipart.FileHeader,
 		) (data dto.ValidateRealisasiKpiResponse, err error)
-
-		// RevisionRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/revision.
-		// Menerima file Excel realisasi baru, menghitung ulang, dan meng-update DB.
-		RevisionRealisasiKpi(
-			req *dto.RevisionRealisasiKpiRequest,
-			file *multipart.FileHeader,
-		) (data dto.RevisionRealisasiKpiResponse, err error)
 
 		// CreateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/create.
 		// Mengubah status dari draft (80) ke pending approval (3) dan menyimpan approval chain.
@@ -30,32 +21,43 @@ type (
 			req *dto.CreateRealisasiKpiRequest,
 		) (data dto.CreateRealisasiKpiResponse, err error)
 
-		// ApprovalRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/approval.
-		// Memproses approve (chain atau final) atau reject realisasi.
-		ApprovalRealisasiKpi(
-			req *dto.ApprovalRealisasiKpiRequest,
-		) (data dto.ApprovalRealisasiKpiResponse, err error)
+		// RevisionRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/revision.
+		RevisionRealisasiKpi(
+			req *dto.RevisionRealisasiKpiRequest,
+			file *multipart.FileHeader,
+		) (data dto.RevisionRealisasiKpiResponse, err error)
+
+		// ApprovePenyusunanKpi digunakan oleh endpoint POST /realisasi-kpi/approve.
+		ApproveRealisasiKpi(
+			req *dto.ApproveRealisasiKpiRequest,
+		) (data dto.ApproveRealisasiKpiResponse, err error)
+
+		// RejectPenyusunanKpi digunakan oleh endpoint POST /realisasi-kpi/reject.
+		RejectRealisasiKpi(
+			req *dto.RejectRealisasiKpiRequest,
+		) (data dto.RejectRealisasiKpiResponse, err error)
+
+		// GetAllRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all.
+		GetAllRealisasiKpi(
+			req *dto.GetAllRealisasiKpiRequest,
+		) (data []*dto.GetAllRealisasiKpiResponse, total int64, err error)
 
 		// GetAllApprovalRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-approval.
-		// Mengembalikan list pengajuan berstatus 3 yang menunggu approval dari user tertentu.
 		GetAllApprovalRealisasiKpi(
 			req *dto.GetAllApprovalRealisasiKpiRequest,
 		) (data []*dto.GetAllApprovalRealisasiKpiResponse, total int64, err error)
 
 		// GetAllTolakanRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-tolakan.
-		// Mengembalikan list pengajuan berstatus 4 (realisasi ditolak) milik user tertentu.
 		GetAllTolakanRealisasiKpi(
 			req *dto.GetAllTolakanRealisasiKpiRequest,
 		) (data []*dto.GetAllTolakanRealisasiKpiResponse, total int64, err error)
 
 		// GetAllDaftarRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-realisasi.
-		// Mengembalikan semua pengajuan dalam konteks realisasi dengan filter opsional.
 		GetAllDaftarRealisasiKpi(
 			req *dto.GetAllDaftarRealisasiKpiRequest,
 		) (data []*dto.GetAllDaftarRealisasiKpiResponse, total int64, err error)
 
 		// GetAllDaftarApprovalRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-approval.
-		// Mengembalikan semua pengajuan realisasi yang sudah masuk proses approval.
 		GetAllDaftarApprovalRealisasiKpi(
 			req *dto.GetAllDaftarApprovalRealisasiKpiRequest,
 		) (data []*dto.GetAllDaftarApprovalRealisasiKpiResponse, total int64, err error)

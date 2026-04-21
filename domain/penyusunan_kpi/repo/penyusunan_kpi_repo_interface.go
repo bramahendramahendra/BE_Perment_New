@@ -20,9 +20,9 @@ type (
 			req *dto.ValidatePenyusunanKpiRequest,
 			kpiRows []dto.PenyusunanKpiRow,
 			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-			resultList []dto.PenyusunanResult,
-			processList []dto.PenyusunanProcess,
-			contextList []dto.PenyusunanContext,
+			resultList []dto.DataResult,
+			processList []dto.DataProcess,
+			contextList []dto.DataContext,
 		) (string, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
@@ -35,9 +35,9 @@ type (
 			req *dto.RevisionPenyusunanKpiRequest,
 			kpiRows []dto.PenyusunanKpiRow,
 			kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-			resultList []dto.PenyusunanResult,
-			processList []dto.PenyusunanProcess,
-			contextList []dto.PenyusunanContext,
+			resultList []dto.DataResult,
+			processList []dto.DataProcess,
+			contextList []dto.DataContext,
 		) error
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/approve.
@@ -71,8 +71,6 @@ type (
 		) ([]*model.DataKpi, int64, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
-		// Mengembalikan GetDetailPenyusunanKpiResponse dengan approval_list sudah di-unmarshal
-		// menjadi []Approval, dan nested KPI/result/process/context sudah terisi.
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
 		) (*dto.GetDetailPenyusunanKpiResponse, error)

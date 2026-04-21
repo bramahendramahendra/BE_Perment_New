@@ -118,7 +118,6 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 
 // RevisionPenyusunanKpi handles POST /penyusunan-kpi/revision
 // Menerima multipart/form-data dengan field REQUEST (JSON) dan files (Excel revisi).
-// Format REQUEST sama seperti /validate, dengan tambahan field IdPengajuan.
 func (h *PenyusunanKpiHandler) RevisionPenyusunanKpi(c *gin.Context) {
 	req, file, err := binder.BindMultipartJSON[dto.RevisionPenyusunanKpiRequest](c, "REQUEST", "files")
 	if err != nil {
@@ -181,8 +180,8 @@ func (h *PenyusunanKpiHandler) ApprovePenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	req.User = strings.TrimSpace(parts[0])
-	req.UserName = strings.TrimSpace(parts[1])
+	req.ApprovalUser = strings.TrimSpace(parts[0])
+	req.ApprovalName = strings.TrimSpace(parts[1])
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -223,8 +222,8 @@ func (h *PenyusunanKpiHandler) RejectPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	req.User = strings.TrimSpace(parts[0])
-	req.UserName = strings.TrimSpace(parts[1])
+	req.ApprovalUser = strings.TrimSpace(parts[0])
+	req.ApprovalName = strings.TrimSpace(parts[1])
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -281,7 +280,7 @@ func (h *PenyusunanKpiHandler) GetAllApprovalPenyusunanKpi(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:       "00",
 		Status:     true,
-		Message:    "Data KPI berhasil diambil",
+		Message:    "Data Approval KPI berhasil diambil",
 		Data:       data,
 		Pagination: pagination,
 	})
@@ -292,18 +291,6 @@ func (h *PenyusunanKpiHandler) GetAllTolakanPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllTolakanPenyusunanKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	userq := c.GetHeader("userq")
-	if userq == "" {
-		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
-		return
-	}
-
-	parts := strings.SplitN(userq, " | ", 2)
-	if len(parts) != 2 {
-		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
 		return
 	}
 
@@ -321,7 +308,7 @@ func (h *PenyusunanKpiHandler) GetAllTolakanPenyusunanKpi(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:       "00",
 		Status:     true,
-		Message:    "Data KPI berhasil diambil",
+		Message:    "Data Penolakan KPI berhasil diambil",
 		Data:       data,
 		Pagination: pagination,
 	})
@@ -335,15 +322,8 @@ func (h *PenyusunanKpiHandler) GetAllDaftarPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	userq := c.GetHeader("userq")
-	if userq == "" {
-		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
-		return
-	}
-
-	parts := strings.SplitN(userq, " | ", 2)
-	if len(parts) != 2 {
-		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -388,6 +368,11 @@ func (h *PenyusunanKpiHandler) GetAllDaftarApprovalPenyusunanKpi(c *gin.Context)
 	}
 
 	req.ApprovalUser = strings.TrimSpace(parts[0])
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
 
 	data, total, err := h.service.GetAllDaftarApprovalPenyusunanKpi(&req)
 	if err != nil {

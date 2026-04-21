@@ -230,9 +230,6 @@ const (
 		SET approval_posisi = ?, approval_list = ?, status = 0
 		WHERE id_pengajuan = ?`
 
-	queryBatalPenyusunanKpi = `
-		UPDATE data_kpi SET status = 71 WHERE id_pengajuan = ?`
-
 	queryApproveChainPenyusunan = `
 		UPDATE data_kpi SET approval_posisi = ?, approval_list = ? WHERE id_pengajuan = ?`
 
@@ -309,9 +306,9 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	req *dto.ValidatePenyusunanKpiRequest,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-	resultList []dto.PenyusunanResult,
-	processList []dto.PenyusunanProcess,
-	contextList []dto.PenyusunanContext,
+	resultList []dto.DataResult,
+	processList []dto.DataProcess,
+	contextList []dto.DataContext,
 ) (string, error) {
 
 	idPengajuan := idgen.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
@@ -613,11 +610,10 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	req *dto.RevisionPenyusunanKpiRequest,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-	resultList []dto.PenyusunanResult,
-	processList []dto.PenyusunanProcess,
-	contextList []dto.PenyusunanContext,
+	resultList []dto.DataResult,
+	processList []dto.DataProcess,
+	contextList []dto.DataContext,
 ) error {
-
 	// Validasi: id_pengajuan harus ada di DB
 	var countExist int
 	if err := r.db.Raw(queryCheckExistIdPengajuan, req.IdPengajuan).
@@ -641,7 +637,7 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		return fmt.Errorf("gagal membaca approval data: %w", err)
 	}
 
-	var approvalList []dto.ApprovalUser
+	var approvalList []dto.ApprovalUserDetail
 	if err := json.Unmarshal(approvalListRaw, &approvalList); err != nil {
 		return fmt.Errorf("gagal parse approval_list: %w", err)
 	}
@@ -1462,14 +1458,14 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	// =========================================================================
 	// UNMARSHAL approval_list (string JSON → []Approval)
 	// =========================================================================
-	var approvalList []dto.ApprovalUser
+	var approvalList []dto.ApprovalUserDetail
 	if approvalListRaw != "" {
 		if err := json.Unmarshal([]byte(approvalListRaw), &approvalList); err != nil {
 			return nil, fmt.Errorf("gagal parse approval_list: %w", err)
 		}
 	}
 	if approvalList == nil {
-		approvalList = []dto.ApprovalUser{}
+		approvalList = []dto.ApprovalUserDetail{}
 	}
 
 	// =========================================================================
@@ -1592,9 +1588,9 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 		return fmt.Errorf("gagal mengambil result detail [%s]: %w", resp.IdPengajuan, err)
 	}
 
-	var resultDetails []dto.PenyusunanResult
+	var resultDetails []dto.DataResult
 	for resultRows.Next() {
-		var re dto.PenyusunanResult
+		var re dto.DataResult
 		if err := resultRows.Scan(
 			&re.IdDetailResult,
 			&re.NamaResult, &re.DeskripsiResult,
@@ -1607,7 +1603,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 	resultRows.Close()
 
 	if resultDetails == nil {
-		resultDetails = []dto.PenyusunanResult{}
+		resultDetails = []dto.DataResult{}
 	}
 	resp.ResultList = resultDetails
 	resp.TotalResult = len(resultDetails)
@@ -1622,9 +1618,9 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 		return fmt.Errorf("gagal mengambil process detail [%s]: %w", resp.IdPengajuan, err)
 	}
 
-	var processDetails []dto.PenyusunanProcess
+	var processDetails []dto.DataProcess
 	for processRows.Next() {
-		var mt dto.PenyusunanProcess
+		var mt dto.DataProcess
 		var dummyRealisasi, dummyLampiran string
 		if err := processRows.Scan(
 			&mt.IdDetailProcess,
@@ -1639,7 +1635,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 	processRows.Close()
 
 	if processDetails == nil {
-		processDetails = []dto.PenyusunanProcess{}
+		processDetails = []dto.DataProcess{}
 	}
 	resp.ProcessList = processDetails
 	resp.TotalProcess = len(processDetails)
@@ -1654,9 +1650,9 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 		return fmt.Errorf("gagal mengambil context detail [%s]: %w", resp.IdPengajuan, err)
 	}
 
-	var contextDetails []dto.PenyusunanContext
+	var contextDetails []dto.DataContext
 	for contextRows.Next() {
-		var ch dto.PenyusunanContext
+		var ch dto.DataContext
 		var dummyRealisasi, dummyLampiran string
 		if err := contextRows.Scan(
 			&ch.IdDetailContext,
@@ -1671,7 +1667,7 @@ func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusuna
 	contextRows.Close()
 
 	if contextDetails == nil {
-		contextDetails = []dto.PenyusunanContext{}
+		contextDetails = []dto.DataContext{}
 	}
 	resp.ContextList = contextDetails
 	resp.TotalContext = len(contextDetails)

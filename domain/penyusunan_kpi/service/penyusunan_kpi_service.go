@@ -62,9 +62,9 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 
 	// Build ProcessList dan ContextList dari data Excel (kolom P,Q,R,S,T,U).
 	// Hanya diisi untuk TW2 dan TW4; untuk TW1 dan TW3 list kosong (tidak diinsert ke DB).
-	resultList := []dto.PenyusunanResult{}
-	processList := []dto.PenyusunanProcess{}
-	contextList := []dto.PenyusunanContext{}
+	resultList := []dto.DataResult{}
+	processList := []dto.DataProcess{}
+	contextList := []dto.DataContext{}
 	if utils.IsExtendedTriwulan(req.Triwulan) {
 		resultList = utils.BuildResultList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 		processList = utils.BuildProcessList(idPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
@@ -118,13 +118,13 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 		return data, err
 	}
 
-	simpleList := make([]dto.ApprovalUserSimple, len(req.ApprovalList))
+	ApprovalList := make([]dto.ApprovalUser, len(req.ApprovalList))
 	for i, a := range req.ApprovalList {
-		simpleList[i] = dto.ApprovalUserSimple{Userid: a.Userid, Nama: a.Nama}
+		ApprovalList[i] = dto.ApprovalUser{Userid: a.Userid, Nama: a.Nama}
 	}
 	data = dto.CreatePenyusunanKpiResponse{
 		IdPengajuan:  req.IdPengajuan,
-		ApprovalList: simpleList,
+		ApprovalList: ApprovalList,
 	}
 
 	return data, nil
@@ -212,9 +212,9 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 
 	// Build ContextList, ProcessList, ResultList dari kolom P–U Excel
 	// Hanya diisi untuk TW2 dan TW4
-	resultList := []dto.PenyusunanResult{}
-	processList := []dto.PenyusunanProcess{}
-	contextList := []dto.PenyusunanContext{}
+	resultList := []dto.DataResult{}
+	processList := []dto.DataProcess{}
+	contextList := []dto.DataContext{}
 	if utils.IsExtendedTriwulan(req.Triwulan) {
 		resultList = utils.BuildResultList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 		processList = utils.BuildProcessList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
@@ -283,12 +283,12 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 		}
 	}
 
-	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.User)
+	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUser)
 	if err != nil {
 		return data, err
 	}
 
-	var approvalList []dto.ApprovalUser
+	var approvalList []dto.ApprovalUserDetail
 	if err = json.Unmarshal([]byte(approvalListJSON), &approvalList); err != nil {
 		return data, fmt.Errorf("gagal parse approval_list: %w", err)
 	}
@@ -296,7 +296,7 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	now := time.Now().Format("2006-01-02 15:04:05")
 	currentIdx := -1
 	for i := range approvalList {
-		if strings.EqualFold(approvalList[i].Userid, req.User) && approvalList[i].Status == "" {
+		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUser) && approvalList[i].Status == "" {
 			approvalList[i].Status = "approve"
 			approvalList[i].Keterangan = req.Catatan
 			approvalList[i].Waktu = now
@@ -322,7 +322,7 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 		return data, fmt.Errorf("gagal serialize approval_list: %w", err)
 	}
 
-	if err = s.repo.ApprovePenyusunanKpi(req.IdPengajuan, string(updatedJSON), nextApprover, req.User); err != nil {
+	if err = s.repo.ApprovePenyusunanKpi(req.IdPengajuan, string(updatedJSON), nextApprover, req.ApprovalUser); err != nil {
 		return data, err
 	}
 
@@ -362,12 +362,12 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		}
 	}
 
-	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.User)
+	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUser)
 	if err != nil {
 		return data, err
 	}
 
-	var approvalList []dto.ApprovalUser
+	var approvalList []dto.ApprovalUserDetail
 	if err = json.Unmarshal([]byte(approvalListJSON), &approvalList); err != nil {
 		return data, fmt.Errorf("gagal parse approval_list: %w", err)
 	}
@@ -375,7 +375,7 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	now := time.Now().Format("2006-01-02 15:04:05")
 	found := false
 	for i := range approvalList {
-		if strings.EqualFold(approvalList[i].Userid, req.User) && approvalList[i].Status == "" {
+		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUser) && approvalList[i].Status == "" {
 			approvalList[i].Status = "reject"
 			approvalList[i].Keterangan = req.Catatan
 			approvalList[i].Waktu = now
@@ -392,7 +392,7 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		return data, fmt.Errorf("gagal serialize approval_list: %w", err)
 	}
 
-	if err = s.repo.RejectPenyusunanKpi(req.IdPengajuan, string(updatedJSON), req.Catatan, req.User); err != nil {
+	if err = s.repo.RejectPenyusunanKpi(req.IdPengajuan, string(updatedJSON), req.Catatan, req.ApprovalUser); err != nil {
 		return data, err
 	}
 

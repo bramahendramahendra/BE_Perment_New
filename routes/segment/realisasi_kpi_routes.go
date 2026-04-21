@@ -33,6 +33,7 @@ func RealisasiKpiRoutes(r *gin.RouterGroup) {
 	realisasiKpiGroup.POST("/revision", realisasiKpiHandler.RevisionRealisasiKpi)
 	realisasiKpiGroup.POST("/create", realisasiKpiHandler.CreateRealisasiKpi)
 	realisasiKpiGroup.POST("/approval", realisasiKpiHandler.ApprovalRealisasiKpi)
+	realisasiKpiGroup.POST("/get-all", realisasiKpiHandler.GetAllRealisasiKpi)
 	realisasiKpiGroup.POST("/get-all-approval", realisasiKpiHandler.GetAllApprovalRealisasiKpi)
 	realisasiKpiGroup.POST("/get-all-tolakan", realisasiKpiHandler.GetAllTolakanRealisasiKpi)
 	realisasiKpiGroup.POST("/get-all-daftar-realisasi", realisasiKpiHandler.GetAllDaftarRealisasiKpi)

@@ -43,6 +43,14 @@ const (
 		FROM data_kpi
 		WHERE id_pengajuan = ? AND status = 3`
 
+	// queryGetKpiBaseData digunakan oleh: SubmitPenyusunanKpi (kostl_tx),
+	// ApprovePenyusunanKpi (entry_user), dan GetKpiExportData (kostl_tx, tahun, triwulan).
+	queryGetKpiBaseData = `
+		SELECT kostl_tx, tahun, triwulan, entry_user
+		FROM data_kpi
+		WHERE id_pengajuan = ?
+		LIMIT 1`
+
 	// =============================================================================
 	// Lookup
 	// =============================================================================
@@ -70,8 +78,13 @@ const (
 		LIMIT 1`
 
 	// =============================================================================
-	// Update — Validate / Revision
+	// Update
 	// =============================================================================
+	// queryUpdateKpiRealisasi digunakan oleh CreateRealisasiKpi untuk mengisi approval dan mengubah status.
+	queryUpdateKpiRealisasi = `
+		UPDATE data_kpi 
+		SET approval_posisi = ?, approval_list_realisasi = ?, status = 2
+		WHERE id_pengajuan = ?`
 
 	// queryUpdateKpiStatusDraft meng-update header data_kpi ke status 80 (draft realisasi).
 	queryUpdateKpiStatusDraft = `
@@ -122,10 +135,6 @@ const (
 		    approval_posisi          = ?,
 		    approval_list_realisasi  = ?
 		WHERE id_pengajuan = ?`
-
-	// =============================================================================
-	// Update — Approval
-	// =============================================================================
 
 	queryApproveChainRealisasi = `
 		UPDATE data_kpi
@@ -301,11 +310,11 @@ func (r *realisasiKpiRepo) LookupSubDetailByKpiSubKpi(
 
 func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	req *dto.ValidateRealisasiKpiRequest,
-	kpiRows []dto.KpiRow,
-	kpiSubDetails map[int][]dto.KpiSubDetailRow,
-	resultList []dto.RealisasiResult,
-	processList []dto.RealisasiProcess,
-	contextList []dto.RealisasiContext,
+	kpiRows []dto.RealisasiKpiRow,
+	kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
+	resultList []dto.DataResult,
+	processList []dto.DataProcess,
+	contextList []dto.DataContext,
 ) error {
 	// Validasi status: harus 2, 4, 80, atau 81 agar bisa input realisasi
 	var countExist int
@@ -403,23 +412,100 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 }
 
 // =============================================================================
+// CREATE — submit realisasi ke approval (status 80 → 3)
+// =============================================================================
+
+func (r *realisasiKpiRepo) CreateRealisasiKpi(
+	req *dto.CreateRealisasiKpiRequest,
+) error {
+	var countExist int
+	if err := r.db.Raw(queryCheckStatusCreateRealisasi, req.IdPengajuan).
+		Scan(&countExist).Error; err != nil {
+		return fmt.Errorf("gagal mengecek status pengajuan: %w", err)
+	}
+	if countExist == 0 {
+		return &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan atau belum dalam status draft realisasi (80)", req.IdPengajuan),
+		}
+	}
+
+	// Ambil userid pertama dari ApprovalList sebagai approval_posisi
+	approvalPosisi := ""
+	if len(req.ApprovalListRealisasi) > 0 {
+		approvalPosisi = req.ApprovalListRealisasi[0].Userid
+	}
+
+	approvalListBytes, err := json.Marshal(req.ApprovalListRealisasi)
+	if err != nil {
+		// System error: seharusnya tidak terjadi karena struct sudah tervalidasi
+		return fmt.Errorf("gagal serialize approval_list: %w", err)
+	}
+
+	// System error: gagal update ke DB
+	if err := r.db.Exec(queryUpdateKpiRealisasi,
+		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
+	).Error; err != nil {
+		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
+	}
+
+	// Ambil kostl_tx dari data_kpi untuk pesan notifikasi
+	var kpiBase struct {
+		KostlTx string `gorm:"column:kostl_tx"`
+	}
+	if err := r.db.Raw(queryGetKpiBaseData, req.IdPengajuan).Scan(&kpiBase).Error; err != nil {
+		return fmt.Errorf("gagal mengambil kostl_tx: %w", err)
+	}
+	kostlTx := kpiBase.KostlTx
+
+	// =========================================================================
+	// Jalankan dalam transaksi agar update + notif atomic
+	// =========================================================================
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+	}
+
+	if err := tx.Exec(querySubmitRealisasi,
+		req.ApprovalPosisi, req.ApprovalListRealisasi, req.IdPengajuan,
+	).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal submit realisasi: %w", err)
+	}
+
+	if err := notif.Insert(tx,
+		req.IdPengajuan,
+		"Approval Realisasi, ID : "+req.IdPengajuan,
+		req.User,
+		req.ApprovalPosisi,
+		"approval_realisasi",
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// =============================================================================
 // REVISION — update ulang realisasi (status 80 atau 4)
 // =============================================================================
 
 func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	req *dto.RevisionRealisasiKpiRequest,
-	kpiRows []dto.KpiRow,
-	kpiSubDetails map[int][]dto.KpiSubDetailRow,
-	resultList []dto.RealisasiResult,
-	processList []dto.RealisasiProcess,
-	contextList []dto.RealisasiContext,
+	kpiRows []dto.RealisasiKpiRow,
+	kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
+	resultList []dto.DataResult,
+	processList []dto.DataProcess,
+	contextList []dto.DataContext,
 ) error {
 	// Validasi status: harus 80 (draft) atau 4 (ditolak) untuk revisi
-	var count int
-	if err := r.db.Raw(queryCheckStatusRevisiRealisasi, req.IdPengajuan).Scan(&count).Error; err != nil {
+	var countExist int
+	if err := r.db.Raw(queryCheckStatusRevisiRealisasi, req.IdPengajuan).
+		Scan(&countExist).Error; err != nil {
 		return fmt.Errorf("gagal mengecek status pengajuan: %w", err)
 	}
-	if count == 0 {
+	if countExist == 0 {
 		return &customErrors.BadRequestError{
 			Message: fmt.Sprintf(
 				"id_pengajuan '%s' tidak ditemukan atau status tidak mengizinkan revisi realisasi (harus draft atau ditolak)",
@@ -506,53 +592,6 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 		return fmt.Errorf("gagal commit transaksi revision realisasi: %w", err)
 	}
 
-	return nil
-}
-
-// =============================================================================
-// CREATE — submit realisasi ke approval (status 80 → 3)
-// =============================================================================
-
-func (r *realisasiKpiRepo) CreateRealisasiKpi(
-	req *dto.CreateRealisasiKpiRequest,
-) error {
-	var count int
-	if err := r.db.Raw(queryCheckStatusCreateRealisasi, req.IdPengajuan).Scan(&count).Error; err != nil {
-		return fmt.Errorf("gagal mengecek status pengajuan: %w", err)
-	}
-	if count == 0 {
-		return &customErrors.BadRequestError{
-			Message: fmt.Sprintf(
-				"id_pengajuan '%s' tidak ditemukan atau belum dalam status draft realisasi (80)",
-				req.IdPengajuan,
-			),
-		}
-	}
-
-	tx := r.db.Begin()
-	if tx.Error != nil {
-		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
-	}
-
-	if err := tx.Exec(querySubmitRealisasi,
-		req.ApprovalPosisi, req.ApprovalListRealisasi, req.IdPengajuan,
-	).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("gagal submit realisasi: %w", err)
-	}
-
-	if err := notif.Insert(tx,
-		req.IdPengajuan,
-		"Approval Realisasi, ID : "+req.IdPengajuan,
-		req.User,
-		req.ApprovalPosisi,
-		"approval_realisasi",
-	); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	tx.Commit()
 	return nil
 }
 
@@ -651,6 +690,30 @@ func (r *realisasiKpiRepo) ApprovalRealisasiKpi(
 
 	tx.Rollback()
 	return &customErrors.BadRequestError{Message: "status tidak valid, gunakan 'approve' atau 'reject'"}
+}
+
+// =============================================================================
+// GET ALL REALISASI — status 2
+// =============================================================================
+
+func (r *realisasiKpiRepo) GetAllRealisasiKpi(
+	req *dto.GetAllRealisasiKpiRequest,
+) ([]*dto.DataKpiRealisasi, int64, error) {
+	conditions := []string{
+		"a.status = 2",
+	}
+	args := []interface{}{req.ApprovalUser}
+
+	if req.Tahun != "" {
+		conditions = append(conditions, "a.tahun = ?")
+		args = append(args, req.Tahun)
+	}
+	if req.Triwulan != "" {
+		conditions = append(conditions, "a.triwulan = ?")
+		args = append(args, req.Triwulan)
+	}
+
+	return r.queryPaginatedRealisasi(conditions, args, req.Page, req.Limit)
 }
 
 // =============================================================================

@@ -85,8 +85,8 @@ func BuildResultList(
 	triwulan string,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) []dto.PenyusunanResult {
-	results := []dto.PenyusunanResult{}
+) []dto.DataResult {
+	results := []dto.DataResult{}
 
 	subCounter := 1
 	for _, kpiRow := range kpiRows {
@@ -98,7 +98,7 @@ func BuildResultList(
 			// Kolom P (Result) = namaResult, kolom Q (Deskripsi Result) = deskripsiResult
 			// Hanya insert jika Result tidak kosong/nil
 			if subRow.Result != nil && *subRow.Result != "" {
-				results = append(results, dto.PenyusunanResult{
+				results = append(results, dto.DataResult{
 					IdDetailResult:  idSubDetail,
 					Tahun:           tahun,
 					Triwulan:        triwulan,
@@ -122,8 +122,8 @@ func BuildProcessList(
 	triwulan string,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) []dto.PenyusunanProcess {
-	processses := []dto.PenyusunanProcess{}
+) []dto.DataProcess {
+	processses := []dto.DataProcess{}
 
 	subCounter := 1
 	for _, kpiRow := range kpiRows {
@@ -135,7 +135,7 @@ func BuildProcessList(
 			// Kolom R (Process) = namaProcess, kolom S (Deskripsi Process) = deskripsiProcess
 			// Hanya insert jika Process tidak kosong/nil
 			if subRow.Process != nil && *subRow.Process != "" {
-				processses = append(processses, dto.PenyusunanProcess{
+				processses = append(processses, dto.DataProcess{
 					IdDetailProcess:  idSubDetail,
 					Tahun:            tahun,
 					Triwulan:         triwulan,
@@ -159,8 +159,8 @@ func BuildContextList(
 	triwulan string,
 	kpiRows []dto.PenyusunanKpiRow,
 	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) []dto.PenyusunanContext {
-	contexts := []dto.PenyusunanContext{}
+) []dto.DataContext {
+	contexts := []dto.DataContext{}
 
 	subCounter := 1
 	for _, kpiRow := range kpiRows {
@@ -172,7 +172,7 @@ func BuildContextList(
 			// Kolom T (Context) = namaContext, kolom U (Deskripsi Context) = deskripsiContext
 			// Hanya insert jika Context tidak kosong/nil
 			if subRow.Context != nil && *subRow.Context != "" {
-				contexts = append(contexts, dto.PenyusunanContext{
+				contexts = append(contexts, dto.DataContext{
 					IdDetailContext:  idSubDetail,
 					Tahun:            tahun,
 					Triwulan:         triwulan,

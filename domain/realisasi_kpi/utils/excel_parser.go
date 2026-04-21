@@ -348,15 +348,15 @@ func parseAndValidateExcelInternal(
 			subRow.Result = &colN
 			subRow.DeskripsiResult = &colO
 			subRow.RealisasiResult = &colP
-			subRow.LinkResult = &colQ
+			subRow.LampiranEvidenceResult = &colQ
 			subRow.Process = &colR
 			subRow.DeskripsiProcess = &colS
 			subRow.RealisasiProcess = &colT
-			subRow.LinkProcess = &colU
+			subRow.LampiranEvidenceProcess = &colU
 			subRow.Context = &colV
 			subRow.DeskripsiContext = &colW
 			subRow.RealisasiContext = &colX
-			subRow.LinkContext = &colY
+			subRow.LampiranEvidenceContext = &colY
 		} else {
 			// TW1/TW3: N=Result, O=DeskripsiResult, P=Process, Q=DeskripsiProcess, R=Context, S=DeskripsiContext
 			colN := strings.TrimSpace(row[13])
