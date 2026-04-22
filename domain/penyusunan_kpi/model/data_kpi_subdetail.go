@@ -17,9 +17,12 @@ type DataKpiSubDetail struct {
 	TargetTahunan             string  `gorm:"column:target_tahunan"`
 	TargetKuantitatifTahunan  float64 `gorm:"column:target_kuantitatif_tahunan"`
 	DeskripsiGlossary         string  `gorm:"column:deskripsi_glossary"`
+	IdPolarisasi              string  `gorm:"column:id_polarisasi"`
+	Polarisasi                string  `gorm:"column:polarisasi"`
+	IdQualifier               string  `gorm:"column:id_qualifier"`
 	ItemQualifier             string  `gorm:"column:item_qualifier"`
 	DeskripsiQualifier        string  `gorm:"column:deskripsi_qualifier"`
 	TargetQualifier           string  `gorm:"column:target_qualifier"`
 	IdKeteranganProject       string  `gorm:"column:id_keterangan_project"`
-	IdQualifier               string  `gorm:"column:id_qualifier"`
+	KeteranganProject         string  `gorm:"column:keterangan_project"`
 }

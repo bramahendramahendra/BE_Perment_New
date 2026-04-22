@@ -9,5 +9,10 @@ type DataKpiDetail struct {
 	Kpi                 string `gorm:"column:kpi"`
 	Rumus               string `gorm:"column:rumus"`
 	IdPersfektif        string `gorm:"column:id_perspektif"`
+	Perspektif          string `gorm:"column:perspektif"`
 	IdKeteranganProject string `gorm:"column:id_keterangan_project"`
+	KeteranganProject   string `gorm:"column:keterangan_project"`
+
+	TotalSubKpi  int              `gorm:"-"`
+	KpiSubDetail []DataKpiSubDetail `gorm:"-"`
 }

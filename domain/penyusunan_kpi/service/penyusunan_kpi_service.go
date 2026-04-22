@@ -613,7 +613,129 @@ func (s *penyusunanKpiService) GetAllDaftarApprovalPenyusunanKpi(
 func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
 ) (data *dto.GetDetailPenyusunanKpiResponse, err error) {
-	return s.repo.GetDetailPenyusunanKpi(req)
+	dataDB, err := s.repo.GetDetailPenyusunanKpi(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var approvalList []dto.ApprovalUserDetail
+	if dataDB.ApprovalList != "" {
+		if err = json.Unmarshal([]byte(dataDB.ApprovalList), &approvalList); err != nil {
+			return nil, fmt.Errorf("gagal parse approval_list: %w", err)
+		}
+	}
+	if approvalList == nil {
+		approvalList = []dto.ApprovalUserDetail{}
+	}
+
+	kpiDetails := make([]dto.DataKpiDetail, len(dataDB.Kpi))
+	for i, v := range dataDB.Kpi {
+		subDetails := make([]dto.DataKpiSubdetail, len(v.KpiSubDetail))
+		for j, s := range v.KpiSubDetail {
+			subDetails[j] = dto.DataKpiSubdetail{
+				IdSubDetail:               s.IdSubDetail,
+				IdSubKpi:                  s.IdKpi,
+				SubKpi:                    s.Kpi,
+				Otomatis:                  s.Otomatis,
+				IdPolarisasi:              s.IdPolarisasi,
+				Polarisasi:                s.Polarisasi,
+				Capping:                   s.Capping,
+				Bobot:                     s.Bobot,
+				Glossary:                  s.DeskripsiGlossary,
+				TargetTriwulan:            s.TargetTriwulan,
+				TargetKuantitatifTriwulan: s.TargetKuantitatifTriwulan,
+				TargetTahunan:             s.TargetTahunan,
+				TargetKuantitatifTahunan:  s.TargetKuantitatifTahunan,
+				TerdapatQualifier:         s.IdQualifier,
+				Qualifier:                 s.ItemQualifier,
+				DeskripsiQualifier:        s.DeskripsiQualifier,
+				TargetQualifier:           s.TargetQualifier,
+				IdKeteranganProject:       s.IdKeteranganProject,
+				KeteranganProject:         s.KeteranganProject,
+			}
+		}
+		kpiDetails[i] = dto.DataKpiDetail{
+			IdDetail:            v.IdDetail,
+			IdKpi:               v.IdKpi,
+			Kpi:                 v.Kpi,
+			Rumus:               v.Rumus,
+			IdPerspektif:        v.IdPersfektif,
+			Persfektif:          v.Perspektif,
+			IdKeteranganProject: v.IdKeteranganProject,
+			KeteranganProject:   v.KeteranganProject,
+			TotalSubKpi:         v.TotalSubKpi,
+			KpiSubDetail:        subDetails,
+		}
+	}
+
+	resultList := make([]dto.DataResult, len(dataDB.ResultList))
+	for i, v := range dataDB.ResultList {
+		resultList[i] = dto.DataResult{
+			IdDetailResult:  v.IdDetailResult,
+			NamaResult:      v.NamaResult,
+			DeskripsiResult: v.DeskripsiResult,
+		}
+	}
+
+	processList := make([]dto.DataProcess, len(dataDB.ProcessList))
+	for i, v := range dataDB.ProcessList {
+		processList[i] = dto.DataProcess{
+			IdDetailProcess:  v.IdDetailMethod,
+			NamaProcess:      v.NamaMethod,
+			DeskripsiProcess: v.DeskripsiMethod,
+		}
+	}
+
+	contextList := make([]dto.DataContext, len(dataDB.ContextList))
+	for i, v := range dataDB.ContextList {
+		contextList[i] = dto.DataContext{
+			IdDetailContext:  v.IdDetailChallenge,
+			NamaContext:      v.NamaChallenge,
+			DeskripsiContext: v.DeskripsiChallenge,
+		}
+	}
+
+	data = &dto.GetDetailPenyusunanKpiResponse{
+		IdPengajuan: dataDB.IdPengajuan,
+		Tahun:       dataDB.Tahun,
+		Triwulan:    dataDB.Triwulan,
+		Status:      dataDB.Status,
+		StatusDesc:  dataDB.StatusDesc,
+		Divisi: dto.DivisiOrgeh{
+			Kostl:   dataDB.Kostl,
+			KostlTx: dataDB.KostlTx,
+			Orgeh:   dataDB.Orgeh,
+			OrgehTx: dataDB.OrgehTx,
+		},
+		Entry: dto.EntryUser{
+			EntryUser: dataDB.EntryUser,
+			EntryName: dataDB.EntryName,
+			EntryTime: dataDB.EntryTime,
+		},
+		ApprovalPosisi: dataDB.ApprovalPosisi,
+		ApprovalList:   approvalList,
+		Catatan:        dataDB.CatatanTolakan,
+		EntryRealisasi: dto.EntryUserRealisasi{
+			EntryUserRealisasi: dataDB.EntryUserRealisasi,
+			EntryNameRealisasi: dataDB.EntryNameRealisasi,
+			EntryTimeRealisasi: dataDB.EntryTimeRealisasi,
+		},
+		EntryValidasi: dto.EntryUserValidasi{
+			EntryUserValidasi: dataDB.EntryUserValidasi,
+			EntryNameValidasi: dataDB.EntryNameValidasi,
+			EntryTimeValidasi: dataDB.EntryTimeValidasi,
+		},
+		TotalKpi:     dataDB.TotalKpi,
+		Kpi:          kpiDetails,
+		TotalResult:  dataDB.TotalResult,
+		ResultList:   resultList,
+		TotalProcess: dataDB.TotalProcess,
+		ProcessList:  processList,
+		TotalContext: dataDB.TotalContext,
+		ContextList:  contextList,
+	}
+
+	return data, nil
 }
 
 // =============================================================================

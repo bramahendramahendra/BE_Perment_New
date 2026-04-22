@@ -73,7 +73,7 @@ type (
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
-		) (*dto.GetDetailPenyusunanKpiResponse, error)
+		) (*model.DataKpi, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /get-pdf.
 		GetKpiExportData(idPengajuan string) (*dto.KpiExportData, error)

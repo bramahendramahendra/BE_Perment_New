@@ -31,4 +31,13 @@ type DataKpi struct {
 	ApprovalListValidasi     string `gorm:"column:approval_list_validasi"`
 	LampiranValidasi         string `gorm:"column:lampiran_validasi"`
 	QualifierOverallValidasi string `gorm:"column:qualifier_overall_validasi"`
+
+	TotalKpi     int                   `gorm:"-"`
+	Kpi          []DataKpiDetail       `gorm:"-"`
+	TotalResult  int                   `gorm:"-"`
+	ResultList   []DataResultDetail    `gorm:"-"`
+	TotalProcess int                   `gorm:"-"`
+	ProcessList  []DataMethodDetail    `gorm:"-"`
+	TotalContext int                   `gorm:"-"`
+	ContextList  []DataChallengeDetail `gorm:"-"`
 }

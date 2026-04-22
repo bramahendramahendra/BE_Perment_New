@@ -1387,286 +1387,71 @@ func (r *penyusunanKpiRepo) GetAllDaftarApprovalPenyusunanKpi(
 
 func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
-) (*dto.GetDetailPenyusunanKpiResponse, error) {
+) (*model.DataKpi, error) {
 
-	// =========================================================================
-	// QUERY HEADER — reuse queryGetDataKpi yang sudah ada
-	// =========================================================================
+	var h model.DataKpi
 	headerQuery := queryGetDataKpi + " WHERE a.id_pengajuan = ? LIMIT 1"
-	headerRows, err := r.db.Raw(headerQuery, req.IdPengajuan).Rows()
-	if err != nil {
+	if err := r.db.Raw(headerQuery, req.IdPengajuan).Scan(&h).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil detail KPI: %w", err)
 	}
-	defer headerRows.Close()
-
-	if !headerRows.Next() {
+	if h.IdPengajuan == "" {
 		return nil, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
 		}
 	}
 
-	// Variabel untuk menampung semua kolom queryGetDataKpi.
-	// Kolom yang tidak dipakai di response ini tetap di-scan ke dummy var
-	// agar urutan scan sesuai dengan kolom query.
-	var (
-		idPengajuan, tahun, triwulan           string
-		kostl, kostlTx, orgeh, orgehTx         string
-		entryUser, entryName, entryTime        string
-		approvalPosisi, approvalListRaw        string
-		status, statusDesc                     string
-		dummyEUR, dummyENR, dummyETR, dummyALR string
-		dummyCatatan                           string
-		dummyTB, dummyTP, dummyTBP, dummyTPP   string
-		dummyEUV, dummyENV, dummyETV, dummyALV string
-		dummyLampiran, dummyQualifier          string
-	)
-
-	if err := headerRows.Scan(
-		&idPengajuan, &tahun, &triwulan,
-		&kostl, &kostlTx,
-		&orgeh, &orgehTx,
-		&entryUser, &entryName, &entryTime,
-		&approvalPosisi, &approvalListRaw,
-		&status, &statusDesc,
-		&dummyEUR, &dummyENR, &dummyETR, &dummyALR,
-		&dummyCatatan,
-		&dummyTB, &dummyTP,
-		&dummyTBP, &dummyTPP,
-		&dummyEUV, &dummyENV, &dummyETV, &dummyALV,
-		&dummyLampiran, &dummyQualifier,
-	); err != nil {
-		return nil, fmt.Errorf("gagal scan header KPI: %w", err)
+	var kpiDetails []model.DataKpiDetail
+	if err := r.db.Raw(queryGetDataKpiDetail, h.IdPengajuan).Scan(&kpiDetails).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil kpi detail: %w", err)
 	}
-
-	// =========================================================================
-	// UNMARSHAL approval_list (string JSON → []Approval)
-	// =========================================================================
-	var approvalList []dto.ApprovalUserDetail
-	if approvalListRaw != "" {
-		if err := json.Unmarshal([]byte(approvalListRaw), &approvalList); err != nil {
-			return nil, fmt.Errorf("gagal parse approval_list: %w", err)
+	for i := range kpiDetails {
+		var subDetails []model.DataKpiSubDetail
+		if err := r.db.Raw(queryGetDataKpiSubDetail, kpiDetails[i].IdDetail).Scan(&subDetails).Error; err != nil {
+			return nil, fmt.Errorf("gagal mengambil kpi sub detail: %w", err)
 		}
-	}
-	if approvalList == nil {
-		approvalList = []dto.ApprovalUserDetail{}
-	}
-
-	// =========================================================================
-	// BUILD RESPONSE HEADER
-	// =========================================================================
-	resp := &dto.GetDetailPenyusunanKpiResponse{
-		IdPengajuan: idPengajuan,
-		Tahun:       tahun,
-		Triwulan:    triwulan,
-		Status:      status,
-		StatusDesc:  statusDesc,
-		Divisi: dto.DivisiOrgeh{
-			Kostl:   kostl,
-			KostlTx: kostlTx,
-			Orgeh:   orgeh,
-			OrgehTx: orgehTx,
-		},
-		Entry: dto.EntryUser{
-			EntryUser: entryUser,
-			EntryName: entryName,
-			EntryTime: entryTime,
-		},
-		ApprovalPosisi: approvalPosisi,
-		ApprovalList:   approvalList,
-		Catatan:        dummyCatatan,
-		EntryRealisasi: dto.EntryUserRealisasi{
-			EntryUserRealisasi: dummyEUR,
-			EntryNameRealisasi: dummyENR,
-			EntryTimeRealisasi: dummyETR,
-		},
-		EntryValidasi: dto.EntryUserValidasi{
-			EntryUserValidasi: dummyEUV,
-			EntryNameValidasi: dummyENV,
-			EntryTimeValidasi: dummyETV,
-		},
-	}
-
-	// =========================================================================
-	// ISI NESTED DATA (KPI detail, result, process, context)
-	// =========================================================================
-	if err := r.scanNestedKpiPenyusunan(resp); err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-// scanNestedKpiPenyusunan mengisi KPI detail (versi ringan), result, process, dan context
-// ke dalam GetDetailPenyusunanKpiResponse.
-func (r *penyusunanKpiRepo) scanNestedKpiPenyusunan(resp *dto.GetDetailPenyusunanKpiResponse) error {
-
-	// =====================================================================
-	// KPI DETAIL
-	// =====================================================================
-	detailRows, err := r.db.Raw(queryGetDataKpiDetail, resp.IdPengajuan).Rows()
-	if err != nil {
-		return fmt.Errorf("gagal mengambil kpi detail [%s]: %w", resp.IdPengajuan, err)
-	}
-
-	var kpiDetails []dto.DataKpiDetail
-	for detailRows.Next() {
-		var d dto.DataKpiDetail
-		if err := detailRows.Scan(
-			&d.IdDetail,
-			&d.IdKpi, &d.Kpi, &d.Rumus,
-			&d.IdPerspektif, &d.Persfektif,
-			&d.IdKeteranganProject,
-			&d.KeteranganProject,
-		); err != nil {
-			detailRows.Close()
-			return fmt.Errorf("gagal scan kpi detail: %w", err)
-		}
-
-		// =================================================================
-		// KPI SUB DETAIL per id_detail
-		// =================================================================
-		subDetailRows, err := r.db.Raw(queryGetDataKpiSubDetail, d.IdDetail).Rows()
-		if err != nil {
-			detailRows.Close()
-			return fmt.Errorf("gagal mengambil kpi sub detail [%s]: %w", d.IdDetail, err)
-		}
-
-		var subDetails []dto.DataKpiSubdetail
-		for subDetailRows.Next() {
-			var s dto.DataKpiSubdetail
-			if err := subDetailRows.Scan(
-				&s.IdSubDetail,
-				&s.IdSubKpi, &s.SubKpi, &s.Polarisasi,
-				&s.Otomatis,
-				&s.Bobot, &s.Capping,
-				&s.TargetTriwulan, &s.TargetKuantitatifTriwulan,
-				&s.TargetTahunan, &s.TargetKuantitatifTahunan,
-				&s.Glossary,
-				&s.IdPolarisasi,
-				&s.Polarisasi,
-				&s.TerdapatQualifier,
-				&s.Qualifier,
-				&s.DeskripsiQualifier,
-				&s.TargetQualifier,
-				&s.IdKeteranganProject,
-				&s.KeteranganProject,
-			); err != nil {
-				subDetailRows.Close()
-				detailRows.Close()
-				return fmt.Errorf("gagal scan kpi sub detail: %w", err)
-			}
-			subDetails = append(subDetails, s)
-		}
-		subDetailRows.Close()
-
 		if subDetails == nil {
-			subDetails = []dto.DataKpiSubdetail{}
+			subDetails = []model.DataKpiSubDetail{}
 		}
-		d.KpiSubDetail = subDetails
-		d.TotalSubKpi = len(subDetails)
-		kpiDetails = append(kpiDetails, d)
+		kpiDetails[i].KpiSubDetail = subDetails
+		kpiDetails[i].TotalSubKpi = len(subDetails)
 	}
-	detailRows.Close()
-
 	if kpiDetails == nil {
-		kpiDetails = []dto.DataKpiDetail{}
+		kpiDetails = []model.DataKpiDetail{}
 	}
-	resp.Kpi = kpiDetails
-	resp.TotalKpi = len(kpiDetails)
+	h.Kpi = kpiDetails
+	h.TotalKpi = len(kpiDetails)
 
-	// =====================================================================
-	// RESULT DETAIL — reuse queryGetDataResultDetail yang sudah ada
-	// =====================================================================
-	resultRows, err := r.db.Raw(queryGetDataResultDetail, resp.IdPengajuan).Rows()
-	if err != nil {
-		return fmt.Errorf("gagal mengambil result detail [%s]: %w", resp.IdPengajuan, err)
+	var resultList []model.DataResultDetail
+	if err := r.db.Raw(queryGetDataResultDetail, h.IdPengajuan).Scan(&resultList).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil result detail: %w", err)
 	}
-
-	var resultDetails []dto.DataResult
-	for resultRows.Next() {
-		var re dto.DataResult
-		if err := resultRows.Scan(
-			&re.IdDetailResult,
-			&re.NamaResult, &re.DeskripsiResult,
-		); err != nil {
-			resultRows.Close()
-			return fmt.Errorf("gagal scan result detail: %w", err)
-		}
-		resultDetails = append(resultDetails, re)
+	if resultList == nil {
+		resultList = []model.DataResultDetail{}
 	}
-	resultRows.Close()
+	h.ResultList = resultList
+	h.TotalResult = len(resultList)
 
-	if resultDetails == nil {
-		resultDetails = []dto.DataResult{}
+	var processList []model.DataMethodDetail
+	if err := r.db.Raw(queryGetDataProcessDetail, h.IdPengajuan).Scan(&processList).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil process detail: %w", err)
 	}
-	resp.ResultList = resultDetails
-	resp.TotalResult = len(resultDetails)
-
-	// =====================================================================
-	// METHOD DETAIL — reuse queryGetDataProcessDetail yang sudah ada
-	// queryGetDataProcessDetail mengembalikan 7 kolom termasuk realisasi_method
-	// dan lampiran_evidence yang tidak ada di PenyusunanProcess → scan ke dummy.
-	// =====================================================================
-	processRows, err := r.db.Raw(queryGetDataProcessDetail, resp.IdPengajuan).Rows()
-	if err != nil {
-		return fmt.Errorf("gagal mengambil process detail [%s]: %w", resp.IdPengajuan, err)
+	if processList == nil {
+		processList = []model.DataMethodDetail{}
 	}
+	h.ProcessList = processList
+	h.TotalProcess = len(processList)
 
-	var processDetails []dto.DataProcess
-	for processRows.Next() {
-		var mt dto.DataProcess
-		var dummyRealisasi, dummyLampiran string
-		if err := processRows.Scan(
-			&mt.IdDetailProcess,
-			&mt.NamaProcess, &mt.DeskripsiProcess,
-			&dummyRealisasi, &dummyLampiran,
-		); err != nil {
-			processRows.Close()
-			return fmt.Errorf("gagal scan process detail: %w", err)
-		}
-		processDetails = append(processDetails, mt)
+	var contextList []model.DataChallengeDetail
+	if err := r.db.Raw(queryGetDataContextDetail, h.IdPengajuan).Scan(&contextList).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil context detail: %w", err)
 	}
-	processRows.Close()
-
-	if processDetails == nil {
-		processDetails = []dto.DataProcess{}
+	if contextList == nil {
+		contextList = []model.DataChallengeDetail{}
 	}
-	resp.ProcessList = processDetails
-	resp.TotalProcess = len(processDetails)
+	h.ContextList = contextList
+	h.TotalContext = len(contextList)
 
-	// =====================================================================
-	// CHALLENGE DETAIL — reuse queryGetDataContextDetail yang sudah ada
-	// queryGetDataContextDetail mengembalikan 7 kolom termasuk realisasi_challenge
-	// dan lampiran_evidence yang tidak ada di PenyusunanContext → scan ke dummy.
-	// =====================================================================
-	contextRows, err := r.db.Raw(queryGetDataContextDetail, resp.IdPengajuan).Rows()
-	if err != nil {
-		return fmt.Errorf("gagal mengambil context detail [%s]: %w", resp.IdPengajuan, err)
-	}
-
-	var contextDetails []dto.DataContext
-	for contextRows.Next() {
-		var ch dto.DataContext
-		var dummyRealisasi, dummyLampiran string
-		if err := contextRows.Scan(
-			&ch.IdDetailContext,
-			&ch.NamaContext, &ch.DeskripsiContext,
-			&dummyRealisasi, &dummyLampiran,
-		); err != nil {
-			contextRows.Close()
-			return fmt.Errorf("gagal scan context detail: %w", err)
-		}
-		contextDetails = append(contextDetails, ch)
-	}
-	contextRows.Close()
-
-	if contextDetails == nil {
-		contextDetails = []dto.DataContext{}
-	}
-	resp.ContextList = contextDetails
-	resp.TotalContext = len(contextDetails)
-
-	return nil
+	return &h, nil
 }
 
 // =============================================================================
