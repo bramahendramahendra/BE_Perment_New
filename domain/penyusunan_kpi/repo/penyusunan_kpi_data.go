@@ -21,9 +21,16 @@ const (
 
 	// Use func : ValidatePenyusunanKpi
 	queryCheckExistPenyusunan = `
-		SELECT COUNT(id_pengajuan) 
-		FROM data_kpi 
+		SELECT COUNT(id_pengajuan)
+		FROM data_kpi
 		WHERE tahun = ? AND triwulan = ? AND kostl = ?`
+
+	// Use func : GetExistPenyusunanStatus
+	queryGetExistPenyusunanStatus = `
+		SELECT id_pengajuan, status
+		FROM data_kpi
+		WHERE tahun = ? AND triwulan = ? AND kostl = ?
+		LIMIT 1`
 
 	// Use func : RevisionPenyusunanKpi, CreatePenyusunanKpi
 	queryCheckExistIdPengajuan = `
@@ -256,7 +263,8 @@ const (
 	// Delete
 	// =============================================================================
 
-	// Query-query DELETE berikut digunakan oleh RevisionPenyusunanKpi.
+	// Query-query DELETE berikut digunakan oleh RevisionPenyusunanKpi dan ValidatePenyusunanKpi (replace draft).
+	queryDeleteKpiHeader     = `DELETE FROM data_kpi WHERE id_pengajuan = ?`
 	queryDeleteKpiDetail     = `DELETE FROM data_kpi_detail WHERE id_pengajuan = ?`
 	queryDeleteKpiSubDetail  = `DELETE FROM data_kpi_subdetail WHERE id_pengajuan = ?`
 	queryDeleteResultDetail  = `DELETE FROM data_result_detail WHERE id_pengajuan = ?`
@@ -274,6 +282,17 @@ func (r *penyusunanKpiRepo) CheckExistPenyusunan(tahun, triwulan, kostl string) 
 		return false, fmt.Errorf("gagal mengecek data Penyusunan KPI: %w", err)
 	}
 	return count > 0, nil
+}
+
+func (r *penyusunanKpiRepo) GetExistPenyusunanStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error) {
+	row := r.db.Raw(queryGetExistPenyusunanStatus, tahun, triwulan, kostl).Row()
+	if scanErr := row.Scan(&idPengajuan, &status); scanErr != nil {
+		if errors.Is(scanErr, sql.ErrNoRows) {
+			return "", 0, false, nil
+		}
+		return "", 0, false, fmt.Errorf("gagal mengecek data Penyusunan KPI: %w", scanErr)
+	}
+	return idPengajuan, status, true, nil
 }
 
 func (r *penyusunanKpiRepo) CheckExistIdPengajuan(idPengajuan string) (bool, error) {
@@ -337,6 +356,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	resultList []dto.DataResult,
 	processList []dto.DataProcess,
 	contextList []dto.DataContext,
+	idLama string,
 ) (string, error) {
 
 	idPengajuan := idgen.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
@@ -476,6 +496,26 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	tx := r.db.Begin()
 	if tx.Error != nil {
 		return "", fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+	}
+
+	// Jika ada draft lama (status=70), hapus seluruh datanya sebelum insert baru
+	if idLama != "" {
+		for _, q := range []struct {
+			query string
+			desc  string
+		}{
+			{queryDeleteKpiDetail, "data_kpi_detail"},
+			{queryDeleteKpiSubDetail, "data_kpi_subdetail"},
+			{queryDeleteResultDetail, "data_result_detail"},
+			{queryDeleteProcessDetail, "data_method_detail"},
+			{queryDeleteContextDetail, "data_challenge_detail"},
+			{queryDeleteKpiHeader, "data_kpi"},
+		} {
+			if err := tx.Exec(q.query, idLama).Error; err != nil {
+				tx.Rollback()
+				return "", fmt.Errorf("gagal menghapus draft lama (%s): %w", q.desc, err)
+			}
+		}
 	}
 
 	// approval_posisi dan approval_list dikosongkan — diisi saat CreatePenyusunanKpi

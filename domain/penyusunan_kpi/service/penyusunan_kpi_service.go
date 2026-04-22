@@ -38,17 +38,23 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 	}
 
 	// Cek data KPI untuk tahun/triwulan/kostl sudah ada
-	exists, err := s.repo.CheckExistPenyusunan(req.Tahun, req.Triwulan, req.Kostl)
+	idLama, statusLama, found, err := s.repo.GetExistPenyusunanStatus(req.Tahun, req.Triwulan, req.Kostl)
 	if err != nil {
 		return data, err
 	}
-	if exists {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf(
-				"data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
-				req.Tahun, req.Triwulan, req.Kostl,
-			),
+	if found {
+		// Status 70 = draft → boleh di-replace, selain itu ditolak sebagai duplikasi
+		if statusLama != 70 {
+			return data, &customErrors.BadRequestError{
+				Message: fmt.Sprintf(
+					"data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
+					req.Tahun, req.Triwulan, req.Kostl,
+				),
+			}
 		}
+		// idLama akan digunakan di repo untuk menghapus draft lama sebelum insert baru
+	} else {
+		idLama = ""
 	}
 
 	// Parse dan validasi file Excel.
@@ -92,6 +98,7 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		resultList,
 		processList,
 		contextList,
+		idLama,
 	)
 	if err != nil {
 		return data, err

@@ -18,6 +18,10 @@ type (
 		// CheckExistPenyusunan mengecek apakah data KPI sudah ada untuk tahun/triwulan/kostl.
 		CheckExistPenyusunan(tahun, triwulan, kostl string) (bool, error)
 
+		// GetExistPenyusunanStatus mengecek keberadaan data KPI dan mengembalikan id_pengajuan + status.
+		// Mengembalikan found=false jika tidak ada data.
+		GetExistPenyusunanStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error)
+
 		// CheckExistIdPengajuan mengecek apakah id_pengajuan ada di DB.
 		CheckExistIdPengajuan(idPengajuan string) (bool, error)
 
@@ -25,6 +29,7 @@ type (
 		CheckApprovalExists(user, idPengajuan string) (bool, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/validate.
+		// idLama diisi jika ada draft (status=70) yang harus di-replace; kosong string jika insert baru.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,
 			kpiRows []dto.PenyusunanKpiRow,
@@ -32,6 +37,7 @@ type (
 			resultList []dto.DataResult,
 			processList []dto.DataProcess,
 			contextList []dto.DataContext,
+			idLama string,
 		) (string, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
