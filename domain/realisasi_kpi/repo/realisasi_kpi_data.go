@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	dto "permen_api/domain/realisasi_kpi/dto"
+	model "permen_api/domain/realisasi_kpi/model"
 	customErrors "permen_api/errors"
 	notif "permen_api/pkg/notif"
 )
@@ -22,7 +23,7 @@ const (
 	queryCheckExistRealisasi = `
 		SELECT COUNT(id_pengajuan)
 		FROM data_kpi
-		WHERE id_pengajuan = ? AND status IN (2, 4, 80, 81)`
+		WHERE id_pengajuan = ? AND tahun = ? AND triwulan = ? AND kostl = ? AND status IN (2, 4, 80, 81)`
 
 	// queryCheckStatusRevisiRealisasi memvalidasi bahwa id_pengajuan ada dan berstatus
 	// yang mengizinkan revisi realisasi (4=tolak realisasi, 80=draft realisasi).
@@ -155,14 +156,15 @@ const (
 		    catatan_tolakan         = ?
 		WHERE id_pengajuan = ?`
 
-	// =============================================================================
-	// GetAll
-	// =============================================================================
-
+	// Use func : GetAllApprovalRealisasiKpi, GetAllTolakanRealisasiKpi, GetAllDaftarRealisasiKpi, GetAllDaftarApprovalRealisasiKpi
 	queryGetCountDataKpiRealisasi = `
 		SELECT COUNT(1)
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status`
+
+	// =============================================================================
+	// GetAll
+	// =============================================================================
 
 	queryGetDataKpiRealisasi = `
 		SELECT
@@ -398,7 +400,7 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	// UPDATE header data_kpi → status 80
 	// -------------------------------------------------------------------------
 	if err := tx.Exec(queryUpdateKpiStatusDraft,
-		req.EntryUser, req.EntryName, req.IdPengajuan,
+		req.EntryUserRealisasi, req.EntryNameRealisasi, req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal update header realisasi: %w", err)
@@ -722,13 +724,20 @@ func (r *realisasiKpiRepo) GetAllRealisasiKpi(
 
 func (r *realisasiKpiRepo) GetAllApprovalRealisasiKpi(
 	req *dto.GetAllApprovalRealisasiKpiRequest,
-) ([]*dto.DataKpiRealisasi, int64, error) {
+) ([]*model.DataKpi, int64, error) {
+
+	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
 	conditions := []string{
 		"a.status = 3",
 		"a.approval_posisi = ?",
 	}
-	args := []interface{}{req.ApprovalUser}
+	args := []interface{}{req.ApprovalUserRealisasi}
 
+	// =========================================================================
+	// Kondisi opsional dari request body
+	// =========================================================================
 	if req.Divisi != "" {
 		conditions = append(conditions, "a.kostl = ?")
 		args = append(args, req.Divisi)
@@ -742,7 +751,66 @@ func (r *realisasiKpiRepo) GetAllApprovalRealisasiKpi(
 		args = append(args, req.Triwulan)
 	}
 
-	return r.queryPaginatedRealisasi(conditions, args, req.Page, req.Limit)
+	where := " WHERE " + strings.Join(conditions, " AND ")
+
+	// =========================================================================
+	// COUNT TOTAL RECORDS
+	// =========================================================================
+	var total int64
+	countQuery := queryGetCountDataKpiRealisasi + where
+	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
+	}
+
+	// =========================================================================
+	// PAGINATION
+	// =========================================================================
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
+	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.EntryUser, &h.EntryName, &h.EntryTime,
+			&h.ApprovalPosisi, &h.ApprovalList,
+			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================
@@ -751,13 +819,20 @@ func (r *realisasiKpiRepo) GetAllApprovalRealisasiKpi(
 
 func (r *realisasiKpiRepo) GetAllTolakanRealisasiKpi(
 	req *dto.GetAllTolakanRealisasiKpiRequest,
-) ([]*dto.DataKpiRealisasi, int64, error) {
+) ([]*model.DataKpi, int64, error) {
+
+	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
 	conditions := []string{
 		"a.status = 4",
 		"a.entry_user_realisasi = ?",
 	}
 	args := []interface{}{req.EntryUserRealisasi}
 
+	// =========================================================================
+	// Kondisi opsional dari request body
+	// =========================================================================
 	if req.Divisi != "" {
 		conditions = append(conditions, "a.kostl = ?")
 		args = append(args, req.Divisi)
@@ -771,7 +846,71 @@ func (r *realisasiKpiRepo) GetAllTolakanRealisasiKpi(
 		args = append(args, req.Triwulan)
 	}
 
-	return r.queryPaginatedRealisasi(conditions, args, req.Page, req.Limit)
+	where := " WHERE " + strings.Join(conditions, " AND ")
+
+	// =========================================================================
+	// COUNT TOTAL RECORDS
+	// =========================================================================
+	var total int64
+	countQuery := queryGetCountDataKpiRealisasi + where
+	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
+	}
+
+	// =========================================================================
+	// PAGINATION
+	// =========================================================================
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
+	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.EntryUser, &h.EntryName, &h.EntryTime,
+			&h.ApprovalPosisi, &h.ApprovalList,
+			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
+			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
+			&h.ApprovalListValidasi,
+			&h.LampiranValidasi,
+			&h.QualifierOverallValidasi,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================
@@ -780,12 +919,19 @@ func (r *realisasiKpiRepo) GetAllTolakanRealisasiKpi(
 
 func (r *realisasiKpiRepo) GetAllDaftarRealisasiKpi(
 	req *dto.GetAllDaftarRealisasiKpiRequest,
-) ([]*dto.DataKpiRealisasi, int64, error) {
+) ([]*model.DataKpi, int64, error) {
+
+	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
 	conditions := []string{
 		"a.status IN (2, 3, 4, 5, 80)",
 	}
 	args := []interface{}{}
 
+	// =========================================================================
+	// Kondisi opsional dari request body
+	// =========================================================================
 	if req.Divisi != "" {
 		conditions = append(conditions, "a.kostl = ?")
 		args = append(args, req.Divisi)
@@ -803,7 +949,71 @@ func (r *realisasiKpiRepo) GetAllDaftarRealisasiKpi(
 		args = append(args, req.Status)
 	}
 
-	return r.queryPaginatedRealisasi(conditions, args, req.Page, req.Limit)
+	where := " WHERE " + strings.Join(conditions, " AND ")
+
+	// =========================================================================
+	// COUNT TOTAL RECORDS
+	// =========================================================================
+	var total int64
+	countQuery := queryGetCountDataKpiRealisasi + where
+	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
+	}
+
+	// =========================================================================
+	// PAGINATION
+	// =========================================================================
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
+	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.EntryUser, &h.EntryName, &h.EntryTime,
+			&h.ApprovalPosisi, &h.ApprovalList,
+			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
+			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
+			&h.ApprovalListValidasi,
+			&h.LampiranValidasi,
+			&h.QualifierOverallValidasi,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================
@@ -812,13 +1022,20 @@ func (r *realisasiKpiRepo) GetAllDaftarRealisasiKpi(
 
 func (r *realisasiKpiRepo) GetAllDaftarApprovalRealisasiKpi(
 	req *dto.GetAllDaftarApprovalRealisasiKpiRequest,
-) ([]*dto.DataKpiRealisasi, int64, error) {
+) ([]*model.DataKpi, int64, error) {
+
+	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
 	conditions := []string{
 		"a.status IN (3, 5)",
 		"a.approval_list_realisasi != ''",
 	}
 	args := []interface{}{}
 
+	// =========================================================================
+	// Kondisi opsional dari request body
+	// =========================================================================
 	if req.Divisi != "" {
 		conditions = append(conditions, "a.kostl = ?")
 		args = append(args, req.Divisi)
@@ -835,8 +1052,71 @@ func (r *realisasiKpiRepo) GetAllDaftarApprovalRealisasiKpi(
 		conditions = append(conditions, "a.status = ?")
 		args = append(args, req.Status)
 	}
+	where := " WHERE " + strings.Join(conditions, " AND ")
 
-	return r.queryPaginatedRealisasi(conditions, args, req.Page, req.Limit)
+	// =========================================================================
+	// COUNT TOTAL RECORDS
+	// =========================================================================
+	var total int64
+	countQuery := queryGetCountDataKpiRealisasi + where
+	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
+	}
+
+	// =========================================================================
+	// PAGINATION
+	// =========================================================================
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
+	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.EntryUser, &h.EntryName, &h.EntryTime,
+			&h.ApprovalPosisi, &h.ApprovalList,
+			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
+			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
+			&h.ApprovalListValidasi,
+			&h.LampiranValidasi,
+			&h.QualifierOverallValidasi,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================
@@ -885,47 +1165,52 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	// =========================================================================
 	// UNMARSHAL approval_list dan approval_list_realisasi
 	// =========================================================================
-	var approvalList []dto.ApprovalDetailResponse
+	var approvalList []dto.ApprovalUserRealisasiDetail
 	if approvalListRaw != "" {
 		_ = json.Unmarshal([]byte(approvalListRaw), &approvalList)
 	}
 	if approvalList == nil {
-		approvalList = []dto.ApprovalDetailResponse{}
+		approvalList = []dto.ApprovalUserRealisasiDetail{}
 	}
 
-	var approvalListRealisasi []dto.ApprovalDetailResponse
+	var approvalListRealisasi []dto.ApprovalUserRealisasiDetail
 	if approvalListRealisasiRaw != "" {
 		_ = json.Unmarshal([]byte(approvalListRealisasiRaw), &approvalListRealisasi)
 	}
 	if approvalListRealisasi == nil {
-		approvalList = []dto.ApprovalDetailResponse{}
+		approvalList = []dto.ApprovalUserRealisasiDetail{}
 	}
 
 	resp := &dto.GetDetailRealisasiKpiResponse{
 		IdPengajuan: idPengajuan,
 		Tahun:       tahun,
 		Triwulan:    triwulan,
-		Kostl:       kostl,
-		KostlTx:     kostlTx,
-		Orgeh:       orgeh,
-		OrgehTx:     orgehTx,
 		Status:      status,
 		StatusDesc:  statusDesc,
-		EntryPenyusunan: dto.EntryDetailResponse{
-			EntryUser: entryUser,
-			EntryName: entryName,
-			EntryTime: entryTime,
+		Divisi: dto.DivisiOrgeh{
+			Kostl:   kostl,
+			KostlTx: kostlTx,
+			Orgeh:   orgeh,
+			OrgehTx: orgehTx,
 		},
-		EntryRealisasi: dto.EntryDetailResponse{
-			EntryUser: entryUserR,
-			EntryName: entryNameR,
-			EntryTime: entryTimeR,
+		EntryPenyusunan: dto.EntryUserPenyusunan{
+			EntryUserPenyusunan: entryUser,
+			EntryNamePenyusunan: entryName,
+			EntryTimePenyusunan: entryTime,
 		},
-		ApprovalList:          approvalList,
+		EntryRealisasi: dto.EntryUserRealisasi{
+			EntryUserRealisasi: entryUserR,
+			EntryNameRealisasi: entryNameR,
+			EntryTimeRealisasi: entryTimeR,
+		},
 		ApprovalListRealisasi: approvalListRealisasi,
-		CatatanTolakan:        catatanTolakan,
 		TotalBobot:            totalBobot,
 		TotalPencapaian:       totalPencapaian,
+		EntryValidasi: dto.EntryUserValidasi{
+			EntryUserValidasi: entryUserR,
+			EntryNameValidasi: entryNameR,
+			EntryTimeValidasi: entryTimeR,
+		},
 	}
 
 	// =========================================================================
@@ -937,11 +1222,11 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	}
 	defer kpiRows.Close()
 
-	var kpiList []dto.DetailKpiRealisasi
+	var kpiList []dto.DataKpiDetail
 	totalSubKpi := 0
 
 	for kpiRows.Next() {
-		var kpi dto.DetailKpiRealisasi
+		var kpi dto.DataKpiDetail
 		if err := kpiRows.Scan(&kpi.IdDetail, &kpi.IdKpi, &kpi.Kpi, &kpi.Rumus); err != nil {
 			return nil, fmt.Errorf("gagal scan kpi detail: %w", err)
 		}
@@ -953,9 +1238,9 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 		}
 		defer subRows.Close()
 
-		var subDetailList []dto.DetailSubKpiRealisasi
+		var subDetailList []dto.DataKpiSubdetail
 		for subRows.Next() {
-			var s dto.DetailSubKpiRealisasi
+			var s dto.DataKpiSubdetail
 			if err := subRows.Scan(
 				&s.IdSubDetail, &s.IdKpi, &s.SubKpi, &s.Otomatis,
 				&s.Bobot, &s.Capping,
