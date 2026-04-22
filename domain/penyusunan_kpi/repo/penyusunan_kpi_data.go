@@ -548,18 +548,10 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 
 	approvalListBytes, err := json.Marshal(req.ApprovalList)
 	if err != nil {
-		// System error: seharusnya tidak terjadi karena struct sudah tervalidasi
 		return fmt.Errorf("gagal serialize approval_list: %w", err)
 	}
 
-	// System error: gagal update ke DB
-	if err := r.db.Exec(queryUpdateKpi,
-		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
-	).Error; err != nil {
-		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
-	}
-
-	// Ambil kostl_tx dari data_kpi untuk pesan notifikasi
+	// Ambil kostl_tx sebelum transaksi dimulai
 	var kpiBase struct {
 		KostlTx string `gorm:"column:kostl_tx"`
 	}

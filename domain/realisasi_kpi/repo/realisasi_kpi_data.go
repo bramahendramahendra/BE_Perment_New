@@ -156,6 +156,11 @@ const (
 		    catatan_tolakan         = ?
 		WHERE id_pengajuan = ?`
 
+	// queryCheckApprovalRealisasi memvalidasi bahwa user adalah approval_posisi aktif dan status = 3.
+	queryCheckApprovalRealisasi = `
+		SELECT COUNT(*) FROM data_kpi
+		WHERE status = 3 AND approval_posisi = ? AND id_pengajuan = ?`
+
 	// Use func : GetAllApprovalRealisasiKpi, GetAllTolakanRealisasiKpi, GetAllDaftarRealisasiKpi, GetAllDaftarApprovalRealisasiKpi
 	queryGetCountDataKpiRealisasi = `
 		SELECT COUNT(1)
@@ -439,18 +444,10 @@ func (r *realisasiKpiRepo) CreateRealisasiKpi(
 
 	approvalListBytes, err := json.Marshal(req.ApprovalListRealisasi)
 	if err != nil {
-		// System error: seharusnya tidak terjadi karena struct sudah tervalidasi
 		return fmt.Errorf("gagal serialize approval_list: %w", err)
 	}
 
-	// System error: gagal update ke DB
-	if err := r.db.Exec(queryUpdateKpiRealisasi,
-		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
-	).Error; err != nil {
-		return fmt.Errorf("gagal update data_kpi saat submit: %w", err)
-	}
-
-	// Ambil kostl_tx dari data_kpi untuk pesan notifikasi
+	// Ambil kostl_tx sebelum transaksi dimulai
 	var kpiBase struct {
 		KostlTx string `gorm:"column:kostl_tx"`
 	}
@@ -468,7 +465,7 @@ func (r *realisasiKpiRepo) CreateRealisasiKpi(
 	}
 
 	if err := tx.Exec(querySubmitRealisasi,
-		req.ApprovalPosisi, req.ApprovalListRealisasi, req.IdPengajuan,
+		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal submit realisasi: %w", err)
@@ -476,16 +473,18 @@ func (r *realisasiKpiRepo) CreateRealisasiKpi(
 
 	if err := notif.Insert(tx,
 		req.IdPengajuan,
-		"Approval Realisasi, ID : "+req.IdPengajuan,
-		req.User,
-		req.ApprovalPosisi,
+		kostlTx,
+		req.EntryUserRealisasi,
+		approvalPosisi,
 		"approval_realisasi",
 	); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi: %w", err)
+	}
 	return nil
 }
 
@@ -584,7 +583,7 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	// UPDATE header → status tetap 80 (draft), update entry time
 	// -------------------------------------------------------------------------
 	if err := tx.Exec(queryUpdateKpiStatusDraft,
-		req.EntryUser, req.EntryName, req.IdPengajuan,
+		req.EntryUserRealisasi, req.EntryNameRealisasi, req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal update header revisi realisasi: %w", err)
@@ -598,23 +597,16 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 }
 
 // =============================================================================
-// APPROVAL — approve atau reject realisasi
+// APPROVE REALISASI KPI
 // =============================================================================
 
-func (r *realisasiKpiRepo) ApprovalRealisasiKpi(
-	req *dto.ApprovalRealisasiKpiRequest,
-) error {
-	var count int
-	if err := r.db.Raw(queryCheckStatusApprovalRealisasi, req.IdPengajuan).Scan(&count).Error; err != nil {
-		return fmt.Errorf("gagal mengecek status pengajuan: %w", err)
+func (r *realisasiKpiRepo) ApproveRealisasiKpi(idPengajuan, approvalList, approvalPosisi, user string) error {
+	var count int64
+	if err := r.db.Raw(queryCheckApprovalRealisasi, user, idPengajuan).Scan(&count).Error; err != nil {
+		return fmt.Errorf("gagal mengecek data pengajuan: %w", err)
 	}
 	if count == 0 {
-		return &customErrors.BadRequestError{
-			Message: fmt.Sprintf(
-				"id_pengajuan '%s' tidak ditemukan atau tidak dalam status menunggu approval realisasi (3)",
-				req.IdPengajuan,
-			),
-		}
+		return &customErrors.BadRequestError{Message: "Data Not Found"}
 	}
 
 	tx := r.db.Begin()
@@ -622,76 +614,87 @@ func (r *realisasiKpiRepo) ApprovalRealisasiKpi(
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
 	}
 
-	if req.Status == "approve" {
-		// ApprovalPosisi kosong → approval final (status 5)
-		if req.ApprovalPosisi == "" {
-			if err := tx.Exec(queryApproveFinalRealisasi,
-				req.ApprovalList, req.IdPengajuan,
-			).Error; err != nil {
-				tx.Rollback()
-				return fmt.Errorf("gagal approve final realisasi: %w", err)
-			}
-			tx.Commit()
-			return nil
-		}
-
-		// Masih ada approver berikutnya → chain approval
-		if err := tx.Exec(queryApproveChainRealisasi,
-			req.ApprovalPosisi, req.ApprovalList, req.IdPengajuan,
+	if approvalPosisi == "" {
+		// Approve final: set status = 5
+		if err := tx.Exec(queryApproveFinalRealisasi,
+			approvalList, idPengajuan,
 		).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal approve chain realisasi: %w", err)
+			return fmt.Errorf("gagal approve final realisasi: %w", err)
 		}
-
-		if err := notif.Insert(tx,
-			req.IdPengajuan,
-			"Approval Realisasi, ID : "+req.IdPengajuan,
-			req.User,
-			req.ApprovalPosisi,
-			"approval_realisasi",
-		); err != nil {
-			tx.Rollback()
-			return err
-		}
-
 		tx.Commit()
 		return nil
 	}
 
-	if req.Status == "reject" {
-		// Ambil entry_user_realisasi untuk kirim notifikasi ke pengaju
-		var header struct {
-			EntryUserRealisasi string `gorm:"column:entry_user_realisasi"`
-		}
-		if err := r.db.Raw(queryGetKpiHeaderRealisasi, req.IdPengajuan).Scan(&header).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("gagal mengambil entry_user_realisasi: %w", err)
-		}
-
-		if err := tx.Exec(queryRejectRealisasi,
-			req.ApprovalList, req.CatatanTolak, req.IdPengajuan,
-		).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("gagal reject realisasi: %w", err)
-		}
-
-		if err := notif.Insert(tx,
-			req.IdPengajuan,
-			"Realisasi Ditolak, ID : "+req.IdPengajuan,
-			req.User,
-			header.EntryUserRealisasi,
-			"realisasi_ditolak",
-		); err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		tx.Commit()
-		return nil
+	// Masih ada approver berikutnya → chain approval + notif
+	if err := tx.Exec(queryApproveChainRealisasi,
+		approvalPosisi, approvalList, idPengajuan,
+	).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal approve chain realisasi: %w", err)
 	}
 
-	tx.Rollback()
-	return &customErrors.BadRequestError{Message: "status tidak valid, gunakan 'approve' atau 'reject'"}
+	if err := notif.Insert(tx,
+		idPengajuan,
+		"Approval Realisasi, ID : "+idPengajuan,
+		user,
+		approvalPosisi,
+		"approval_realisasi",
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// =============================================================================
+// REJECT REALISASI KPI
+// =============================================================================
+
+func (r *realisasiKpiRepo) RejectRealisasiKpi(idPengajuan, approvalList, catatan, user string) error {
+	var count int64
+	if err := r.db.Raw(queryCheckApprovalRealisasi, user, idPengajuan).Scan(&count).Error; err != nil {
+		return fmt.Errorf("gagal mengecek data pengajuan: %w", err)
+	}
+	if count == 0 {
+		return &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+
+	// Ambil entry_user_realisasi untuk notifikasi penolakan ke pengaju
+	var header struct {
+		EntryUserRealisasi string `gorm:"column:entry_user_realisasi"`
+	}
+	if err := r.db.Raw(queryGetKpiHeaderRealisasi, idPengajuan).Scan(&header).Error; err != nil {
+		return fmt.Errorf("gagal mengambil entry_user_realisasi: %w", err)
+	}
+
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+	}
+
+	if err := tx.Exec(queryRejectRealisasi,
+		approvalList, catatan, idPengajuan,
+	).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal reject realisasi: %w", err)
+	}
+
+	if err := notif.Insert(tx,
+		idPengajuan,
+		"Realisasi Ditolak, ID : "+idPengajuan,
+		user,
+		header.EntryUserRealisasi,
+		"realisasi_ditolak",
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
 }
 
 // =============================================================================
@@ -700,12 +703,15 @@ func (r *realisasiKpiRepo) ApprovalRealisasiKpi(
 
 func (r *realisasiKpiRepo) GetAllRealisasiKpi(
 	req *dto.GetAllRealisasiKpiRequest,
-) ([]*dto.DataKpiRealisasi, int64, error) {
+) ([]*model.DataKpi, int64, error) {
 	conditions := []string{
 		"a.status = 2",
 	}
-	args := []interface{}{req.ApprovalUser}
+	args := []interface{}{}
 
+	// =========================================================================
+	// Kondisi opsional dari request body
+	// =========================================================================
 	if req.Tahun != "" {
 		conditions = append(conditions, "a.tahun = ?")
 		args = append(args, req.Tahun)
@@ -714,8 +720,66 @@ func (r *realisasiKpiRepo) GetAllRealisasiKpi(
 		conditions = append(conditions, "a.triwulan = ?")
 		args = append(args, req.Triwulan)
 	}
+	where := " WHERE " + strings.Join(conditions, " AND ")
 
-	return r.queryPaginatedRealisasi(conditions, args, req.Page, req.Limit)
+	// =========================================================================
+	// COUNT TOTAL RECORDS
+	// =========================================================================
+	var total int64
+	countQuery := queryGetCountDataKpiRealisasi + where
+	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
+	}
+
+	// =========================================================================
+	// PAGINATION
+	// =========================================================================
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
+	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listArgs := append(args, limit, offset)
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.EntryUser, &h.EntryName, &h.EntryTime,
+			&h.ApprovalPosisi, &h.ApprovalList,
+			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi,
+			&h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================
@@ -1311,62 +1375,4 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	resp.ProcessList = processList
 
 	return resp, nil
-}
-
-// =============================================================================
-// HELPER — paginated query reusable untuk semua GetAll
-// =============================================================================
-
-func (r *realisasiKpiRepo) queryPaginatedRealisasi(
-	conditions []string,
-	args []interface{},
-	page, limit int,
-) ([]*dto.DataKpiRealisasi, int64, error) {
-	where := " WHERE " + strings.Join(conditions, " AND ")
-
-	var total int64
-	countQuery := queryGetCountDataKpiRealisasi + where
-	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("gagal menghitung total data realisasi: %w", err)
-	}
-
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
-
-	listQuery := queryGetDataKpiRealisasi + where +
-		" ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
-	listArgs := append(args, limit, offset)
-
-	dbRows, err := r.db.Raw(listQuery, listArgs...).Rows()
-	if err != nil {
-		return nil, 0, fmt.Errorf("gagal mengambil data realisasi: %w", err)
-	}
-	defer dbRows.Close()
-
-	var results []*dto.DataKpiRealisasi
-	for dbRows.Next() {
-		var h dto.DataKpiRealisasi
-		if err := dbRows.Scan(
-			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
-			&h.Kostl, &h.KostlTx,
-			&h.Orgeh, &h.OrgehTx,
-			&h.EntryUser, &h.EntryName, &h.EntryTime,
-			&h.ApprovalPosisi, &h.ApprovalList,
-			&h.Status, &h.StatusDesc,
-			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
-			&h.ApprovalListRealisasi,
-			&h.CatatanTolakan,
-			&h.TotalBobot, &h.TotalPencapaian,
-		); err != nil {
-			return nil, 0, fmt.Errorf("gagal scan data realisasi: %w", err)
-		}
-		results = append(results, &h)
-	}
-
-	return results, total, nil
 }
