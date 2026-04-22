@@ -373,6 +373,11 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 	if err != nil {
 		return nil, "", err
 	}
+	if excelData == nil {
+		return nil, "", &errors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
 
 	// TW2 dan TW4 menggunakan format kolom A–U (extended).
 	// TW1 dan TW3 menggunakan format kolom A–O (base).
@@ -789,6 +794,11 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	excelData, err := s.repo.GetRevisionPenyusunanKpiData(req.IdPengajuan)
 	if err != nil {
 		return nil, "", err
+	}
+	if excelData == nil {
+		return nil, "", &errors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
 	}
 
 	// TW1/TW3 → extended kolom N–S; TW2/TW4 → extended kolom N–Y

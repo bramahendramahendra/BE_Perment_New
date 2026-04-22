@@ -3,8 +3,6 @@ package repo
 import (
 	"fmt"
 
-	customErrors "permen_api/errors"
-
 	model "permen_api/domain/template/model"
 )
 
@@ -124,9 +122,7 @@ func (r *templateRepo) GetRevisionPenyusunanKpiData(idPengajuan string) (*model.
 		return nil, fmt.Errorf("gagal mengambil header tolakan KPI: %w", err)
 	}
 	if header.Triwulan == "" {
-		return nil, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", idPengajuan),
-		}
+		return nil, nil
 	}
 
 	// =========================================================================

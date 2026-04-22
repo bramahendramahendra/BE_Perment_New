@@ -9,7 +9,6 @@ import (
 
 	dto "permen_api/domain/realisasi_kpi/dto"
 	model "permen_api/domain/realisasi_kpi/model"
-	customErrors "permen_api/errors"
 	notif "permen_api/pkg/notif"
 )
 
@@ -280,6 +279,42 @@ const (
 )
 
 // =============================================================================
+// CHECK
+// =============================================================================
+
+func (r *realisasiKpiRepo) CheckExistRealisasi(idPengajuan string) (bool, error) {
+	var count int
+	if err := r.db.Raw(queryCheckExistRealisasi, idPengajuan).Scan(&count).Error; err != nil {
+		return false, fmt.Errorf("gagal mengecek data Realisasi KPI: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (r *realisasiKpiRepo) CheckStatusCreateRealisasi(idPengajuan string) (bool, error) {
+	var count int
+	if err := r.db.Raw(queryCheckStatusCreateRealisasi, idPengajuan).Scan(&count).Error; err != nil {
+		return false, fmt.Errorf("gagal mengecek status pengajuan: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (r *realisasiKpiRepo) CheckStatusRevisiRealisasi(idPengajuan string) (bool, error) {
+	var count int
+	if err := r.db.Raw(queryCheckStatusRevisiRealisasi, idPengajuan).Scan(&count).Error; err != nil {
+		return false, fmt.Errorf("gagal mengecek status pengajuan: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (r *realisasiKpiRepo) CheckApprovalRealisasiExists(user, idPengajuan string) (bool, error) {
+	var count int64
+	if err := r.db.Raw(queryCheckApprovalRealisasi, user, idPengajuan).Scan(&count).Error; err != nil {
+		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
+	}
+	return count > 0, nil
+}
+
+// =============================================================================
 // LOOKUP
 // =============================================================================
 
@@ -288,9 +323,7 @@ func (r *realisasiKpiRepo) GetTriwulanByIdPengajuan(idPengajuan string) (string,
 	var kostlTx, tahun, triwulan, entryUserRealisasi string
 	if err := row.Scan(&kostlTx, &tahun, &triwulan, &entryUserRealisasi); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", &customErrors.BadRequestError{
-				Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", idPengajuan),
-			}
+			return "", fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
 		}
 		return "", fmt.Errorf("gagal mengambil triwulan untuk id_pengajuan '%s': %w", idPengajuan, err)
 	}
@@ -307,9 +340,7 @@ func (r *realisasiKpiRepo) GetKpiHeaderByIdPengajuan(
 		LIMIT 1`, idPengajuan).Row()
 	if scanErr := row.Scan(&kostlTx, &tahun, &triwulan, &kostl); scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
-			return "", "", "", "", &customErrors.BadRequestError{
-				Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", idPengajuan),
-			}
+			return "", "", "", "", fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
 		}
 		return "", "", "", "", fmt.Errorf("gagal mengambil header kpi '%s': %w", idPengajuan, scanErr)
 	}
@@ -348,12 +379,10 @@ func (r *realisasiKpiRepo) LookupSubDetailByKpiSubKpi(
 	row := r.db.Raw(queryLookupSubDetail, idPengajuan, kpiName, subKpiName).Row()
 	if scanErr := row.Scan(&idSubDetail, &idDetail, &rumus, &targetKuantitatifTriwulan); scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
-			return "", "", "", 0, &customErrors.BadRequestError{
-				Message: fmt.Sprintf(
-					"sub KPI '%s' pada KPI '%s' tidak ditemukan di id_pengajuan '%s'",
-					subKpiName, kpiName, idPengajuan,
-				),
-			}
+			return "", "", "", 0, fmt.Errorf(
+				"sub KPI '%s' pada KPI '%s' tidak ditemukan di id_pengajuan '%s'",
+				subKpiName, kpiName, idPengajuan,
+			)
 		}
 		return "", "", "", 0, fmt.Errorf("gagal lookup sub detail untuk sub KPI '%s': %w", subKpiName, scanErr)
 	}
@@ -372,20 +401,6 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	processList []dto.DataProcess,
 	contextList []dto.DataContext,
 ) error {
-	// Validasi status: harus 2, 4, 80, atau 81 agar bisa input realisasi
-	var countExist int
-	if err := r.db.Raw(queryCheckExistRealisasi, req.IdPengajuan).Scan(&countExist).Error; err != nil {
-		return fmt.Errorf("gagal mengecek data Realisasi KPI: %w", err)
-	}
-	if countExist == 0 {
-		return &customErrors.BadRequestError{
-			Message: fmt.Sprintf(
-				"id_pengajuan '%s' tidak ditemukan atau status tidak mengizinkan input realisasi",
-				req.IdPengajuan,
-			),
-		}
-	}
-
 	tx := r.db.Begin()
 	if tx.Error != nil {
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
@@ -474,17 +489,6 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 func (r *realisasiKpiRepo) CreateRealisasiKpi(
 	req *dto.CreateRealisasiKpiRequest,
 ) error {
-	var countExist int
-	if err := r.db.Raw(queryCheckStatusCreateRealisasi, req.IdPengajuan).
-		Scan(&countExist).Error; err != nil {
-		return fmt.Errorf("gagal mengecek status pengajuan: %w", err)
-	}
-	if countExist == 0 {
-		return &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan atau belum dalam status draft realisasi (80)", req.IdPengajuan),
-		}
-	}
-
 	// Ambil userid pertama dari ApprovalList sebagai approval_posisi
 	approvalPosisi := ""
 	if len(req.ApprovalListRealisasi) > 0 {
@@ -549,21 +553,6 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	processList []dto.DataProcess,
 	contextList []dto.DataContext,
 ) error {
-	// Validasi status: harus 80 (draft) atau 4 (ditolak) untuk revisi
-	var countExist int
-	if err := r.db.Raw(queryCheckStatusRevisiRealisasi, req.IdPengajuan).
-		Scan(&countExist).Error; err != nil {
-		return fmt.Errorf("gagal mengecek status pengajuan: %w", err)
-	}
-	if countExist == 0 {
-		return &customErrors.BadRequestError{
-			Message: fmt.Sprintf(
-				"id_pengajuan '%s' tidak ditemukan atau status tidak mengizinkan revisi realisasi (harus draft atau ditolak)",
-				req.IdPengajuan,
-			),
-		}
-	}
-
 	tx := r.db.Begin()
 	if tx.Error != nil {
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
@@ -650,14 +639,6 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 // =============================================================================
 
 func (r *realisasiKpiRepo) ApproveRealisasiKpi(idPengajuan, approvalList, approvalPosisi, user string) error {
-	var count int64
-	if err := r.db.Raw(queryCheckApprovalRealisasi, user, idPengajuan).Scan(&count).Error; err != nil {
-		return fmt.Errorf("gagal mengecek data pengajuan: %w", err)
-	}
-	if count == 0 {
-		return &customErrors.BadRequestError{Message: "Data Not Found"}
-	}
-
 	tx := r.db.Begin()
 	if tx.Error != nil {
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
@@ -703,14 +684,6 @@ func (r *realisasiKpiRepo) ApproveRealisasiKpi(idPengajuan, approvalList, approv
 // =============================================================================
 
 func (r *realisasiKpiRepo) RejectRealisasiKpi(idPengajuan, approvalList, catatan, user string) error {
-	var count int64
-	if err := r.db.Raw(queryCheckApprovalRealisasi, user, idPengajuan).Scan(&count).Error; err != nil {
-		return fmt.Errorf("gagal mengecek data pengajuan: %w", err)
-	}
-	if count == 0 {
-		return &customErrors.BadRequestError{Message: "Data Not Found"}
-	}
-
 	// Ambil entry_user_realisasi untuk notifikasi penolakan ke pengaju
 	var header struct {
 		EntryUserRealisasi string `gorm:"column:entry_user_realisasi"`
@@ -751,21 +724,11 @@ func (r *realisasiKpiRepo) RejectRealisasiKpi(idPengajuan, approvalList, catatan
 // =============================================================================
 
 func (r *realisasiKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (string, error) {
-	var count int64
-	if err := r.db.Raw(queryCheckApprovalRealisasi, userID, idPengajuan).Scan(&count).Error; err != nil {
-		return "", fmt.Errorf("gagal mengecek data pengajuan: %w", err)
-	}
-	if count == 0 {
-		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
-	}
-
 	var approvalListJSON string
 	row := r.db.Raw(`SELECT approval_list_realisasi FROM data_kpi WHERE id_pengajuan = ? LIMIT 1`, idPengajuan).Row()
 	if err := row.Scan(&approvalListJSON); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", &customErrors.BadRequestError{
-				Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", idPengajuan),
-			}
+			return "", fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
 		}
 		return "", fmt.Errorf("gagal mengambil approval_list_realisasi: %w", err)
 	}
@@ -1272,11 +1235,6 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	var result model.DataKpi
 	if err := r.db.Raw(queryGetDetailHeader, req.IdPengajuan).Scan(&result).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil detail realisasi KPI: %w", err)
-	}
-	if result.IdPengajuan == "" {
-		return nil, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-		}
 	}
 
 	// =========================================================================

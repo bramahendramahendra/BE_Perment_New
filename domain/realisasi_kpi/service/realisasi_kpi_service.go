@@ -35,10 +35,24 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 		}
 	}
 
+	// Validasi status: harus 2, 4, 80, atau 81 agar bisa input realisasi
+	exists, err := s.repo.CheckExistRealisasi(req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	if !exists {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf(
+				"id_pengajuan '%s' tidak ditemukan atau status tidak mengizinkan input realisasi",
+				req.IdPengajuan,
+			),
+		}
+	}
+
 	// Ambil triwulan dari DB berdasarkan id_pengajuan
 	triwulan, err := s.repo.GetTriwulanByIdPengajuan(req.IdPengajuan)
 	if err != nil {
-		return data, err
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 	req.Triwulan = triwulan
 
@@ -59,7 +73,7 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 	// Ambil header (tahun, kostl, kostlTx) untuk response
 	tahun, _, kostl, kostlTx, err := s.repo.GetKpiHeaderByIdPengajuan(req.IdPengajuan)
 	if err != nil {
-		return data, err
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	// Build resultList, processList, contextList (hanya TW2 dan TW4)
@@ -121,6 +135,16 @@ func (s *realisasiKpiService) CreateRealisasiKpi(
 	req *dto.CreateRealisasiKpiRequest,
 ) (data dto.CreateRealisasiKpiResponse, err error) {
 
+	exists, err := s.repo.CheckStatusCreateRealisasi(req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	if !exists {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan atau belum dalam status draft realisasi (80)", req.IdPengajuan),
+		}
+	}
+
 	if err := s.repo.CreateRealisasiKpi(req); err != nil {
 		return data, err
 	}
@@ -161,10 +185,24 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 		}
 	}
 
+	// Validasi status: harus 80 (draft) atau 4 (ditolak) untuk revisi
+	existsRevisi, err := s.repo.CheckStatusRevisiRealisasi(req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	if !existsRevisi {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf(
+				"id_pengajuan '%s' tidak ditemukan atau status tidak mengizinkan revisi realisasi (harus draft atau ditolak)",
+				req.IdPengajuan,
+			),
+		}
+	}
+
 	// Ambil triwulan dari DB berdasarkan id_pengajuan
 	triwulan, err := s.repo.GetTriwulanByIdPengajuan(req.IdPengajuan)
 	if err != nil {
-		return data, err
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 	req.Triwulan = triwulan
 
@@ -264,6 +302,14 @@ func (s *realisasiKpiService) ApproveRealisasiKpi(
 		}
 	}
 
+	approvalExists, err := s.repo.CheckApprovalRealisasiExists(req.ApprovalUserRealisasi, req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	if !approvalExists {
+		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+
 	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUserRealisasi)
 	if err != nil {
 		return data, err
@@ -341,6 +387,14 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
 		}
+	}
+
+	rejectApprovalExists, err := s.repo.CheckApprovalRealisasiExists(req.ApprovalUserRealisasi, req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	if !rejectApprovalExists {
+		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
 	}
 
 	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUserRealisasi)
@@ -530,6 +584,11 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 	if err != nil {
 		return nil, err
 	}
+	if dataDB.IdPengajuan == "" {
+		return nil, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
 
 	var approvalList []dto.ApprovalUserRealisasiDetail
 	if dataDB.ApprovalList != "" {
@@ -706,7 +765,7 @@ func (s *realisasiKpiService) enrichRowsFromDB(
 			idSubDetail, idDetail, rumus, targetKuantitatif, err :=
 				s.repo.LookupSubDetailByKpiSubKpi(idPengajuan, kpiRow.Kpi, sub.SubKPI)
 			if err != nil {
-				return err
+				return &customErrors.BadRequestError{Message: err.Error()}
 			}
 
 			sub.IdSubDetail = idSubDetail

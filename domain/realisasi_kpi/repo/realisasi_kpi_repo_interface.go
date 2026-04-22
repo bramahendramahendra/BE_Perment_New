@@ -9,6 +9,18 @@ import (
 
 type (
 	RealisasiKpiRepoInterface interface {
+		// CheckExistRealisasi memeriksa apakah id_pengajuan ada dengan status yang mengizinkan input realisasi (2, 4, 80, 81).
+		CheckExistRealisasi(idPengajuan string) (bool, error)
+
+		// CheckStatusCreateRealisasi memeriksa apakah id_pengajuan ada dengan status draft realisasi (80).
+		CheckStatusCreateRealisasi(idPengajuan string) (bool, error)
+
+		// CheckStatusRevisiRealisasi memeriksa apakah id_pengajuan ada dengan status yang mengizinkan revisi (4 atau 80).
+		CheckStatusRevisiRealisasi(idPengajuan string) (bool, error)
+
+		// CheckApprovalRealisasiExists memeriksa apakah user adalah approval_posisi aktif untuk id_pengajuan (status 3).
+		CheckApprovalRealisasiExists(user, idPengajuan string) (bool, error)
+
 		// GetTriwulanByIdPengajuan mengambil nilai triwulan dari data_kpi berdasarkan id_pengajuan.
 		GetTriwulanByIdPengajuan(idPengajuan string) (string, error)
 
