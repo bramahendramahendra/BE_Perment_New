@@ -15,6 +15,15 @@ type (
 		// LookupPolarisasi mencari id_polarisasi dari mst_polarisasi.
 		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
 
+		// CheckExistPenyusunan mengecek apakah data KPI sudah ada untuk tahun/triwulan/kostl.
+		CheckExistPenyusunan(tahun, triwulan, kostl string) (bool, error)
+
+		// CheckExistIdPengajuan mengecek apakah id_pengajuan ada di DB.
+		CheckExistIdPengajuan(idPengajuan string) (bool, error)
+
+		// CheckApprovalExists mengecek apakah user adalah approval_posisi aktif (status=0) untuk id_pengajuan.
+		CheckApprovalExists(user, idPengajuan string) (bool, error)
+
 		// Digunakan oleh endpoint POST /penyusunan-kpi/validate.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,

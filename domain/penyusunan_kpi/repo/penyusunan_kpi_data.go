@@ -265,6 +265,34 @@ const (
 )
 
 // =============================================================================
+// CHECK
+// =============================================================================
+
+func (r *penyusunanKpiRepo) CheckExistPenyusunan(tahun, triwulan, kostl string) (bool, error) {
+	var count int
+	if err := r.db.Raw(queryCheckExistPenyusunan, tahun, triwulan, kostl).Scan(&count).Error; err != nil {
+		return false, fmt.Errorf("gagal mengecek data Penyusunan KPI: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (r *penyusunanKpiRepo) CheckExistIdPengajuan(idPengajuan string) (bool, error) {
+	var count int
+	if err := r.db.Raw(queryCheckExistIdPengajuan, idPengajuan).Scan(&count).Error; err != nil {
+		return false, fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (r *penyusunanKpiRepo) CheckApprovalExists(user, idPengajuan string) (bool, error) {
+	var count int64
+	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
+		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
+	}
+	return count > 0, nil
+}
+
+// =============================================================================
 // LOOKUP
 // =============================================================================
 
@@ -312,19 +340,6 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 ) (string, error) {
 
 	idPengajuan := idgen.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
-
-	var countExist int
-	if err := r.db.Raw(queryCheckExistPenyusunan, req.Tahun, req.Triwulan, req.Kostl).Scan(&countExist).Error; err != nil {
-		return "", fmt.Errorf("gagal mengecek data Penyusnan KPI: %w", err)
-	}
-	if countExist > 0 {
-		return "", &customErrors.BadRequestError{
-			Message: fmt.Sprintf(
-				"data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
-				req.Tahun, req.Triwulan, req.Kostl,
-			),
-		}
-	}
 
 	var orgeh, orgehTx string
 	r.db.Raw(queryGetOrgeh, req.Kostl).Row().Scan(&orgeh, &orgehTx)
@@ -528,18 +543,6 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 	req *dto.CreatePenyusunanKpiRequest,
 ) error {
 
-	// Cek apakah idPengajuan benar-benar ada di DB
-	var countExist int
-	if err := r.db.Raw(queryCheckExistIdPengajuan, req.IdPengajuan).
-		Scan(&countExist).Error; err != nil {
-		return fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
-	}
-	if countExist == 0 {
-		return &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-		}
-	}
-
 	// Ambil userid pertama dari ApprovalList sebagai approval_posisi
 	approvalPosisi := ""
 	if len(req.ApprovalList) > 0 {
@@ -606,18 +609,6 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	processList []dto.DataProcess,
 	contextList []dto.DataContext,
 ) error {
-	// Validasi: id_pengajuan harus ada di DB
-	var countExist int
-	if err := r.db.Raw(queryCheckExistIdPengajuan, req.IdPengajuan).
-		Scan(&countExist).Error; err != nil {
-		return fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
-	}
-	if countExist == 0 {
-		return &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-		}
-	}
-
 	// =========================================================================
 	// Ambil approval_posisi dan approval_list lama, lalu kosongkan entry
 	// yang posisi-nya sama dengan approval_posisi (yaitu approver yang reject).
@@ -879,14 +870,6 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 // ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
 // Menerima approval_list (JSON string sudah diupdate) dan approval_posisi (next approver, kosong jika final).
 func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, approvalPosisi, user string) error {
-	var count int64
-	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
-		return fmt.Errorf("gagal mengecek data pengajuan: %w", err)
-	}
-	if count == 0 {
-		return &customErrors.BadRequestError{Message: "Data Not Found"}
-	}
-
 	tx := r.db.Begin()
 	if tx.Error != nil {
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
@@ -934,14 +917,6 @@ func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, appr
 // RejectPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/reject.
 // Menerima approval_list (JSON string sudah diupdate) dan catatan penolakan.
 func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catatan, user string) error {
-	var count int64
-	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
-		return fmt.Errorf("gagal mengecek data pengajuan: %w", err)
-	}
-	if count == 0 {
-		return &customErrors.BadRequestError{Message: "Data Not Found"}
-	}
-
 	// Ambil entry_user untuk dikirim notifikasi penolakan
 	var kpiBase struct {
 		EntryUser string `gorm:"column:entry_user"`
@@ -1407,11 +1382,6 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	if err := r.db.Raw(headerQuery, args...).Scan(&result).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil detail KPI: %w", err)
 	}
-	if result.IdPengajuan == "" {
-		return nil, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-		}
-	}
 
 	// =========================================================================
 	// KPI DETAIL + SUB DETAIL
@@ -1495,11 +1465,6 @@ func (r *penyusunanKpiRepo) GetKpiExportData(
 	var header kpiHeader
 	if err := r.db.Raw(queryGetKpiBaseData, idPengajuan).Scan(&header).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil header KPI: %w", err)
-	}
-	if header.KostlTx == "" {
-		return nil, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", idPengajuan),
-		}
 	}
 
 	type subDetailRaw struct {

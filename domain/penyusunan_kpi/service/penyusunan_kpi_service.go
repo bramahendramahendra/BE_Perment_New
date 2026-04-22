@@ -37,6 +37,20 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		}
 	}
 
+	// Cek data KPI untuk tahun/triwulan/kostl sudah ada
+	exists, err := s.repo.CheckExistPenyusunan(req.Tahun, req.Triwulan, req.Kostl)
+	if err != nil {
+		return data, err
+	}
+	if exists {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf(
+				"data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",
+				req.Tahun, req.Triwulan, req.Kostl,
+			),
+		}
+	}
+
 	// Parse dan validasi file Excel.
 	kpiRows, kpiSubDetails, err := utils.ParseAndValidateExcel(file, req.Triwulan)
 	if err != nil {
@@ -113,7 +127,16 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 func (s *penyusunanKpiService) CreatePenyusunanKpi(
 	req *dto.CreatePenyusunanKpiRequest,
 ) (data dto.CreatePenyusunanKpiResponse, err error) {
-	// User error (idPengajuan tidak ada) atau system error (DB) — repo sudah wrap dengan tipe yang tepat
+	exists, err := s.repo.CheckExistIdPengajuan(req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	if !exists {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
+
 	if err = s.repo.CreatePenyusunanKpi(req); err != nil {
 		return data, err
 	}
@@ -283,6 +306,14 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 		}
 	}
 
+	approvalExists, err := s.repo.CheckApprovalExists(req.ApprovalUser, req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	if !approvalExists {
+		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+
 	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUser)
 	if err != nil {
 		return data, err
@@ -360,6 +391,14 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
 		}
+	}
+
+	rejectApprovalExists, err := s.repo.CheckApprovalExists(req.ApprovalUser, req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+	if !rejectApprovalExists {
+		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
 	}
 
 	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUser)
@@ -617,6 +656,11 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 	if err != nil {
 		return nil, err
 	}
+	if dataDB.IdPengajuan == "" {
+		return nil, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
 
 	var approvalList []dto.ApprovalUserDetail
 	if dataDB.ApprovalList != "" {
@@ -749,6 +793,11 @@ func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 	if err != nil {
 		return nil, "", err
 	}
+	if exportData.NamaDivisi == "" {
+		return nil, "", &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
 
 	return file_export.GenerateKpiExcel(exportData)
 }
@@ -763,6 +812,11 @@ func (s *penyusunanKpiService) GetPdfPenyusunanKpi(
 	exportData, err := s.repo.GetKpiExportData(req.IdPengajuan)
 	if err != nil {
 		return nil, "", err
+	}
+	if exportData.NamaDivisi == "" {
+		return nil, "", &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
 	}
 
 	return file_export.GenerateKpiPDF(exportData)
