@@ -36,7 +36,7 @@ const (
 	queryCheckExistIdPengajuan = `
 		SELECT COUNT(id_pengajuan)
 		FROM data_kpi
-		WHERE id_pengajuan = ?`
+		WHERE id_pengajuan = ? AND kostl = ? AND tahun = ? AND triwulan = ?`
 
 	// Use func : GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, GetAllDaftarApprovalPenyusunanKpi
 	queryGetCountDataKpi = `
@@ -295,9 +295,9 @@ func (r *penyusunanKpiRepo) GetExistPenyusunanStatus(tahun, triwulan, kostl stri
 	return idPengajuan, status, true, nil
 }
 
-func (r *penyusunanKpiRepo) CheckExistIdPengajuan(idPengajuan string) (bool, error) {
+func (r *penyusunanKpiRepo) CheckExistIdPengajuan(idPengajuan, kostl, tahun, triwulan string) (bool, error) {
 	var count int
-	if err := r.db.Raw(queryCheckExistIdPengajuan, idPengajuan).Scan(&count).Error; err != nil {
+	if err := r.db.Raw(queryCheckExistIdPengajuan, idPengajuan, kostl, tahun, triwulan).Scan(&count).Error; err != nil {
 		return false, fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
 	}
 	return count > 0, nil

@@ -134,13 +134,13 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 func (s *penyusunanKpiService) CreatePenyusunanKpi(
 	req *dto.CreatePenyusunanKpiRequest,
 ) (data dto.CreatePenyusunanKpiResponse, err error) {
-	exists, err := s.repo.CheckExistIdPengajuan(req.IdPengajuan)
+	exists, err := s.repo.CheckExistIdPengajuan(req.IdPengajuan, req.Kostl, req.Tahun, req.Triwulan)
 	if err != nil {
 		return data, err
 	}
 	if !exists {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+			Message: fmt.Sprintf("id_pengajuan '%s' dengan kostl '%s', tahun '%s', triwulan '%s' tidak ditemukan", req.IdPengajuan, req.Kostl, req.Tahun, req.Triwulan),
 		}
 	}
 

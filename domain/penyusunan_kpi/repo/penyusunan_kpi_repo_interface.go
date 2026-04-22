@@ -22,8 +22,8 @@ type (
 		// Mengembalikan found=false jika tidak ada data.
 		GetExistPenyusunanStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error)
 
-		// CheckExistIdPengajuan mengecek apakah id_pengajuan ada di DB.
-		CheckExistIdPengajuan(idPengajuan string) (bool, error)
+		// CheckExistIdPengajuan mengecek apakah id_pengajuan, kostl, tahun, dan triwulan cocok di DB.
+		CheckExistIdPengajuan(idPengajuan, kostl, tahun, triwulan string) (bool, error)
 
 		// CheckApprovalExists mengecek apakah user adalah approval_posisi aktif (status=0) untuk id_pengajuan.
 		CheckApprovalExists(user, idPengajuan string) (bool, error)
