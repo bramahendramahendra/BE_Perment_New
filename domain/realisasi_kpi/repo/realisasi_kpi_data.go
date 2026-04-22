@@ -205,37 +205,60 @@ const (
 		LIMIT 1`
 
 	queryGetDetailKpiList = `
-		SELECT id_detail, id_kpi, kpi, rumus
-		FROM data_kpi_detail
-		WHERE id_pengajuan = ?
-		ORDER BY id_detail ASC`
+		SELECT
+			a.id_detail,
+			a.id_kpi, a.kpi, a.rumus,
+			IFNULL(a.id_perspektif, '')         id_perspektif,
+			IFNULL(b.perspektif, '')            perspektif,
+			IFNULL(a.id_keterangan_project, '') id_keterangan_project,
+			IFNULL(c.keterangan_project, '')    keterangan_project
+		FROM data_kpi_detail a
+		LEFT JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
+		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
+		WHERE a.id_pengajuan = ?
+		ORDER BY a.id_detail ASC`
 
 	queryGetDetailSubKpiList = `
 		SELECT
-			a.id_sub_detail, a.id_kpi, a.kpi AS sub_kpi, a.otomatis,
-			IFNULL(CAST(a.bobot AS CHAR), '')                        bobot,
-			IFNULL(a.capping, '')                                    capping,
-			IFNULL(a.target_triwulan, '')                            target_triwulan,
-			IFNULL(CAST(a.target_kuantitatif_triwulan AS CHAR), '')  target_kuantitatif_triwulan,
-			IFNULL(a.target_tahunan, '')                             target_tahunan,
-			IFNULL(CAST(a.target_kuantitatif_tahunan AS CHAR), '')   target_kuantitatif_tahunan,
-			IFNULL(a.realisasi, '')                                  realisasi,
-			IFNULL(a.realisasi_kuantitatif, '')                      realisasi_kuantitatif,
-			IFNULL(a.realisasi_keterangan, '')                       realisasi_keterangan,
-			IFNULL(a.realisasi_validated, '')                        realisasi_validated,
-			IFNULL(a.realisasi_kuantitatif_validated, '')            realisasi_kuantitatif_validated,
-			IFNULL(CAST(a.pencapaian AS CHAR), '')                   pencapaian,
-			IFNULL(CAST(a.skor AS CHAR), '')                         skor,
-			IFNULL(a.deskripsi_glossary, '')                         deskripsi_glossary,
-			IFNULL(a.item_qualifier, '')                             item_qualifier,
-			IFNULL(a.deskripsi_qualifier, '')                        deskripsi_qualifier,
-			IFNULL(a.target_qualifier, '')                           target_qualifier,
-			IFNULL(a.id_qualifier, '')                               id_qualifier,
-			IFNULL(a.realisasi_qualifier, '')                        realisasi_qualifier,
-			IFNULL(a.realisasi_kuantitatif_qualifier, '')            realisasi_kuantitatif_qualifier
+			a.id_sub_detail,
+			a.id_kpi, a.kpi, a.rumus,
+			a.otomatis,
+			a.bobot, a.capping,
+			a.target_triwulan,  a.target_kuantitatif_triwulan,
+			a.target_tahunan,   a.target_kuantitatif_tahunan,
+			IFNULL(a.deskripsi_glossary, '')              deskripsi_glossary,
+			IFNULL(a.rumus, '')                           id_polarisasi,
+			IFNULL(p.polarisasi, '')                      polarisasi,
+			IFNULL(a.id_qualifier, '')                    id_qualifier,
+			IFNULL(a.item_qualifier, '')                  item_qualifier,
+			IFNULL(a.deskripsi_qualifier, '')             deskripsi_qualifier,
+			IFNULL(a.target_qualifier, '')                target_qualifier,
+			IFNULL(a.id_keterangan_project, '')           id_keterangan_project,
+			IFNULL(c.keterangan_project, '')              keterangan_project,
+			IFNULL(a.realisasi, '')                       realisasi,
+			IFNULL(a.realisasi_kuantitatif, 0)            realisasi_kuantitatif,
+			IFNULL(a.realisasi_keterangan, '')            realisasi_keterangan,
+			IFNULL(a.realisasi_validated, '')             realisasi_validated,
+			IFNULL(a.realisasi_kuantitatif_validated, '') realisasi_kuantitatif_validated,
+			IFNULL(a.pencapaian, 0)                       pencapaian,
+			IFNULL(a.skor, 0)                             skor,
+			IFNULL(a.realisasi_qualifier, '')             realisasi_qualifier,
+			IFNULL(a.realisasi_kuantitatif_qualifier, '') realisasi_kuantitatif_qualifier
 		FROM data_kpi_subdetail a
+		LEFT JOIN mst_polarisasi p ON a.rumus = p.id_polarisasi
+		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
 		WHERE a.id_pengajuan = ? AND a.id_detail = ?
 		ORDER BY a.id_sub_detail ASC`
+
+	queryGetDetailResultList = `
+		SELECT
+			id_detail_result,
+			nama_result, deskripsi_result,
+			IFNULL(realisasi_result, '')   realisasi_result,
+			IFNULL(lampiran_evidence, '')  lampiran_evidence
+		FROM data_result_detail
+		WHERE id_pengajuan = ?
+		ORDER BY id_detail_result ASC`
 
 	queryGetDetailContextList = `
 		SELECT
@@ -291,6 +314,32 @@ func (r *realisasiKpiRepo) GetKpiHeaderByIdPengajuan(
 		return "", "", "", "", fmt.Errorf("gagal mengambil header kpi '%s': %w", idPengajuan, scanErr)
 	}
 	return tahun, triwulan, kostl, kostlTx, nil
+}
+
+func (r *realisasiKpiRepo) GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error) {
+	type kpiHeader struct {
+		Tahun      string `gorm:"column:tahun"`
+		Triwulan   string `gorm:"column:triwulan"`
+		Kostl      string `gorm:"column:kostl"`
+		KostlTx    string `gorm:"column:kostl_tx"`
+		Status     int    `gorm:"column:status"`
+		StatusDesc string `gorm:"column:status_desc"`
+		EntryUser  string `gorm:"column:entry_user"`
+		EntryName  string `gorm:"column:entry_name"`
+	}
+	var h kpiHeader
+	if err = r.db.Raw(`
+		SELECT a.tahun, a.triwulan, a.kostl, a.kostl_tx, a.status, b.status_desc, a.entry_user, a.entry_name
+		FROM data_kpi a
+		INNER JOIN mst_status b ON a.status = b.id_status
+		WHERE a.id_pengajuan = ?
+		LIMIT 1`, idPengajuan).Scan(&h).Error; err != nil {
+		return "", "", "", "", "", "", 0, "", fmt.Errorf("gagal mengambil header KPI: %w", err)
+	}
+	if h.Tahun == "" {
+		return "", "", "", "", "", "", 0, "", fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
+	}
+	return h.Tahun, h.Triwulan, h.Kostl, h.KostlTx, h.EntryUser, h.EntryName, h.Status, h.StatusDesc, nil
 }
 
 func (r *realisasiKpiRepo) LookupSubDetailByKpiSubKpi(
@@ -695,6 +744,32 @@ func (r *realisasiKpiRepo) RejectRealisasiKpi(idPengajuan, approvalList, catatan
 
 	tx.Commit()
 	return nil
+}
+
+// =============================================================================
+// GET APPROVAL LIST JSON
+// =============================================================================
+
+func (r *realisasiKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (string, error) {
+	var count int64
+	if err := r.db.Raw(queryCheckApprovalRealisasi, userID, idPengajuan).Scan(&count).Error; err != nil {
+		return "", fmt.Errorf("gagal mengecek data pengajuan: %w", err)
+	}
+	if count == 0 {
+		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
+	}
+
+	var approvalListJSON string
+	row := r.db.Raw(`SELECT approval_list_realisasi FROM data_kpi WHERE id_pengajuan = ? LIMIT 1`, idPengajuan).Row()
+	if err := row.Scan(&approvalListJSON); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", &customErrors.BadRequestError{
+				Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", idPengajuan),
+			}
+		}
+		return "", fmt.Errorf("gagal mengambil approval_list_realisasi: %w", err)
+	}
+	return approvalListJSON, nil
 }
 
 // =============================================================================
@@ -1189,190 +1264,83 @@ func (r *realisasiKpiRepo) GetAllDaftarApprovalRealisasiKpi(
 
 func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	req *dto.GetDetailRealisasiKpiRequest,
-) (*dto.GetDetailRealisasiKpiResponse, error) {
+) (*model.DataKpi, error) {
 
 	// =========================================================================
-	// SCAN HEADER
+	// QUERY HEADER
 	// =========================================================================
-	headerRow := r.db.Raw(queryGetDetailHeader, req.IdPengajuan).Row()
-
-	var (
-		idPengajuan, tahun, triwulan                string
-		kostl, kostlTx, orgeh, orgehTx              string
-		entryUser, entryName, entryTime             string
-		approvalPosisi, approvalListRaw             string
-		status                                      int
-		statusDesc                                  string
-		entryUserR, entryNameR, entryTimeR          string
-		approvalListRealisasiRaw                    string
-		catatanTolakan, totalBobot, totalPencapaian string
-	)
-
-	if err := headerRow.Scan(
-		&idPengajuan, &tahun, &triwulan,
-		&kostl, &kostlTx, &orgeh, &orgehTx,
-		&entryUser, &entryName, &entryTime,
-		&approvalPosisi, &approvalListRaw,
-		&status, &statusDesc,
-		&entryUserR, &entryNameR, &entryTimeR,
-		&approvalListRealisasiRaw,
-		&catatanTolakan, &totalBobot, &totalPencapaian,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, &customErrors.BadRequestError{
-				Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-			}
+	var result model.DataKpi
+	if err := r.db.Raw(queryGetDetailHeader, req.IdPengajuan).Scan(&result).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil detail realisasi KPI: %w", err)
+	}
+	if result.IdPengajuan == "" {
+		return nil, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
 		}
-		return nil, fmt.Errorf("gagal scan header detail realisasi: %w", err)
 	}
 
 	// =========================================================================
-	// UNMARSHAL approval_list dan approval_list_realisasi
+	// KPI DETAIL + SUB DETAIL
 	// =========================================================================
-	var approvalList []dto.ApprovalUserRealisasiDetail
-	if approvalListRaw != "" {
-		_ = json.Unmarshal([]byte(approvalListRaw), &approvalList)
+	var kpiDetails []model.DataKpiDetail
+	if err := r.db.Raw(queryGetDetailKpiList, result.IdPengajuan).Scan(&kpiDetails).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil kpi detail: %w", err)
 	}
-	if approvalList == nil {
-		approvalList = []dto.ApprovalUserRealisasiDetail{}
-	}
-
-	var approvalListRealisasi []dto.ApprovalUserRealisasiDetail
-	if approvalListRealisasiRaw != "" {
-		_ = json.Unmarshal([]byte(approvalListRealisasiRaw), &approvalListRealisasi)
-	}
-	if approvalListRealisasi == nil {
-		approvalList = []dto.ApprovalUserRealisasiDetail{}
-	}
-
-	resp := &dto.GetDetailRealisasiKpiResponse{
-		IdPengajuan: idPengajuan,
-		Tahun:       tahun,
-		Triwulan:    triwulan,
-		Status:      status,
-		StatusDesc:  statusDesc,
-		Divisi: dto.DivisiOrgeh{
-			Kostl:   kostl,
-			KostlTx: kostlTx,
-			Orgeh:   orgeh,
-			OrgehTx: orgehTx,
-		},
-		EntryPenyusunan: dto.EntryUserPenyusunan{
-			EntryUserPenyusunan: entryUser,
-			EntryNamePenyusunan: entryName,
-			EntryTimePenyusunan: entryTime,
-		},
-		EntryRealisasi: dto.EntryUserRealisasi{
-			EntryUserRealisasi: entryUserR,
-			EntryNameRealisasi: entryNameR,
-			EntryTimeRealisasi: entryTimeR,
-		},
-		ApprovalListRealisasi: approvalListRealisasi,
-		TotalBobot:            totalBobot,
-		TotalPencapaian:       totalPencapaian,
-		EntryValidasi: dto.EntryUserValidasi{
-			EntryUserValidasi: entryUserR,
-			EntryNameValidasi: entryNameR,
-			EntryTimeValidasi: entryTimeR,
-		},
-	}
-
-	// =========================================================================
-	// SCAN KPI DETAIL LIST
-	// =========================================================================
-	kpiRows, err := r.db.Raw(queryGetDetailKpiList, idPengajuan).Rows()
-	if err != nil {
-		return nil, fmt.Errorf("gagal mengambil kpi detail list: %w", err)
-	}
-	defer kpiRows.Close()
-
-	var kpiList []dto.DataKpiDetail
-	totalSubKpi := 0
-
-	for kpiRows.Next() {
-		var kpi dto.DataKpiDetail
-		if err := kpiRows.Scan(&kpi.IdDetail, &kpi.IdKpi, &kpi.Kpi, &kpi.Rumus); err != nil {
-			return nil, fmt.Errorf("gagal scan kpi detail: %w", err)
+	for i := range kpiDetails {
+		var subDetails []model.DataKpiSubDetail
+		if err := r.db.Raw(queryGetDetailSubKpiList, result.IdPengajuan, kpiDetails[i].IdDetail).Scan(&subDetails).Error; err != nil {
+			return nil, fmt.Errorf("gagal mengambil kpi sub detail: %w", err)
 		}
-
-		// Sub KPI per detail
-		subRows, err := r.db.Raw(queryGetDetailSubKpiList, idPengajuan, kpi.IdDetail).Rows()
-		if err != nil {
-			return nil, fmt.Errorf("gagal mengambil sub kpi list untuk detail '%s': %w", kpi.IdDetail, err)
+		if subDetails == nil {
+			subDetails = []model.DataKpiSubDetail{}
 		}
-		defer subRows.Close()
-
-		var subDetailList []dto.DataKpiSubdetail
-		for subRows.Next() {
-			var s dto.DataKpiSubdetail
-			if err := subRows.Scan(
-				&s.IdSubDetail, &s.IdKpi, &s.SubKpi, &s.Otomatis,
-				&s.Bobot, &s.Capping,
-				&s.TargetTriwulan, &s.TargetKuantitatifTriwulan,
-				&s.TargetTahunan, &s.TargetKuantitatifTahunan,
-				&s.Realisasi, &s.RealisasiKuantitatif, &s.RealisasiKeterangan,
-				&s.RealisasiValidated, &s.RealisasiKuantitatifValidated,
-				&s.Pencapaian, &s.Skor,
-				&s.DeskripsiGlossary, &s.ItemQualifier, &s.DeskripsiQualifier, &s.TargetQualifier,
-				&s.IdQualifier, &s.RealisasiQualifier, &s.RealisasiKuantitatifQualifier,
-			); err != nil {
-				return nil, fmt.Errorf("gagal scan sub kpi detail: %w", err)
-			}
-			subDetailList = append(subDetailList, s)
-		}
-
-		kpi.TotalSubKpi = len(subDetailList)
-		kpi.SubDetailList = subDetailList
-		totalSubKpi += kpi.TotalSubKpi
-		kpiList = append(kpiList, kpi)
+		kpiDetails[i].KpiSubDetail = subDetails
+		kpiDetails[i].TotalSubKpi = len(subDetails)
 	}
-
-	resp.TotalSubKpi = totalSubKpi
-	resp.KpiList = kpiList
+	if kpiDetails == nil {
+		kpiDetails = []model.DataKpiDetail{}
+	}
+	result.Kpi = kpiDetails
+	result.TotalKpi = len(kpiDetails)
 
 	// =========================================================================
-	// SCAN CONTEXT LIST (data_challenge_detail)
+	// RESULT DETAIL
 	// =========================================================================
-	ctxRows, err := r.db.Raw(queryGetDetailContextList, idPengajuan).Rows()
-	if err != nil {
-		return nil, fmt.Errorf("gagal mengambil context list: %w", err)
+	var resultList []model.DataResultDetail
+	if err := r.db.Raw(queryGetDetailResultList, result.IdPengajuan).Scan(&resultList).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil result detail: %w", err)
 	}
-	defer ctxRows.Close()
-
-	var contextList []dto.DetailContextRealisasi
-	for ctxRows.Next() {
-		var c dto.DetailContextRealisasi
-		if err := ctxRows.Scan(
-			&c.IdDetailChallenge, &c.NamaChallenge, &c.DeskripsiChallenge,
-			&c.RealisasiChallenge, &c.LampiranEvidence,
-		); err != nil {
-			return nil, fmt.Errorf("gagal scan context list: %w", err)
-		}
-		contextList = append(contextList, c)
+	if resultList == nil {
+		resultList = []model.DataResultDetail{}
 	}
-	resp.ContextList = contextList
+	result.ResultList = resultList
+	result.TotalResult = len(resultList)
 
 	// =========================================================================
-	// SCAN PROCESS LIST (data_method_detail)
+	// PROCESS DETAIL
 	// =========================================================================
-	procRows, err := r.db.Raw(queryGetDetailProcessList, idPengajuan).Rows()
-	if err != nil {
-		return nil, fmt.Errorf("gagal mengambil process list: %w", err)
+	var processList []model.DataMethodDetail
+	if err := r.db.Raw(queryGetDetailProcessList, result.IdPengajuan).Scan(&processList).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil process detail: %w", err)
 	}
-	defer procRows.Close()
-
-	var processList []dto.DetailProcessRealisasi
-	for procRows.Next() {
-		var p dto.DetailProcessRealisasi
-		if err := procRows.Scan(
-			&p.IdDetailMethod, &p.NamaMethod, &p.DeskripsiMethod,
-			&p.RealisasiMethod, &p.LampiranEvidence,
-		); err != nil {
-			return nil, fmt.Errorf("gagal scan process list: %w", err)
-		}
-		processList = append(processList, p)
+	if processList == nil {
+		processList = []model.DataMethodDetail{}
 	}
-	resp.ProcessList = processList
+	result.ProcessList = processList
+	result.TotalProcess = len(processList)
 
-	return resp, nil
+	// =========================================================================
+	// CONTEXT DETAIL
+	// =========================================================================
+	var contextList []model.DataChallengeDetail
+	if err := r.db.Raw(queryGetDetailContextList, result.IdPengajuan).Scan(&contextList).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil context detail: %w", err)
+	}
+	if contextList == nil {
+		contextList = []model.DataChallengeDetail{}
+	}
+	result.ContextList = contextList
+	result.TotalContext = len(contextList)
+
+	return &result, nil
 }

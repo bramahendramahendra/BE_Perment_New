@@ -13,7 +13,7 @@ type DataKpi struct {
 	EntryTime      string `gorm:"column:entry_time"`
 	ApprovalPosisi string `gorm:"column:approval_posisi"`
 	ApprovalList   string `gorm:"column:approval_list"`
-	Status         string `gorm:"column:status"`
+	Status         int    `gorm:"column:status"`
 	StatusDesc     string `gorm:"column:status_desc"`
 
 	EntryUserRealisasi       string `gorm:"column:entry_user_realisasi"`
@@ -31,4 +31,13 @@ type DataKpi struct {
 	ApprovalListValidasi     string `gorm:"column:approval_list_validasi"`
 	LampiranValidasi         string `gorm:"column:lampiran_validasi"`
 	QualifierOverallValidasi string `gorm:"column:qualifier_overall_validasi"`
+
+	TotalKpi     int                   `gorm:"-"`
+	Kpi          []DataKpiDetail       `gorm:"-"`
+	TotalResult  int                   `gorm:"-"`
+	ResultList   []DataResultDetail    `gorm:"-"`
+	TotalProcess int                   `gorm:"-"`
+	ProcessList  []DataMethodDetail    `gorm:"-"`
+	TotalContext int                   `gorm:"-"`
+	ContextList  []DataChallengeDetail `gorm:"-"`
 }

@@ -61,6 +61,11 @@ type (
 		// Mengambil approval_list JSON untuk id_pengajuan jika user adalah approval_posisi aktif.
 		GetApprovalListJSON(idPengajuan, userID string) (string, error)
 
+		// Digunakan oleh endpoint POST /realisasi-kpi/get-all.
+		GetAllRealisasiKpi(
+			req *dto.GetAllRealisasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
+
 		// Digunakan oleh endpoint POST /realisasi-kpi/get-all-approval.
 		// GetAllApprovalRealisasiKpi mengembalikan list pengajuan berstatus 3 (pending approval realisasi) yang approval_posisi-nya adalah user yang sedang login.
 		GetAllApprovalRealisasiKpi(
@@ -88,7 +93,7 @@ type (
 		// Digunakan oleh endpoint POST /realisasi-kpi/get-detail.
 		GetDetailRealisasiKpi(
 			req *dto.GetDetailRealisasiKpiRequest,
-		) (*dto.GetDetailRealisasiKpiResponse, error)
+		) (*model.DataKpi, error)
 
 		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
 		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error)

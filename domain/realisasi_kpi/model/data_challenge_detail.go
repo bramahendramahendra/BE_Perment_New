@@ -7,4 +7,6 @@ type DataChallengeDetail struct {
 	Triwulan           string `gorm:"column:triwulan"`
 	NamaChallenge      string `gorm:"column:nama_challenge"`
 	DeskripsiChallenge string `gorm:"column:deskripsi_challenge"`
+	RealisasiChallenge string `gorm:"column:realisasi_challenge"`
+	LampiranEvidence   string `gorm:"column:lampiran_evidence"`
 }

@@ -387,6 +387,33 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 }
 
 // =============================================================================
+// GET ALL
+// =============================================================================
+
+func (s *realisasiKpiService) GetAllRealisasiKpi(
+	req *dto.GetAllRealisasiKpiRequest,
+) (data []*dto.GetAllRealisasiKpiResponse, total int64, err error) {
+
+	dataDB, total, err := s.repo.GetAllRealisasiKpi(req)
+	if err != nil {
+		return data, 0, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.GetAllRealisasiKpiResponse{
+			IdPengajuan: v.IdPengajuan,
+			Tahun:       v.Tahun,
+			Triwulan:    v.Triwulan,
+			KostlTx:     v.KostlTx,
+			OrgehTx:     v.OrgehTx,
+			StatusDesc:  v.StatusDesc,
+		})
+	}
+
+	return data, total, nil
+}
+
+// =============================================================================
 // GET ALL APPROVAL
 // =============================================================================
 
@@ -498,8 +525,157 @@ func (s *realisasiKpiService) GetAllDaftarApprovalRealisasiKpi(
 
 func (s *realisasiKpiService) GetDetailRealisasiKpi(
 	req *dto.GetDetailRealisasiKpiRequest,
-) (*dto.GetDetailRealisasiKpiResponse, error) {
-	return s.repo.GetDetailRealisasiKpi(req)
+) (data *dto.GetDetailRealisasiKpiResponse, err error) {
+	dataDB, err := s.repo.GetDetailRealisasiKpi(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var approvalList []dto.ApprovalUserRealisasiDetail
+	if dataDB.ApprovalList != "" {
+		if err = json.Unmarshal([]byte(dataDB.ApprovalList), &approvalList); err != nil {
+			return nil, fmt.Errorf("gagal parse approval_list: %w", err)
+		}
+	}
+	if approvalList == nil {
+		approvalList = []dto.ApprovalUserRealisasiDetail{}
+	}
+
+	var approvalListRealisasi []dto.ApprovalUserRealisasiDetail
+	if dataDB.ApprovalListRealisasi != "" {
+		if err = json.Unmarshal([]byte(dataDB.ApprovalListRealisasi), &approvalListRealisasi); err != nil {
+			return nil, fmt.Errorf("gagal parse approval_list_realisasi: %w", err)
+		}
+	}
+	if approvalListRealisasi == nil {
+		approvalListRealisasi = []dto.ApprovalUserRealisasiDetail{}
+	}
+
+	kpiList := make([]dto.DataKpiDetail, len(dataDB.Kpi))
+	for i, v := range dataDB.Kpi {
+		subDetails := make([]dto.DataKpiSubdetail, len(v.KpiSubDetail))
+		for j, s := range v.KpiSubDetail {
+			subDetails[j] = dto.DataKpiSubdetail{
+				IdSubDetail:                   s.IdSubDetail,
+				IdSubKpi:                      s.IdKpi,
+				SubKpi:                        s.Kpi,
+				Otomatis:                      s.Otomatis,
+				IdPolarisasi:                  s.IdPolarisasi,
+				Polarisasi:                    s.Polarisasi,
+				Capping:                       s.Capping,
+				Bobot:                         s.Bobot,
+				Glossary:                      s.DeskripsiGlossary,
+				TargetTriwulan:                s.TargetTriwulan,
+				TargetKuantitatifTriwulan:     s.TargetKuantitatifTriwulan,
+				TargetTahunan:                 s.TargetTahunan,
+				TargetKuantitatifTahunan:      s.TargetKuantitatifTahunan,
+				TerdapatQualifier:             s.IdQualifier,
+				Qualifier:                     s.ItemQualifier,
+				DeskripsiQualifier:            s.DeskripsiQualifier,
+				TargetQualifier:               s.TargetQualifier,
+				IdKeteranganProject:           s.IdKeteranganProject,
+				KeteranganProject:             s.KeteranganProject,
+				Realisasi:                     s.Realisasi,
+				RealisasiKuantitatif:          s.RealisasiKuantitatif,
+				RealisasiKeterangan:           s.RealisasiKeterangan,
+				RealisasiValidated:            s.RealisasiValidated,
+				RealisasiKuantitatifValidated: s.RealisasiKuantitatifValidated,
+				Pencapaian:                    s.Pencapaian,
+				Skor:                          s.Skor,
+				RealisasiQualifier:            s.RealisasiQualifier,
+				RealisasiKuantitatifQualifier: s.RealisasiKuantitatifQualifier,
+			}
+		}
+		kpiList[i] = dto.DataKpiDetail{
+			IdDetail:            v.IdDetail,
+			IdKpi:               v.IdKpi,
+			Kpi:                 v.Kpi,
+			Rumus:               v.Rumus,
+			IdPerspektif:        v.IdPersfektif,
+			Persfektif:          v.Perspektif,
+			IdKeteranganProject: v.IdKeteranganProject,
+			KeteranganProject:   v.KeteranganProject,
+			TotalSubKpi:         v.TotalSubKpi,
+			KpiSubDetail:        subDetails,
+		}
+	}
+
+	resultList := make([]dto.DataResult, len(dataDB.ResultList))
+	for i, v := range dataDB.ResultList {
+		resultList[i] = dto.DataResult{
+			IdDetailResult:   v.IdDetailResult,
+			NamaResult:       v.NamaResult,
+			DeskripsiResult:  v.DeskripsiResult,
+			RealisasiResult:  v.RealisasiResult,
+			LampiranEvidence: v.LampiranEvidence,
+		}
+	}
+
+	processList := make([]dto.DataProcess, len(dataDB.ProcessList))
+	for i, v := range dataDB.ProcessList {
+		processList[i] = dto.DataProcess{
+			IdDetailProcess:  v.IdDetailMethod,
+			NamaProcess:      v.NamaMethod,
+			DeskripsiProcess: v.DeskripsiMethod,
+			RealisasiProcess: v.RealisasiMethod,
+			LampiranEvidence: v.LampiranEvidence,
+		}
+	}
+
+	contextList := make([]dto.DataContext, len(dataDB.ContextList))
+	for i, v := range dataDB.ContextList {
+		contextList[i] = dto.DataContext{
+			IdDetailContext:  v.IdDetailChallenge,
+			NamaContext:      v.NamaChallenge,
+			DeskripsiContext: v.DeskripsiChallenge,
+			RealisasiContext: v.RealisasiChallenge,
+			LampiranEvidence: v.LampiranEvidence,
+		}
+	}
+
+	data = &dto.GetDetailRealisasiKpiResponse{
+		IdPengajuan: dataDB.IdPengajuan,
+		Tahun:       dataDB.Tahun,
+		Triwulan:    dataDB.Triwulan,
+		Status:      dataDB.Status,
+		StatusDesc:  dataDB.StatusDesc,
+		Divisi: dto.DivisiOrgeh{
+			Kostl:   dataDB.Kostl,
+			KostlTx: dataDB.KostlTx,
+			Orgeh:   dataDB.Orgeh,
+			OrgehTx: dataDB.OrgehTx,
+		},
+		EntryPenyusunan: dto.EntryUserPenyusunan{
+			EntryUserPenyusunan: dataDB.EntryUser,
+			EntryNamePenyusunan: dataDB.EntryName,
+			EntryTimePenyusunan: dataDB.EntryTime,
+		},
+		EntryRealisasi: dto.EntryUserRealisasi{
+			EntryUserRealisasi: dataDB.EntryUserRealisasi,
+			EntryNameRealisasi: dataDB.EntryNameRealisasi,
+			EntryTimeRealisasi: dataDB.EntryTimeRealisasi,
+		},
+		EntryValidasi: dto.EntryUserValidasi{
+			EntryUserValidasi: dataDB.EntryUserValidasi,
+			EntryNameValidasi: dataDB.EntryNameValidasi,
+			EntryTimeValidasi: dataDB.EntryTimeValidasi,
+		},
+		ApprovalPosisi:        dataDB.ApprovalPosisi,
+		ApprovalListRealisasi: approvalListRealisasi,
+		Catatan:               dataDB.CatatanTolakan,
+		TotalBobot:            dataDB.TotalBobot,
+		TotalPencapaian:       dataDB.TotalPencapaian,
+		TotalKpi:              dataDB.TotalKpi,
+		KpiList:               kpiList,
+		TotalResult:           dataDB.TotalResult,
+		ResultList:            resultList,
+		TotalProcess:          dataDB.TotalProcess,
+		ProcessList:           processList,
+		TotalContext:          dataDB.TotalContext,
+		ContextList:           contextList,
+	}
+
+	return data, nil
 }
 
 // =============================================================================
