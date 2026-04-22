@@ -1389,19 +1389,35 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
 ) (*model.DataKpi, error) {
 
-	var h model.DataKpi
-	headerQuery := queryGetDataKpi + " WHERE a.id_pengajuan = ? LIMIT 1"
-	if err := r.db.Raw(headerQuery, req.IdPengajuan).Scan(&h).Error; err != nil {
+	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
+	conditions := []string{
+		"a.id_pengajuan = ?",
+	}
+	args := []interface{}{req.IdPengajuan}
+
+	where := " WHERE " + strings.Join(conditions, " AND ")
+
+	// =========================================================================
+	// QUERY HEADER
+	// =========================================================================
+	var result model.DataKpi
+	headerQuery := queryGetDataKpi + where + " LIMIT 1"
+	if err := r.db.Raw(headerQuery, args...).Scan(&result).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil detail KPI: %w", err)
 	}
-	if h.IdPengajuan == "" {
+	if result.IdPengajuan == "" {
 		return nil, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
 		}
 	}
 
+	// =========================================================================
+	// KPI DETAIL + SUB DETAIL
+	// =========================================================================
 	var kpiDetails []model.DataKpiDetail
-	if err := r.db.Raw(queryGetDataKpiDetail, h.IdPengajuan).Scan(&kpiDetails).Error; err != nil {
+	if err := r.db.Raw(queryGetDataKpiDetail, result.IdPengajuan).Scan(&kpiDetails).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil kpi detail: %w", err)
 	}
 	for i := range kpiDetails {
@@ -1418,40 +1434,49 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	if kpiDetails == nil {
 		kpiDetails = []model.DataKpiDetail{}
 	}
-	h.Kpi = kpiDetails
-	h.TotalKpi = len(kpiDetails)
+	result.Kpi = kpiDetails
+	result.TotalKpi = len(kpiDetails)
 
+	// =========================================================================
+	// RESULT DETAIL
+	// =========================================================================
 	var resultList []model.DataResultDetail
-	if err := r.db.Raw(queryGetDataResultDetail, h.IdPengajuan).Scan(&resultList).Error; err != nil {
+	if err := r.db.Raw(queryGetDataResultDetail, result.IdPengajuan).Scan(&resultList).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil result detail: %w", err)
 	}
 	if resultList == nil {
 		resultList = []model.DataResultDetail{}
 	}
-	h.ResultList = resultList
-	h.TotalResult = len(resultList)
+	result.ResultList = resultList
+	result.TotalResult = len(resultList)
 
+	// =========================================================================
+	// PROCESS DETAIL
+	// =========================================================================
 	var processList []model.DataMethodDetail
-	if err := r.db.Raw(queryGetDataProcessDetail, h.IdPengajuan).Scan(&processList).Error; err != nil {
+	if err := r.db.Raw(queryGetDataProcessDetail, result.IdPengajuan).Scan(&processList).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil process detail: %w", err)
 	}
 	if processList == nil {
 		processList = []model.DataMethodDetail{}
 	}
-	h.ProcessList = processList
-	h.TotalProcess = len(processList)
+	result.ProcessList = processList
+	result.TotalProcess = len(processList)
 
+	// =========================================================================
+	// CONTEXT DETAIL
+	// =========================================================================
 	var contextList []model.DataChallengeDetail
-	if err := r.db.Raw(queryGetDataContextDetail, h.IdPengajuan).Scan(&contextList).Error; err != nil {
+	if err := r.db.Raw(queryGetDataContextDetail, result.IdPengajuan).Scan(&contextList).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil context detail: %w", err)
 	}
 	if contextList == nil {
 		contextList = []model.DataChallengeDetail{}
 	}
-	h.ContextList = contextList
-	h.TotalContext = len(contextList)
+	result.ContextList = contextList
+	result.TotalContext = len(contextList)
 
-	return &h, nil
+	return &result, nil
 }
 
 // =============================================================================
