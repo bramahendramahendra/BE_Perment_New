@@ -12,11 +12,13 @@ type (
 		// Jika rumus pada mst_kpi tidak ditemukan di mst_polarisasi, kolom polarisasi dikosongkan.
 		GetKpiWithPolarisasi() ([]*model.MstKpiPolarisasi, error)
 
-		// GetRevisionPenyusunanKpiData mengambil seluruh data sub KPI beserta header dari DB
+		// CheckDataExist mengecek keberadaan data tolakan KPI
+		// berdasarkan id_pengajuan, kostl, tahun, dan triwulan.
+		CheckDataExist(idPengajuan, kostl, tahun, triwulan string) (bool, error)
+
+		// GetPenyusunanKpiData mengambil seluruh baris sub KPI dari DB
 		// berdasarkan id_pengajuan, untuk keperluan generate Excel tolakan penyusunan KPI.
-		// Data mencakup: header (triwulan, tahun, kostl_tx), baris sub KPI (kolom A–O),
-		// dan data result/method/challenge (kolom P–U, hanya TW2/TW4).
-		GetRevisionPenyusunanKpiData(idPengajuan, kostl, tahun, triwulan string) (*model.RevisionExcelData, error)
+		GetPenyusunanKpiData(idPengajuan string) (*model.ExcelData, error)
 
 		// GetExistPenyusunanStatus mengecek apakah sudah ada record di data_kpi
 		// berdasarkan tahun, triwulan, dan kostl.

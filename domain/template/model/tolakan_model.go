@@ -1,6 +1,6 @@
 package model
 
-// RevisionSubDetailRow merepresentasikan 1 baris data sub KPI dari DB
+// SubDetailRow merepresentasikan 1 baris data sub KPI dari DB
 // untuk keperluan generate Excel tolakan penyusunan KPI.
 //
 // Mapping kolom Excel:
@@ -26,7 +26,7 @@ package model
 //	S  = DeskripsiProcess  → data_method_detail.deskripsi_method (TW2/TW4)
 //	T  = NamaContext       → data_challenge_detail.nama_challenge      (TW2/TW4)
 //	U  = DeskripsiContext  → data_challenge_detail.deskripsi_challenge (TW2/TW4)
-type RevisionSubDetailRow struct {
+type SubDetailRow struct {
 	IdSubDetail               string
 	KpiNama                   string
 	SubKpi                    string
@@ -51,11 +51,8 @@ type RevisionSubDetailRow struct {
 	DeskripsiContext string
 }
 
-// RevisionExcelData berisi header dokumen + daftar baris sub KPI
+// ExcelData berisi header dokumen + daftar baris sub KPI
 // untuk keperluan generate Excel tolakan penyusunan KPI.
-type RevisionExcelData struct {
-	Triwulan string
-	Tahun    string
-	KostlTx  string
-	Rows     []RevisionSubDetailRow
+type ExcelData struct {
+	Rows []SubDetailRow
 }

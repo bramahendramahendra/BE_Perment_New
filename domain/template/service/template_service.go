@@ -384,15 +384,19 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 
 func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusunanKpiRequest) ([]byte, string, error) {
 
-	// Ambil data dari DB (header + seluruh baris sub KPI)
-	excelData, err := s.repo.GetRevisionPenyusunanKpiData(req.IdPengajuan, req.Divisi.Kostl, req.Tahun, req.Triwulan)
+	exists, err := s.repo.CheckDataExist(req.IdPengajuan, req.Divisi.Kostl, req.Tahun, req.Triwulan)
 	if err != nil {
 		return nil, "", err
 	}
-	if excelData == nil {
+	if !exists {
 		return nil, "", &errors.BadRequestError{
 			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
 		}
+	}
+
+	excelData, err := s.repo.GetPenyusunanKpiData(req.IdPengajuan)
+	if err != nil {
+		return nil, "", err
 	}
 
 	// TW2 dan TW4 menggunakan format kolom A–U (extended).
@@ -806,15 +810,19 @@ var columnsRealisasiExtendedTW24 = []string{
 }
 
 func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpiRequest) ([]byte, string, error) {
-	// Ambil data dari DB (header + seluruh baris sub KPI)
-	excelData, err := s.repo.GetRevisionPenyusunanKpiData(req.IdPengajuan, req.Divisi.Kostl, req.Tahun, req.Triwulan)
+	exists, err := s.repo.CheckDataExist(req.IdPengajuan, req.Divisi.Kostl, req.Tahun, req.Triwulan)
 	if err != nil {
 		return nil, "", err
 	}
-	if excelData == nil {
+	if !exists {
 		return nil, "", &errors.BadRequestError{
 			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
 		}
+	}
+
+	excelData, err := s.repo.GetPenyusunanKpiData(req.IdPengajuan)
+	if err != nil {
+		return nil, "", err
 	}
 
 	// TW1/TW3 → extended kolom N–S; TW2/TW4 → extended kolom N–Y
