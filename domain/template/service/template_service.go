@@ -62,7 +62,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 	if found && status != 70 && status != 71 {
 		return nil, "", &errors.BadRequestError{
 			Message: fmt.Sprintf(
-				"data KPI untuk tahun %s, triwulan %s, divisi %s sudah ada",
+				"data KPI tahun %s triwulan %s untuk divisi %s sudah ada",
 				req.Tahun, req.Triwulan, req.Divisi.KostlTx,
 			),
 		}
@@ -374,7 +374,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal write file Excel: %v", err)}
 	}
 
-	filename := fmt.Sprintf("Format Penyusunan KPI Aplikasi Performance Management %s %s %s.xlsx", req.Divisi.KostlTx, req.Tahun, req.Triwulan)
+	filename := fmt.Sprintf("Format Penyusunan KPI Aplikasi Performance Management %s %s.xlsx", req.Tahun, req.Triwulan)
 	return buf.Bytes(), filename, nil
 }
 
@@ -390,7 +390,7 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 	}
 	if !exists {
 		return nil, "", &errors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+			Message: fmt.Sprintf("data KPI  tahun '%s' triwulan '%s' dengan id pengajuan '%s' untuk divisi '%s', tidak ditemukan", req.IdPengajuan, req.Divisi.KostlTx, req.Tahun, req.Triwulan),
 		}
 	}
 
@@ -816,7 +816,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	}
 	if !exists {
 		return nil, "", &errors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+			Message: fmt.Sprintf("data KPI  tahun '%s' triwulan '%s' dengan id pengajuan '%s' untuk divisi '%s', tidak ditemukan", req.IdPengajuan, req.Divisi.KostlTx, req.Tahun, req.Triwulan),
 		}
 	}
 
