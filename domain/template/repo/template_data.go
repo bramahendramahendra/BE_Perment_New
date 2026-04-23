@@ -29,11 +29,11 @@ const (
 		LEFT JOIN mst_polarisasi p ON p.id_polarisasi = m.rumus
 		ORDER BY m.id_kpi ASC`
 
-	// queryGetRevisionHeader mengambil header data_kpi berdasarkan id_pengajuan.
+	// queryGetRevisionHeader mengambil header data_kpi berdasarkan id_pengajuan, kostl, tahun, dan triwulan.
 	queryGetRevisionHeader = `
 		SELECT triwulan, tahun, kostl_tx
 		FROM data_kpi
-		WHERE id_pengajuan = ?
+		WHERE id_pengajuan = ? AND kostl = ? AND tahun = ? AND triwulan = ?
 		LIMIT 1`
 
 	// queryGetRevisionRows mengambil seluruh baris sub KPI beserta data extended (TW2/TW4)
@@ -128,7 +128,7 @@ func (r *templateRepo) GetKpiWithPolarisasi() ([]*model.MstKpiPolarisasi, error)
 
 // GetRevisionPenyusunanKpiData mengambil header dan seluruh baris sub KPI
 // dari DB berdasarkan id_pengajuan untuk keperluan generate Excel tolakan.
-func (r *templateRepo) GetRevisionPenyusunanKpiData(idPengajuan string) (*model.RevisionExcelData, error) {
+func (r *templateRepo) GetRevisionPenyusunanKpiData(idPengajuan, kostl, tahun, triwulan string) (*model.RevisionExcelData, error) {
 
 	// =========================================================================
 	// 1. Ambil header (triwulan, tahun, kostl_tx)
@@ -139,7 +139,7 @@ func (r *templateRepo) GetRevisionPenyusunanKpiData(idPengajuan string) (*model.
 		KostlTx  string `gorm:"column:kostl_tx"`
 	}
 	var header headerRaw
-	if err := r.db.Raw(queryGetRevisionHeader, idPengajuan).Scan(&header).Error; err != nil {
+	if err := r.db.Raw(queryGetRevisionHeader, idPengajuan, kostl, tahun, triwulan).Scan(&header).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil header tolakan KPI: %w", err)
 	}
 	if header.Triwulan == "" {

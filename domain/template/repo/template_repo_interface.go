@@ -16,7 +16,7 @@ type (
 		// berdasarkan id_pengajuan, untuk keperluan generate Excel tolakan penyusunan KPI.
 		// Data mencakup: header (triwulan, tahun, kostl_tx), baris sub KPI (kolom A–O),
 		// dan data result/method/challenge (kolom P–U, hanya TW2/TW4).
-		GetRevisionPenyusunanKpiData(idPengajuan string) (*model.RevisionExcelData, error)
+		GetRevisionPenyusunanKpiData(idPengajuan, kostl, tahun, triwulan string) (*model.RevisionExcelData, error)
 
 		// GetExistPenyusunanStatus mengecek apakah sudah ada record di data_kpi
 		// berdasarkan tahun, triwulan, dan kostl.

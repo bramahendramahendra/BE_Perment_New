@@ -385,7 +385,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusunanKpiRequest) ([]byte, string, error) {
 
 	// Ambil data dari DB (header + seluruh baris sub KPI)
-	excelData, err := s.repo.GetRevisionPenyusunanKpiData(req.IdPengajuan)
+	excelData, err := s.repo.GetRevisionPenyusunanKpiData(req.IdPengajuan, req.Divisi.Kostl, req.Tahun, req.Triwulan)
 	if err != nil {
 		return nil, "", err
 	}
@@ -807,7 +807,7 @@ var columnsRealisasiExtendedTW24 = []string{
 
 func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpiRequest) ([]byte, string, error) {
 	// Ambil data dari DB (header + seluruh baris sub KPI)
-	excelData, err := s.repo.GetRevisionPenyusunanKpiData(req.IdPengajuan)
+	excelData, err := s.repo.GetRevisionPenyusunanKpiData(req.IdPengajuan, req.Divisi.Kostl, req.Tahun, req.Triwulan)
 	if err != nil {
 		return nil, "", err
 	}
