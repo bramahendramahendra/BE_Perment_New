@@ -358,7 +358,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal write file Excel: %v", err)}
 	}
 
-	filename := fmt.Sprintf("Format Penyusunan KPI Aplikasi Performance Management %s.xlsx", req.Triwulan)
+	filename := fmt.Sprintf("Format Penyusunan KPI Aplikasi Performance Management %s %s %s.xlsx", req.Divisi.KostlTx, req.Tahun, req.Triwulan)
 	return buf.Bytes(), filename, nil
 }
 
@@ -381,10 +381,10 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 
 	// TW2 dan TW4 menggunakan format kolom A–U (extended).
 	// TW1 dan TW3 menggunakan format kolom A–O (base).
-	useExtended := excelData.Triwulan == "TW2" || excelData.Triwulan == "TW4"
+	useExtended := req.Triwulan == "TW2" || req.Triwulan == "TW4"
 
-	// Nama sheet mengikuti nilai triwulan dari db (TW1, TW2, TW3, TW4).
-	sheetName := excelData.Triwulan
+	// Nama sheet mengikuti nilai triwulan dari request (TW1, TW2, TW3, TW4).
+	sheetName := req.Triwulan
 
 	f := excelize.NewFile()
 	defer f.Close()
@@ -738,7 +738,7 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal write file Excel: %v", err)}
 	}
 
-	filename := fmt.Sprintf("Revisi Penyusunan KPI Aplikasi Performance Management %s %s %s.xlsx", excelData.Triwulan, excelData.Tahun, excelData.KostlTx)
+	filename := fmt.Sprintf("Revisi Penyusunan KPI Aplikasi Performance Management %s %s %s.xlsx", req.Triwulan, req.Tahun, req.Divisi.KostlTx)
 	return buf.Bytes(), filename, nil
 }
 
@@ -1171,7 +1171,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal write file Excel: %v", err)}
 	}
 
-	filename := fmt.Sprintf("Format Realisasi KPI Aplikasi Performance Management %s %s %s.xlsx", excelData.KostlTx, excelData.Tahun, req.Triwulan)
+	filename := fmt.Sprintf("Format Realisasi KPI Aplikasi Performance Management %s %s %s.xlsx", req.Divisi.KostlTx, req.Tahun, req.Triwulan)
 	return buf.Bytes(), filename, nil
 }
 
