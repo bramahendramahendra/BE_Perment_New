@@ -37,12 +37,7 @@ type EntryUserValidasi struct {
 	EntryTimeValidasi string `json:"entry_time_validasi"`
 }
 
-// type ApprovalUser struct {
-// 	Userid string `json:"userid"`
-// 	Nama   string `json:"nama"`
-// }
-
-type ApprovalUserCreate struct {
+type ApprovalUser struct {
 	Userid string `json:"userid"`
 	Nama   string `json:"nama"`
 	Posisi string `json:"posisi"`
@@ -275,11 +270,11 @@ type ValidatePenyusunanKpiResponse struct {
 
 // CreatePenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/create.
 type CreatePenyusunanKpiResponse struct {
-	IdPengajuan  string               `json:"id_pengajuan"`
-	Divisi       string               `json:"divisi"`
-	Tahun        string               `json:"tahun"`
-	Triwulan     string               `json:"triwulan"`
-	ApprovalList []ApprovalUserCreate `json:"approval_list"`
+	IdPengajuan  string         `json:"id_pengajuan"`
+	Divisi       string         `json:"divisi"`
+	Tahun        string         `json:"tahun"`
+	Triwulan     string         `json:"triwulan"`
+	ApprovalList []ApprovalUser `json:"approval_list"`
 }
 
 // RevisionPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/revision.

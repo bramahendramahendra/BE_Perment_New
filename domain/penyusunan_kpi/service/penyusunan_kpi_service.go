@@ -153,9 +153,9 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 		return data, err
 	}
 
-	approvalList := make([]dto.ApprovalUserCreate, len(req.ApprovalList))
+	approvalList := make([]dto.ApprovalUser, len(req.ApprovalList))
 	for i, a := range req.ApprovalList {
-		approvalList[i] = dto.ApprovalUserCreate{Userid: a.Userid, Nama: a.Nama, Posisi: a.Posisi}
+		approvalList[i] = dto.ApprovalUser{Userid: a.Userid, Nama: a.Nama, Posisi: a.Posisi}
 	}
 	data = dto.CreatePenyusunanKpiResponse{
 		IdPengajuan:  req.IdPengajuan,
