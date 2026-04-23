@@ -796,7 +796,7 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 	req *dto.GetExcelPenyusunanKpiRequest,
 ) ([]byte, string, error) {
-	exportData, err := s.repo.GetKpiExportData(req.IdPengajuan)
+	exportData, err := s.repo.GetKpiExportData(req.IdPengajuan, req.Kostl, req.Tahun, req.Triwulan)
 	if err != nil {
 		return nil, "", err
 	}
@@ -816,7 +816,7 @@ func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 func (s *penyusunanKpiService) GetPdfPenyusunanKpi(
 	req *dto.GetPdfPenyusunanKpiRequest,
 ) ([]byte, string, error) {
-	exportData, err := s.repo.GetKpiExportData(req.IdPengajuan)
+	exportData, err := s.repo.GetKpiExportData(req.IdPengajuan, req.Kostl, req.Tahun, req.Triwulan)
 	if err != nil {
 		return nil, "", err
 	}

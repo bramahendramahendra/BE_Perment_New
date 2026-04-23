@@ -62,8 +62,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 	if found && status != 70 && status != 71 {
 		return nil, "", &errors.BadRequestError{
 			Message: fmt.Sprintf(
-				"data KPI tahun %s triwulan %s untuk divisi %s sudah ada",
-				req.Tahun, req.Triwulan, req.Divisi.KostlTx,
+				"data KPI tahun %s triwulan %s untuk divisi %s sudah ada", req.Tahun, req.Triwulan, req.Divisi.KostlTx,
 			),
 		}
 	}

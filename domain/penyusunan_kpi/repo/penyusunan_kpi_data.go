@@ -166,6 +166,12 @@ const (
 		FROM data_challenge_detail
 		WHERE id_pengajuan = ?`
 
+	queryGetKpiBaseDataForExport = `
+		SELECT kostl_tx, tahun, triwulan, entry_user
+		FROM data_kpi
+		WHERE id_pengajuan = ? AND kostl = ? AND tahun = ? AND triwulan = ?
+		LIMIT 1`
+
 	queryGetSubDetailForExport = `
 		SELECT
 			a.kpi,
@@ -173,7 +179,8 @@ const (
 			IFNULL(a.target_tahunan, '')       target_tahunan,
 			IFNULL(a.capping, '')              capping
 		FROM data_kpi_subdetail a
-		WHERE a.id_pengajuan = ?
+		INNER JOIN data_kpi b ON a.id_pengajuan = b.id_pengajuan
+		WHERE a.id_pengajuan = ? AND b.kostl = ? AND b.tahun = ? AND b.triwulan = ?
 		ORDER BY a.id_sub_detail ASC`
 
 	queryCheckApprovalPenyusunan = `
@@ -1494,7 +1501,7 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 // =============================================================================
 
 func (r *penyusunanKpiRepo) GetKpiExportData(
-	idPengajuan string,
+	idPengajuan, kostl, tahun, triwulan string,
 ) (*dto.KpiExportData, error) {
 
 	type kpiHeader struct {
@@ -1503,7 +1510,7 @@ func (r *penyusunanKpiRepo) GetKpiExportData(
 		Triwulan string `gorm:"column:triwulan"`
 	}
 	var header kpiHeader
-	if err := r.db.Raw(queryGetKpiBaseData, idPengajuan).Scan(&header).Error; err != nil {
+	if err := r.db.Raw(queryGetKpiBaseDataForExport, idPengajuan, kostl, tahun, triwulan).Scan(&header).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil header KPI: %w", err)
 	}
 
@@ -1514,7 +1521,7 @@ func (r *penyusunanKpiRepo) GetKpiExportData(
 		Capping       string `gorm:"column:capping"`
 	}
 	var rawRows []subDetailRaw
-	if err := r.db.Raw(queryGetSubDetailForExport, idPengajuan).Scan(&rawRows).Error; err != nil {
+	if err := r.db.Raw(queryGetSubDetailForExport, idPengajuan, kostl, tahun, triwulan).Scan(&rawRows).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil sub detail KPI untuk ekspor: %w", err)
 	}
 

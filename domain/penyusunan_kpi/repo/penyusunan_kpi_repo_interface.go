@@ -91,7 +91,7 @@ type (
 		) (*model.DataKpi, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /get-pdf.
-		GetKpiExportData(idPengajuan string) (*dto.KpiExportData, error)
+		GetKpiExportData(idPengajuan, kostl, tahun, triwulan string) (*dto.KpiExportData, error)
 
 		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
 		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error)

@@ -236,11 +236,17 @@ type GetDetailPenyusunanKpiRequest struct {
 // GetExcelPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-excel.
 type GetExcelPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+	Kostl       string `json:"kostl"        validate:"required"`
+	Tahun       string `json:"tahun"        validate:"required"`
+	Triwulan    string `json:"triwulan"     validate:"required"`
 }
 
 // GetPdfPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-pdf.
 type GetPdfPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+	Kostl       string `json:"kostl"        validate:"required"`
+	Tahun       string `json:"tahun"        validate:"required"`
+	Triwulan    string `json:"triwulan"     validate:"required"`
 }
 
 // =============================================================================
