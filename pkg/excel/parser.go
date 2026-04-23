@@ -324,7 +324,7 @@ func parseInternal(
 			KPI:                       colB,
 			SubKPI:                    colC,
 			Polarisasi:                colD,
-			Capping:                   colE,
+			Capping:                   strings.TrimSuffix(colE, "%"),
 			Bobot:                     bobot,
 			Glossary:                  colG,
 			TargetTriwulan:            colH,

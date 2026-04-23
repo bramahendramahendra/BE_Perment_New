@@ -511,7 +511,7 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 			row.KpiNama,                   // B: KPI
 			row.SubKpi,                    // C: Sub KPI
 			row.Polarisasi,                // D: Polarisasi
-			row.Capping,                   // E: Capping
+			row.Capping + "%",             // E: Capping
 			parseFloatOrString(row.Bobot), // F: Bobot
 			row.DeskripsiGlossary,         // G: Glossary
 			row.TargetTriwulan,            // H: Target Triwulanan
@@ -890,7 +890,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				row.KpiNama,                   // B: KPI
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
-				row.Capping,                   // E: Capping
+				row.Capping + "%",             // E: Capping
 				parseFloatOrString(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
@@ -912,7 +912,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				row.KpiNama,                   // B: KPI
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
-				row.Capping,                   // E: Capping
+				row.Capping + "%",             // E: Capping
 				parseFloatOrString(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
