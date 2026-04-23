@@ -144,17 +144,25 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 		}
 	}
 
+	_, _, _, kostlTx, _, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	if err != nil {
+		return data, err
+	}
+
 	if err = s.repo.CreatePenyusunanKpi(req); err != nil {
 		return data, err
 	}
 
-	ApprovalList := make([]dto.ApprovalUser, len(req.ApprovalList))
+	approvalList := make([]dto.ApprovalUserCreate, len(req.ApprovalList))
 	for i, a := range req.ApprovalList {
-		ApprovalList[i] = dto.ApprovalUser{Userid: a.Userid, Nama: a.Nama}
+		approvalList[i] = dto.ApprovalUserCreate{Userid: a.Userid, Nama: a.Nama, Posisi: a.Posisi}
 	}
 	data = dto.CreatePenyusunanKpiResponse{
 		IdPengajuan:  req.IdPengajuan,
-		ApprovalList: ApprovalList,
+		Divisi:       kostlTx,
+		Tahun:        req.Tahun,
+		Triwulan:     req.Triwulan,
+		ApprovalList: approvalList,
 	}
 
 	return data, nil
