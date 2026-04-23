@@ -43,8 +43,8 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		return data, err
 	}
 	if found {
-		// Status 70 = draft → boleh di-replace, selain itu ditolak sebagai duplikasi
-		if statusLama != 70 {
+		// Status 70 = draft, 71 = revisi → boleh di-replace, selain itu ditolak sebagai duplikasi
+		if statusLama != 70 && statusLama != 71 {
 			return data, &customErrors.BadRequestError{
 				Message: fmt.Sprintf(
 					"data KPI untuk tahun %s, triwulan %s, kostl %s sudah ada",

@@ -52,6 +52,22 @@ var columnsExtended = []string{
 // =============================================================================
 
 func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanKpiRequest) ([]byte, string, error) {
+	// Cek apakah data KPI untuk kombinasi tahun+triwulan+kostl sudah ada di DB.
+	// Status 70 (draft) dan 71 (tolakan) masih boleh download template baru karena data lama akan di-replace.
+	// Status selain itu berarti data sudah diproses → tolak.
+	status, found, err := s.repo.GetExistPenyusunanStatus(req.Tahun, req.Triwulan, req.Divisi.Kostl)
+	if err != nil {
+		return nil, "", err
+	}
+	if found && status != 70 && status != 71 {
+		return nil, "", &errors.BadRequestError{
+			Message: fmt.Sprintf(
+				"data KPI untuk tahun %s, triwulan %s, divisi %s sudah ada",
+				req.Tahun, req.Triwulan, req.Divisi.KostlTx,
+			),
+		}
+	}
+
 	// TW2 dan TW4 menggunakan format kolom A–U (extended).
 	// TW1 dan TW3 menggunakan format kolom A–O (base).
 	useExtended := req.Triwulan == "TW2" || req.Triwulan == "TW4"

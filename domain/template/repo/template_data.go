@@ -1,12 +1,22 @@
 package repo
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 
 	model "permen_api/domain/template/model"
 )
 
 const (
+	// queryGetExistPenyusunanStatus mengecek keberadaan record di data_kpi
+	// berdasarkan tahun, triwulan, dan kostl.
+	queryGetExistPenyusunanStatus = `
+		SELECT status
+		FROM data_kpi
+		WHERE tahun = ? AND triwulan = ? AND kostl = ?
+		LIMIT 1`
+
 	// GetKpiWithPolarisasiQuery mengambil semua KPI dari mst_kpi beserta polarisasi dari mst_polarisasi.
 	// LEFT JOIN digunakan agar mst_kpi yang rumus-nya tidak ada di mst_polarisasi tetap dimunculkan
 	// dengan kolom polarisasi bernilai string kosong (IFNULL).
@@ -91,6 +101,17 @@ const (
 		WHERE a.id_pengajuan = ?
 		ORDER BY a.id_sub_detail ASC`
 )
+
+func (r *templateRepo) GetExistPenyusunanStatus(tahun, triwulan, kostl string) (status int, found bool, err error) {
+	row := r.db.Raw(queryGetExistPenyusunanStatus, tahun, triwulan, kostl).Row()
+	if scanErr := row.Scan(&status); scanErr != nil {
+		if errors.Is(scanErr, sql.ErrNoRows) {
+			return 0, false, nil
+		}
+		return 0, false, fmt.Errorf("gagal mengecek data penyusunan KPI: %w", scanErr)
+	}
+	return status, true, nil
+}
 
 func (r *templateRepo) GetKpiWithPolarisasi() ([]*model.MstKpiPolarisasi, error) {
 	var templates []*model.MstKpiPolarisasi

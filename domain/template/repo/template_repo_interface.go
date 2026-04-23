@@ -18,6 +18,11 @@ type (
 		// dan data result/method/challenge (kolom P–U, hanya TW2/TW4).
 		GetRevisionPenyusunanKpiData(idPengajuan string) (*model.RevisionExcelData, error)
 
+		// GetExistPenyusunanStatus mengecek apakah sudah ada record di data_kpi
+		// berdasarkan tahun, triwulan, dan kostl.
+		// Mengembalikan status jika ditemukan, dan found=false jika tidak ada.
+		GetExistPenyusunanStatus(tahun, triwulan, kostl string) (status int, found bool, err error)
+
 		GetDB() *gorm.DB
 	}
 
