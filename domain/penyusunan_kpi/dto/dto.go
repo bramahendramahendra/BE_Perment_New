@@ -372,7 +372,7 @@ type GetDetailPenyusunanKpiResponse struct {
 	EntryValidasi  EntryUserValidasi    `json:"entry_validasi"`
 	ApprovalPosisi string               `json:"approval_posisi"`
 	ApprovalList   []ApprovalUserDetail `json:"approval_list"`
-	Catatan        string               `json:"catatan"`
+	Catatan        []CatatanTolakanEntry `json:"catatan"`
 	TotalKpi       int                  `json:"total_kpi"`
 	Kpi            []DataKpiDetail      `json:"kpi"`
 	TotalResult    int                  `json:"total_result"`
