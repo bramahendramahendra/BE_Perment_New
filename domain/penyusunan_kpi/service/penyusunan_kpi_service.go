@@ -340,11 +340,15 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	}
 
 	now := time.Now().Format("2006-01-02 15:04:05")
+	keterangan := ""
+	if len(req.Catatan) > 0 {
+		keterangan = req.Catatan[0].EntryNote
+	}
 	currentIdx := -1
 	for i := range approvalList {
 		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUser) && approvalList[i].Status == "" {
 			approvalList[i].Status = "approve"
-			approvalList[i].Keterangan = req.Catatan
+			approvalList[i].Keterangan = keterangan
 			approvalList[i].Waktu = now
 			currentIdx = i
 			break
@@ -427,11 +431,18 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	}
 
 	now := time.Now().Format("2006-01-02 15:04:05")
+	nowDisplay := time.Now().Format("02-01-2006 15:04:05")
+	entryUserFull := req.ApprovalUser + " - " + req.ApprovalName
+
+	keterangan := ""
+	if len(req.Catatan) > 0 {
+		keterangan = req.Catatan[0].EntryNote
+	}
 	found := false
 	for i := range approvalList {
 		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUser) && approvalList[i].Status == "" {
 			approvalList[i].Status = "reject"
-			approvalList[i].Keterangan = req.Catatan
+			approvalList[i].Keterangan = keterangan
 			approvalList[i].Waktu = now
 			found = true
 			break
@@ -446,7 +457,21 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		return data, fmt.Errorf("gagal serialize approval_list: %w", err)
 	}
 
-	if err = s.repo.RejectPenyusunanKpi(req.IdPengajuan, string(updatedJSON), req.Catatan, req.ApprovalUser); err != nil {
+	catatanTolakanEntries := make([]dto.CatatanTolakanEntry, 0, len(req.Catatan))
+	for _, c := range req.Catatan {
+		catatanTolakanEntries = append(catatanTolakanEntries, dto.CatatanTolakanEntry{
+			Fungsi:    c.Fungsi,
+			EntryUser: entryUserFull,
+			EntryTime: nowDisplay,
+			EntryNote: c.EntryNote,
+		})
+	}
+	catatanTolakanJSON, err := json.Marshal(catatanTolakanEntries)
+	if err != nil {
+		return data, fmt.Errorf("gagal serialize catatan_tolakan: %w", err)
+	}
+
+	if err = s.repo.RejectPenyusunanKpi(req.IdPengajuan, string(updatedJSON), string(catatanTolakanJSON), req.ApprovalUser); err != nil {
 		return data, err
 	}
 

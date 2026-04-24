@@ -1094,6 +1094,12 @@ func (r *penyusunanKpiRepo) GetAllApprovalPenyusunanKpi(
 			&h.EntryUser, &h.EntryName, &h.EntryTime,
 			&h.ApprovalPosisi, &h.ApprovalList,
 			&h.Status, &h.StatusDesc,
+			&h.EntryUserRealisasi, &h.EntryNameRealisasi, &h.EntryTimeRealisasi,
+			&h.ApprovalListRealisasi, &h.CatatanTolakan,
+			&h.TotalBobot, &h.TotalPencapaian,
+			&h.TotalBobotPengurang, &h.TotalPencapaianPost,
+			&h.EntryUserValidasi, &h.EntryNameValidasi, &h.EntryTimeValidasi,
+			&h.ApprovalListValidasi, &h.LampiranValidasi, &h.QualifierOverallValidasi,
 		); err != nil {
 			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
 		}

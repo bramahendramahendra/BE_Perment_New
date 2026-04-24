@@ -389,7 +389,7 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 	}
 	if !exists {
 		return nil, "", &errors.BadRequestError{
-			Message: fmt.Sprintf("data KPI  tahun '%s' triwulan '%s' dengan id pengajuan '%s' untuk divisi '%s', tidak ditemukan", req.IdPengajuan, req.Divisi.KostlTx, req.Tahun, req.Triwulan),
+			Message: fmt.Sprintf("data KPI  tahun '%s' triwulan '%s' dengan id pengajuan '%s' untuk divisi '%s', tidak ditemukan", req.Tahun, req.Triwulan, req.IdPengajuan, req.Divisi.KostlTx),
 		}
 	}
 
@@ -815,7 +815,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	}
 	if !exists {
 		return nil, "", &errors.BadRequestError{
-			Message: fmt.Sprintf("data KPI  tahun '%s' triwulan '%s' dengan id pengajuan '%s' untuk divisi '%s', tidak ditemukan", req.IdPengajuan, req.Divisi.KostlTx, req.Tahun, req.Triwulan),
+			Message: fmt.Sprintf("data KPI  tahun '%s' triwulan '%s' dengan id pengajuan '%s' untuk divisi '%s', tidak ditemukan", req.Tahun, req.Triwulan, req.IdPengajuan, req.Divisi.KostlTx),
 		}
 	}
 

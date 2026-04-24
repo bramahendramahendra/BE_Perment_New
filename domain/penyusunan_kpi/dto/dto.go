@@ -2,6 +2,20 @@ package dto
 
 import "permen_api/pkg/excel"
 
+// CatatanItem adalah item catatan pada request approve/reject.
+type CatatanItem struct {
+	Fungsi    string `json:"fungsi"     validate:"required"`
+	EntryNote string `json:"entry_note" validate:"required"`
+}
+
+// CatatanTolakanEntry adalah format JSON yang disimpan di kolom catatan_tolakan DB.
+type CatatanTolakanEntry struct {
+	Fungsi    string `json:"fungsi"`
+	EntryUser string `json:"entry_user"`
+	EntryTime string `json:"entry_time"`
+	EntryNote string `json:"entry_note"`
+}
+
 // =============================================================================
 // GENERAL DTO
 // =============================================================================
@@ -162,11 +176,11 @@ type RevisionPenyusunanKpiRequest struct {
 
 // ApprovePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/approve.
 type ApprovePenyusunanKpiRequest struct {
-	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Kostl       string `json:"kostl"        validate:"required"`
-	Tahun       string `json:"tahun"        validate:"required"`
-	Triwulan    string `json:"triwulan"     validate:"required"`
-	Catatan     string `json:"catatan"      validate:"required"`
+	IdPengajuan string        `json:"id_pengajuan" validate:"required"`
+	Kostl       string        `json:"kostl"        validate:"required"`
+	Tahun       string        `json:"tahun"        validate:"required"`
+	Triwulan    string        `json:"triwulan"     validate:"required"`
+	Catatan     []CatatanItem `json:"catatan"      validate:"required,min=1,dive"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	ApprovalUser string `json:"approval_user"`
@@ -175,11 +189,11 @@ type ApprovePenyusunanKpiRequest struct {
 
 // RejectPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiRequest struct {
-	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Kostl       string `json:"kostl"        validate:"required"`
-	Tahun       string `json:"tahun"        validate:"required"`
-	Triwulan    string `json:"triwulan"     validate:"required"`
-	Catatan     string `json:"catatan"      validate:"required"`
+	IdPengajuan string        `json:"id_pengajuan" validate:"required"`
+	Kostl       string        `json:"kostl"        validate:"required"`
+	Tahun       string        `json:"tahun"        validate:"required"`
+	Triwulan    string        `json:"triwulan"     validate:"required"`
+	Catatan     []CatatanItem `json:"catatan"      validate:"required,min=1,dive"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	ApprovalUser string `json:"approval_user"`
@@ -293,16 +307,16 @@ type RevisionPenyusunanKpiResponse struct {
 
 // ApprovePenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/approve.
 type ApprovePenyusunanKpiResponse struct {
-	IdPengajuan string `json:"id_pengajuan"`
-	Status      string `json:"status"`
-	Catatan     string `json:"catatan"`
+	IdPengajuan string        `json:"id_pengajuan"`
+	Status      string        `json:"status"`
+	Catatan     []CatatanItem `json:"catatan"`
 }
 
 // RejectPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiResponse struct {
-	IdPengajuan string `json:"id_pengajuan"`
-	Status      string `json:"status"`
-	Catatan     string `json:"catatan"`
+	IdPengajuan string        `json:"id_pengajuan"`
+	Status      string        `json:"status"`
+	Catatan     []CatatanItem `json:"catatan"`
 }
 
 // GetAllApprovalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-all-approval.

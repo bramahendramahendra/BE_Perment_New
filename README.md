@@ -103,14 +103,14 @@ Base URL: `http://localhost:8006/api`
 |--------|----------|------------|
 | POST | `/penyusunan-kpi/validate` | Validasi file Excel KPI | ✅
 | POST | `/penyusunan-kpi/create` | Simpan data KPI | ✅
-| POST | `/penyusunan-kpi/revision` | Revisi KPI (upload ulang) | 
+| POST | `/penyusunan-kpi/revision` | Revisi KPI (upload ulang) | ✅ Cek ULang code yang lama
 | POST | `/penyusunan-kpi/approve` | Approval disetujuai KPI | 
-| POST | `/penyusunan-kpi/reject` | Approval ditolak KPI | 
-| POST | `/penyusunan-kpi/get-all-approval` | Daftar KPI menunggu approval | 
-| POST | `/penyusunan-kpi/get-all-tolakan` | Daftar KPI yang ditolak | 
-| POST | `/penyusunan-kpi/get-all-daftar-penyusunan` | Daftar penyusunan KPI | 
-| POST | `/penyusunan-kpi/get-all-daftar-approval` | Daftar approval KPI | 
-| POST | `/penyusunan-kpi/get-detail` | Detail KPI | 
+| POST | `/penyusunan-kpi/reject` | Approval ditolak KPI | ✅ Cek ULang code yang lama
+| POST | `/penyusunan-kpi/get-all-approval` | Daftar KPI menunggu approval | ✅
+| POST | `/penyusunan-kpi/get-all-tolakan` | Daftar KPI yang ditolak | ✅
+| POST | `/penyusunan-kpi/get-all-daftar-penyusunan` | Daftar penyusunan KPI | ✅
+| POST | `/penyusunan-kpi/get-all-daftar-approval` | Daftar approval KPI | ✅
+| POST | `/penyusunan-kpi/get-detail` | Detail KPI | ✅
 | POST | `/penyusunan-kpi/get-excel` | Download KPI format Excel | 
 | POST | `/penyusunan-kpi/get-pdf` | Download KPI format PDF | 
 
@@ -121,7 +121,7 @@ Base URL: `http://localhost:8006/api`
 | Method | Endpoint | Keterangan |
 |--------|----------|------------|
 | POST | `/template/format-penyusunan-kpi` | Download template penyusunan KPI | ✅
-| POST | `/template/revision-penyusunan-kpi` | Download template revision KPI | 
+| POST | `/template/revision-penyusunan-kpi` | Download template revision KPI | ✅
 | POST | `/template/format-realisasi-kpi` | Download template realisasi KPI |
 
 ---
