@@ -263,7 +263,7 @@ const (
 	// status = 0 → langsung ke approval (tidak perlu draft lagi).
 	queryUpdateKpiRevision = `
 		UPDATE data_kpi
-		SET entry_time = ?, approval_list = ?, status = 0
+		SET entry_time = ?, approval_list = ?, approval_posisi = ?, status = 0
 		WHERE id_pengajuan = ?`
 
 	// =============================================================================
@@ -672,12 +672,17 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 		return fmt.Errorf("gagal parse approval_list: %w", err)
 	}
 
+	// Reset semua entry approval_list ke posisi awal
 	for i := range approvalList {
-		if approvalList[i].Userid == approvalPosisi {
-			approvalList[i].Status = ""
-			approvalList[i].Keterangan = ""
-			approvalList[i].Waktu = ""
-		}
+		approvalList[i].Status = ""
+		approvalList[i].Keterangan = ""
+		approvalList[i].Waktu = ""
+	}
+
+	// approval_posisi dikembalikan ke approver pertama dalam list
+	firstApprovalPosisi := approvalPosisi
+	if len(approvalList) > 0 {
+		firstApprovalPosisi = approvalList[0].Userid
 	}
 
 	updatedApprovalListBytes, err := json.Marshal(approvalList)
@@ -897,7 +902,7 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	// status = 0 → langsung ke approval
 	// -------------------------------------------------------------------------
 	if err := tx.Exec(queryUpdateKpiRevision,
-		req.EntryTime, updatedApprovalList, req.IdPengajuan,
+		req.EntryTime, updatedApprovalList, firstApprovalPosisi, req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal update data_kpi saat revision: %w", err)
