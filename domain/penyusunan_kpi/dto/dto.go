@@ -176,11 +176,11 @@ type RevisionPenyusunanKpiRequest struct {
 
 // ApprovePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/approve.
 type ApprovePenyusunanKpiRequest struct {
-	IdPengajuan string        `json:"id_pengajuan" validate:"required"`
-	Kostl       string        `json:"kostl"        validate:"required"`
-	Tahun       string        `json:"tahun"        validate:"required"`
-	Triwulan    string        `json:"triwulan"     validate:"required"`
-	Catatan     []CatatanItem `json:"catatan"      validate:"required,min=1,dive"`
+	IdPengajuan string      `json:"id_pengajuan" validate:"required"`
+	Kostl       string      `json:"kostl"        validate:"required"`
+	Tahun       string      `json:"tahun"        validate:"required"`
+	Triwulan    string      `json:"triwulan"     validate:"required"`
+	Catatan     CatatanItem `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	ApprovalUser string `json:"approval_user"`
@@ -189,11 +189,11 @@ type ApprovePenyusunanKpiRequest struct {
 
 // RejectPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiRequest struct {
-	IdPengajuan string        `json:"id_pengajuan" validate:"required"`
-	Kostl       string        `json:"kostl"        validate:"required"`
-	Tahun       string        `json:"tahun"        validate:"required"`
-	Triwulan    string        `json:"triwulan"     validate:"required"`
-	Catatan     []CatatanItem `json:"catatan"      validate:"required,min=1,dive"`
+	IdPengajuan string      `json:"id_pengajuan" validate:"required"`
+	Kostl       string      `json:"kostl"        validate:"required"`
+	Tahun       string      `json:"tahun"        validate:"required"`
+	Triwulan    string      `json:"triwulan"     validate:"required"`
+	Catatan     CatatanItem `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	ApprovalUser string `json:"approval_user"`
@@ -307,16 +307,16 @@ type RevisionPenyusunanKpiResponse struct {
 
 // ApprovePenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/approve.
 type ApprovePenyusunanKpiResponse struct {
-	IdPengajuan string        `json:"id_pengajuan"`
-	Status      string        `json:"status"`
-	Catatan     []CatatanItem `json:"catatan"`
+	IdPengajuan string      `json:"id_pengajuan"`
+	Status      string      `json:"status"`
+	Catatan     CatatanItem `json:"catatan"`
 }
 
 // RejectPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiResponse struct {
-	IdPengajuan string        `json:"id_pengajuan"`
-	Status      string        `json:"status"`
-	Catatan     []CatatanItem `json:"catatan"`
+	IdPengajuan string      `json:"id_pengajuan"`
+	Status      string      `json:"status"`
+	Catatan     CatatanItem `json:"catatan"`
 }
 
 // GetAllApprovalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-all-approval.

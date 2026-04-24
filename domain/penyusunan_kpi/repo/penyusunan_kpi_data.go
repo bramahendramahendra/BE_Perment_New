@@ -190,6 +190,10 @@ const (
 	queryGetApprovalListJSON = `
 		SELECT approval_list FROM data_kpi
 		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
+
+	queryGetCatatanTolakan = `
+		SELECT IFNULL(catatan_tolakan, '') FROM data_kpi
+		WHERE id_pengajuan = ? LIMIT 1`
 	// =============================================================================
 	// Insert
 	// =============================================================================
@@ -1016,6 +1020,15 @@ func (r *penyusunanKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (str
 		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
 	}
 	return approvalList, nil
+}
+
+func (r *penyusunanKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error) {
+	var val []byte
+	row := r.db.Raw(queryGetCatatanTolakan, idPengajuan).Row()
+	if err := row.Scan(&val); err != nil {
+		return "", err
+	}
+	return string(val), nil
 }
 
 // =============================================================================

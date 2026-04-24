@@ -340,10 +340,7 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	}
 
 	now := time.Now().Format("2006-01-02 15:04:05")
-	keterangan := ""
-	if len(req.Catatan) > 0 {
-		keterangan = req.Catatan[0].EntryNote
-	}
+	keterangan := req.Catatan.EntryNote
 	currentIdx := -1
 	for i := range approvalList {
 		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUser) && approvalList[i].Status == "" {
@@ -434,10 +431,7 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	nowDisplay := time.Now().Format("02-01-2006 15:04:05")
 	entryUserFull := req.ApprovalUser + " - " + req.ApprovalName
 
-	keterangan := ""
-	if len(req.Catatan) > 0 {
-		keterangan = req.Catatan[0].EntryNote
-	}
+	keterangan := req.Catatan.EntryNote
 	found := false
 	for i := range approvalList {
 		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUser) && approvalList[i].Status == "" {
@@ -457,15 +451,25 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		return data, fmt.Errorf("gagal serialize approval_list: %w", err)
 	}
 
-	catatanTolakanEntries := make([]dto.CatatanTolakanEntry, 0, len(req.Catatan))
-	for _, c := range req.Catatan {
-		catatanTolakanEntries = append(catatanTolakanEntries, dto.CatatanTolakanEntry{
-			Fungsi:    c.Fungsi,
-			EntryUser: entryUserFull,
-			EntryTime: nowDisplay,
-			EntryNote: c.EntryNote,
-		})
+	existingCatatanJSON, err := s.repo.GetCatatanTolakan(req.IdPengajuan)
+	if err != nil {
+		return data, fmt.Errorf("gagal membaca catatan_tolakan: %w", err)
 	}
+
+	var catatanTolakanEntries []dto.CatatanTolakanEntry
+	if existingCatatanJSON != "" && existingCatatanJSON != "null" {
+		if err = json.Unmarshal([]byte(existingCatatanJSON), &catatanTolakanEntries); err != nil {
+			return data, fmt.Errorf("gagal parse catatan_tolakan: %w", err)
+		}
+	}
+
+	catatanTolakanEntries = append(catatanTolakanEntries, dto.CatatanTolakanEntry{
+		Fungsi:    req.Catatan.Fungsi,
+		EntryUser: entryUserFull,
+		EntryTime: nowDisplay,
+		EntryNote: req.Catatan.EntryNote,
+	})
+
 	catatanTolakanJSON, err := json.Marshal(catatanTolakanEntries)
 	if err != nil {
 		return data, fmt.Errorf("gagal serialize catatan_tolakan: %w", err)
