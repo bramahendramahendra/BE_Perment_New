@@ -843,6 +843,18 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 	req *dto.GetExcelPenyusunanKpiRequest,
 ) ([]byte, string, error) {
+	_, _, _, _, _, _, status, statusDesc, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	if err != nil {
+		return nil, "", &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
+	if status == 0 || status == 1 {
+		return nil, "", &customErrors.BadRequestError{
+			Message: fmt.Sprintf("File tidak dapat diunduh, status pengajuan: %s", statusDesc),
+		}
+	}
+
 	exportData, err := s.repo.GetKpiExportData(req.IdPengajuan, req.Kostl, req.Tahun, req.Triwulan)
 	if err != nil {
 		return nil, "", err
@@ -863,6 +875,18 @@ func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 func (s *penyusunanKpiService) GetPdfPenyusunanKpi(
 	req *dto.GetPdfPenyusunanKpiRequest,
 ) ([]byte, string, error) {
+	_, _, _, _, _, _, status, statusDesc, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	if err != nil {
+		return nil, "", &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
+		}
+	}
+	if status == 0 || status == 1 {
+		return nil, "", &customErrors.BadRequestError{
+			Message: fmt.Sprintf("File tidak dapat diunduh, status pengajuan: %s", statusDesc),
+		}
+	}
+
 	exportData, err := s.repo.GetKpiExportData(req.IdPengajuan, req.Kostl, req.Tahun, req.Triwulan)
 	if err != nil {
 		return nil, "", err
