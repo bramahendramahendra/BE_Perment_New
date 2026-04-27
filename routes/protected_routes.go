@@ -76,6 +76,11 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.MasterKpiRoutes(r)
 
 	// =============================================
+	// DOMAIN: EDM
+	// =============================================
+	segment.EdmRoutes(r)
+
+	// =============================================
 	// ENDPOINT TESTING — hapus setelah verified ✅
 	// =============================================
 	r.POST("/health", func(c *gin.Context) {
