@@ -15,15 +15,9 @@ type (
 		// LookupPolarisasi mencari id_polarisasi dari mst_polarisasi.
 		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
 
-		// CheckExistPenyusunan mengecek apakah data KPI sudah ada untuk tahun/triwulan/kostl.
-		CheckExistPenyusunan(tahun, triwulan, kostl string) (bool, error)
-
 		// GetExistPenyusunanStatus mengecek keberadaan data KPI dan mengembalikan id_pengajuan + status.
 		// Mengembalikan found=false jika tidak ada data.
 		GetExistPenyusunanStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error)
-
-		// CheckExistIdPengajuan mengecek apakah id_pengajuan, kostl, tahun, dan triwulan cocok di DB.
-		CheckExistIdPengajuan(idPengajuan, kostl, tahun, triwulan string) (bool, error)
 
 		// CheckApprovalExists mengecek apakah user adalah approval_posisi aktif (status=0) untuk id_pengajuan.
 		CheckApprovalExists(user, idPengajuan string) (bool, error)
@@ -95,7 +89,7 @@ type (
 		GetKpiExportData(idPengajuan, kostl, tahun, triwulan string) (*dto.KpiExportData, error)
 
 		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
-		GetExistDataKpi(idPengajuan string) (*model.KpiHeader, error)
+		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
 
 		GetDB() *gorm.DB
 	}
