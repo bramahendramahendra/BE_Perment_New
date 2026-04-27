@@ -14,15 +14,15 @@ import (
 
 type mockDB struct {
 	// rawResults memetakan query prefix ke nilai yang akan di-scan ke dest.
-	rawResults map[string]interface{}
+	rawResults map[string]any
 	rawErr     error
 	execErr    error
 
 	capturedExecQuery string
-	capturedExecArgs  []interface{}
+	capturedExecArgs  []any
 }
 
-func (m *mockDB) RawScan(query string, dest interface{}, args ...interface{}) error {
+func (m *mockDB) RawScan(query string, dest any, args ...any) error {
 	if m.rawErr != nil {
 		return m.rawErr
 	}
@@ -47,7 +47,7 @@ func (m *mockDB) RawScan(query string, dest interface{}, args ...interface{}) er
 	return nil
 }
 
-func (m *mockDB) Exec(query string, args ...interface{}) error {
+func (m *mockDB) Exec(query string, args ...any) error {
 	m.capturedExecQuery = query
 	m.capturedExecArgs = args
 	return m.execErr
@@ -65,7 +65,7 @@ func newTestClient(db DBQuerier, httpClient *http.Client) *edmClient {
 	}
 }
 
-func newMockServer(responseBody interface{}, statusCode int) *httptest.Server {
+func newMockServer(responseBody any, statusCode int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
@@ -78,13 +78,13 @@ func newMockServer(responseBody interface{}, statusCode int) *httptest.Server {
 // =============================================================================
 
 func TestGetToken_Success(t *testing.T) {
-	srv := newMockServer(map[string]interface{}{
+	srv := newMockServer(map[string]any{
 		"access_token": "token-abc123",
 	}, http.StatusOK)
 	defer srv.Close()
 
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
 				Userid:   "client-id",
 				Userpass: "client-secret",
@@ -122,13 +122,13 @@ func TestGetToken_ParamDBError(t *testing.T) {
 }
 
 func TestGetToken_EDMReturnError(t *testing.T) {
-	srv := newMockServer(map[string]interface{}{
+	srv := newMockServer(map[string]any{
 		"error": "invalid_client",
 	}, http.StatusOK)
 	defer srv.Close()
 
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
 				Userid: "x", Userpass: "y", Userurl: srv.URL,
 			},
@@ -144,13 +144,13 @@ func TestGetToken_EDMReturnError(t *testing.T) {
 }
 
 func TestGetToken_MissingAccessToken(t *testing.T) {
-	srv := newMockServer(map[string]interface{}{
+	srv := newMockServer(map[string]any{
 		"message": "ok",
 	}, http.StatusOK)
 	defer srv.Close()
 
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
 				Userid: "x", Userpass: "y", Userurl: srv.URL,
 			},
@@ -166,13 +166,13 @@ func TestGetToken_MissingAccessToken(t *testing.T) {
 }
 
 func TestGetToken_SaveToDB_Error(t *testing.T) {
-	srv := newMockServer(map[string]interface{}{
+	srv := newMockServer(map[string]any{
 		"access_token": "token-xyz",
 	}, http.StatusOK)
 	defer srv.Close()
 
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
 				Userid: "x", Userpass: "y", Userurl: srv.URL,
 			},
@@ -193,16 +193,16 @@ func TestGetToken_SaveToDB_Error(t *testing.T) {
 // =============================================================================
 
 func TestGetDataKPI_Success(t *testing.T) {
-	srv := newMockServer(map[string]interface{}{
+	srv := newMockServer(map[string]any{
 		"success": true,
-		"data": []interface{}{
-			map[string]interface{}{"id_kpi": "KPI-001", "nilai": 95.5},
+		"data": []any{
+			map[string]any{"id_kpi": "KPI-001", "nilai": 95.5},
 		},
 	}, http.StatusOK)
 	defer srv.Close()
 
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			// token masih valid (count = 0 expired)
 			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
 			// token dari cache
@@ -226,14 +226,14 @@ func TestGetDataKPI_Success(t *testing.T) {
 }
 
 func TestGetDataKPI_SuccessFalse(t *testing.T) {
-	srv := newMockServer(map[string]interface{}{
+	srv := newMockServer(map[string]any{
 		"success": false,
 		"message": "data tidak ditemukan",
 	}, http.StatusOK)
 	defer srv.Close()
 
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
 			"SELECT token FROM param_token_edm LIMIT 1": "cached-token",
 			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
@@ -251,14 +251,14 @@ func TestGetDataKPI_SuccessFalse(t *testing.T) {
 }
 
 func TestGetDataKPI_EmptyData(t *testing.T) {
-	srv := newMockServer(map[string]interface{}{
+	srv := newMockServer(map[string]any{
 		"success": true,
-		"data":    []interface{}{},
+		"data":    []any{},
 	}, http.StatusOK)
 	defer srv.Close()
 
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
 			"SELECT token FROM param_token_edm LIMIT 1": "cached-token",
 			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
@@ -277,21 +277,21 @@ func TestGetDataKPI_EmptyData(t *testing.T) {
 
 func TestGetDataKPI_TokenExpired_RefreshSuccess(t *testing.T) {
 	// Server untuk GetToken
-	tokenSrv := newMockServer(map[string]interface{}{
+	tokenSrv := newMockServer(map[string]any{
 		"access_token": "new-token",
 	}, http.StatusOK)
 	defer tokenSrv.Close()
 
 	// Server untuk GetDataKPI
-	dataSrv := newMockServer(map[string]interface{}{
+	dataSrv := newMockServer(map[string]any{
 		"success": true,
-		"data":    []interface{}{map[string]interface{}{"id": "KPI-001"}},
+		"data":    []any{map[string]any{"id": "KPI-001"}},
 	}, http.StatusOK)
 	defer dataSrv.Close()
 
 	callCount := 0
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			// token expired
 			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(1),
 		},
@@ -329,7 +329,7 @@ func TestGetDataKPI_TokenExpired_RefreshSuccess(t *testing.T) {
 
 func TestGetOrRefreshToken_UseCachedToken(t *testing.T) {
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
 			"SELECT token FROM param_token_edm LIMIT 1": "cached-token-xyz",
 		},
@@ -347,13 +347,13 @@ func TestGetOrRefreshToken_UseCachedToken(t *testing.T) {
 }
 
 func TestGetOrRefreshToken_EmptyCache_Refresh(t *testing.T) {
-	srv := newMockServer(map[string]interface{}{
+	srv := newMockServer(map[string]any{
 		"access_token": "refreshed-token",
 	}, http.StatusOK)
 	defer srv.Close()
 
 	db := &mockDB{
-		rawResults: map[string]interface{}{
+		rawResults: map[string]any{
 			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
 			"SELECT token FROM param_token_edm LIMIT 1": "",
 			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
@@ -384,7 +384,7 @@ type sequentialMockDB struct {
 	execErr        error
 }
 
-func (s *sequentialMockDB) RawScan(query string, dest interface{}, args ...interface{}) error {
+func (s *sequentialMockDB) RawScan(query string, dest any, args ...any) error {
 	switch d := dest.(type) {
 	case *int64:
 		*d = s.expiredCount
@@ -400,6 +400,6 @@ func (s *sequentialMockDB) RawScan(query string, dest interface{}, args ...inter
 	return nil
 }
 
-func (s *sequentialMockDB) Exec(query string, args ...interface{}) error {
+func (s *sequentialMockDB) Exec(query string, args ...any) error {
 	return s.execErr
 }

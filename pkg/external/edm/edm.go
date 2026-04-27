@@ -21,20 +21,21 @@ const (
 // DBQuerier abstraksi operasi DB yang dibutuhkan EdmClient.
 // Memudahkan unit testing tanpa koneksi database nyata.
 type DBQuerier interface {
-	RawScan(query string, dest interface{}, args ...interface{}) error
-	Exec(query string, args ...interface{}) error
+	RawScan(query string, dest any, args ...any) error
+	Exec(query string, args ...any) error
 }
 
 type (
 	EdmClient interface {
 		GetToken() (string, error)
-		GetDataKPI(tahun, triwulan, idKPI string) (interface{}, error)
+		GetDataKPI(tahun, triwulan, idKPI string) (any, error)
 	}
 
 	edmClient struct {
-		db         DBQuerier
-		httpClient *http.Client
-		debug      bool
+		db          DBQuerier
+		httpClient  *http.Client
+		debug       bool
+		useFallback bool
 	}
 
 	paramRow struct {
@@ -49,13 +50,18 @@ type gormQuerier struct {
 	db *gorm.DB
 }
 
-func (g *gormQuerier) RawScan(query string, dest interface{}, args ...interface{}) error {
+func (g *gormQuerier) RawScan(query string, dest any, args ...any) error {
 	return g.db.Raw(query, args...).Scan(dest).Error
 }
 
-func (g *gormQuerier) Exec(query string, args ...interface{}) error {
+func (g *gormQuerier) Exec(query string, args ...any) error {
 	return g.db.Exec(query, args...).Error
 }
+
+// DUMMY MODE — ubah nilai konstanta di bawah untuk mengaktifkan/menonaktifkan data dummy.
+// true  = pakai data dummy (gunakan saat EDM external sedang dalam perbaikan/pengembangan)
+// false = call EDM API beneran (gunakan saat EDM external sudah siap)
+const useFallback = false
 
 func New(db *gorm.DB, debug bool) EdmClient {
 	return &edmClient{
@@ -66,18 +72,23 @@ func New(db *gorm.DB, debug bool) EdmClient {
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			},
 		},
-		debug: debug,
+		debug:       debug,
+		useFallback: useFallback, // dikontrol oleh konstanta di atas
 	}
 }
 
 // GetToken mengambil token baru dari EDM dan menyimpannya ke param_token_edm.
 func (c *edmClient) GetToken() (string, error) {
+	// [DUMMY] kembalikan token dummy jika fallback aktif
+	if c.useFallback {
+		return "dummy-token", nil
+	}
 	param, err := c.getParam(vendorGetToken)
 	if err != nil {
 		return "", fmt.Errorf("gagal ambil param %s: %w", vendorGetToken, err)
 	}
 
-	body := map[string]interface{}{
+	body := map[string]any{
 		"client_id":     param.Userid,
 		"client_secret": param.Userpass,
 		"grant_type":    "client_credentials",
@@ -109,7 +120,11 @@ func (c *edmClient) GetToken() (string, error) {
 }
 
 // GetDataKPI mengambil data KPI dari EDM berdasarkan tahun, triwulan, dan ID KPI.
-func (c *edmClient) GetDataKPI(tahun, triwulan, idKPI string) (interface{}, error) {
+func (c *edmClient) GetDataKPI(tahun, triwulan, idKPI string) (any, error) {
+	// [DUMMY] kembalikan data dummy jika fallback aktif
+	if c.useFallback {
+		return dummyDataKPI(tahun, triwulan, idKPI), nil
+	}
 	token, err := c.getOrRefreshToken()
 	if err != nil {
 		return nil, err
@@ -120,7 +135,7 @@ func (c *edmClient) GetDataKPI(tahun, triwulan, idKPI string) (interface{}, erro
 		return nil, fmt.Errorf("gagal ambil param %s: %w", vendorGetDataKPI, err)
 	}
 
-	body := map[string]interface{}{
+	body := map[string]any{
 		"TAHUN":   tahun,
 		"KUARTAL": triwulan,
 		"ID_KPI":  idKPI,
@@ -136,7 +151,7 @@ func (c *edmClient) GetDataKPI(tahun, triwulan, idKPI string) (interface{}, erro
 		return nil, fmt.Errorf("EDM GetDataKPI mengembalikan success=false")
 	}
 
-	dataArr, ok := result["data"].([]interface{})
+	dataArr, ok := result["data"].([]any)
 	if !ok || len(dataArr) == 0 {
 		return nil, fmt.Errorf("data EDM kosong atau tidak valid")
 	}
@@ -178,7 +193,7 @@ func (c *edmClient) getParam(vendor string) (paramRow, error) {
 }
 
 // post melakukan HTTP POST ke url dengan JSON body dan optional Bearer token.
-func (c *edmClient) post(url, token string, body map[string]interface{}) (map[string]interface{}, error) {
+func (c *edmClient) post(url, token string, body map[string]any) (map[string]any, error) {
 	bodyBytes, _ := json.Marshal(body)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
@@ -200,7 +215,7 @@ func (c *edmClient) post(url, token string, body map[string]interface{}) (map[st
 	}
 	defer resp.Body.Close()
 
-	var result map[string]interface{}
+	var result map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("gagal decode response EDM: %w", err)
 	}
@@ -210,4 +225,19 @@ func (c *edmClient) post(url, token string, body map[string]interface{}) (map[st
 	}
 
 	return result, nil
+}
+
+// dummyDataKPI mengembalikan data KPI statis untuk keperluan pengembangan
+// saat server EDM external sedang dalam perbaikan.
+func dummyDataKPI(tahun, triwulan, idKPI string) any {
+	return map[string]any{
+		"ID_KPI":          idKPI,
+		"TAHUN":           tahun,
+		"KUARTAL":         triwulan,
+		"NAMA_KPI":        "Dummy KPI (Fallback Mode)",
+		"NILAI_TARGET":    100.0,
+		"NILAI_REALISASI": 1234567.89,
+		"SATUAN":          "-",
+		"KETERANGAN":      "Data dummy — EDM external sedang dalam perbaikan",
+	}
 }

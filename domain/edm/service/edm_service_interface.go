@@ -19,6 +19,6 @@ type (
 
 func NewEdmService(db *gorm.DB) *edmService {
 	return &edmService{
-		edm: edm.New(db, false),
+		edm: edm.New(db, false), // debug: false
 	}
 }
