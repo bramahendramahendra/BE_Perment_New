@@ -2,6 +2,7 @@ package service
 
 import (
 	dto "permen_api/domain/edm/dto"
+	edm "permen_api/pkg/external/edm"
 
 	"gorm.io/gorm"
 )
@@ -12,10 +13,12 @@ type (
 	}
 
 	edmService struct {
-		db *gorm.DB
+		edm edm.EdmClient
 	}
 )
 
 func NewEdmService(db *gorm.DB) *edmService {
-	return &edmService{db: db}
+	return &edmService{
+		edm: edm.New(db, false),
+	}
 }
