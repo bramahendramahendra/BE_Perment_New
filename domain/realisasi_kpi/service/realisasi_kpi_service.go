@@ -610,6 +610,16 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 		approvalListRealisasi = []dto.ApprovalUserRealisasiDetail{}
 	}
 
+	var catatanList []dto.CatatanTolakanEntry
+	if dataDB.CatatanTolakan != "" && dataDB.CatatanTolakan != "null" {
+		if err = json.Unmarshal([]byte(dataDB.CatatanTolakan), &catatanList); err != nil {
+			return nil, fmt.Errorf("gagal parse catatan_tolakan: %w", err)
+		}
+	}
+	if catatanList == nil {
+		catatanList = []dto.CatatanTolakanEntry{}
+	}
+
 	kpiList := make([]dto.DataKpiDetail, len(dataDB.Kpi))
 	for i, v := range dataDB.Kpi {
 		subDetails := make([]dto.DataKpiSubdetail, len(v.KpiSubDetail))
@@ -721,7 +731,7 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 		},
 		ApprovalPosisi:        dataDB.ApprovalPosisi,
 		ApprovalListRealisasi: approvalListRealisasi,
-		Catatan:               dataDB.CatatanTolakan,
+		Catatan:               catatanList,
 		TotalBobot:            dataDB.TotalBobot,
 		TotalPencapaian:       dataDB.TotalPencapaian,
 		TotalKpi:              dataDB.TotalKpi,

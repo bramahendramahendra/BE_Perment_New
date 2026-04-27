@@ -199,9 +199,7 @@ const (
 			IFNULL(a.total_bobot, '')              total_bobot,
 			IFNULL(a.total_pencapaian, '')         total_pencapaian
 		FROM data_kpi a
-		INNER JOIN mst_status b ON a.status = b.id_status
-		WHERE a.id_pengajuan = ?
-		LIMIT 1`
+		INNER JOIN mst_status b ON a.status = b.id_status`
 
 	queryGetDetailKpiList = `
 		SELECT
@@ -234,13 +232,13 @@ const (
 			IFNULL(a.target_qualifier, '')                target_qualifier,
 			IFNULL(a.id_keterangan_project, '')           id_keterangan_project,
 			IFNULL(c.keterangan_project, '')              keterangan_project,
-			IFNULL(a.realisasi, '')                       realisasi,
-			IFNULL(a.realisasi_kuantitatif, 0)            realisasi_kuantitatif,
-			IFNULL(a.realisasi_keterangan, '')            realisasi_keterangan,
-			IFNULL(a.realisasi_validated, '')             realisasi_validated,
-			IFNULL(a.realisasi_kuantitatif_validated, '') realisasi_kuantitatif_validated,
-			IFNULL(a.pencapaian, 0)                       pencapaian,
-			IFNULL(a.skor, 0)                             skor,
+			IFNULL(a.realisasi, '')                            realisasi,
+			COALESCE(NULLIF(a.realisasi_kuantitatif, ''), 0)  realisasi_kuantitatif,
+			IFNULL(a.realisasi_keterangan, '')                realisasi_keterangan,
+			IFNULL(a.realisasi_validated, '')                 realisasi_validated,
+			IFNULL(a.realisasi_kuantitatif_validated, '')     realisasi_kuantitatif_validated,
+			COALESCE(NULLIF(a.pencapaian, ''), 0)             pencapaian,
+			COALESCE(NULLIF(a.skor, ''), 0)                   skor,
 			IFNULL(a.realisasi_qualifier, '')             realisasi_qualifier,
 			IFNULL(a.realisasi_kuantitatif_qualifier, '') realisasi_kuantitatif_qualifier
 		FROM data_kpi_subdetail a
@@ -1230,10 +1228,21 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 ) (*model.DataKpi, error) {
 
 	// =========================================================================
+	// BUILD DYNAMIC WHERE
+	// =========================================================================
+	conditions := []string{
+		"a.id_pengajuan = ?",
+	}
+	args := []interface{}{req.IdPengajuan}
+
+	where := " WHERE " + strings.Join(conditions, " AND ")
+
+	// =========================================================================
 	// QUERY HEADER
 	// =========================================================================
 	var result model.DataKpi
-	if err := r.db.Raw(queryGetDetailHeader, req.IdPengajuan).Scan(&result).Error; err != nil {
+	headerQuery := queryGetDetailHeader + where + " LIMIT 1"
+	if err := r.db.Raw(headerQuery, args...).Scan(&result).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil detail realisasi KPI: %w", err)
 	}
 

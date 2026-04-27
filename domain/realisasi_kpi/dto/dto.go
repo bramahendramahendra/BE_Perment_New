@@ -51,6 +51,13 @@ type ApprovalUserRealisasiDetail struct {
 	Waktu      string `json:"waktu"`
 }
 
+type CatatanTolakanEntry struct {
+	Fungsi    string `json:"fungsi"`
+	EntryUser string `json:"entry_user"`
+	EntryTime string `json:"entry_time"`
+	EntryNote string `json:"entry_note"`
+}
+
 type DataKpiDetail struct {
 	IdDetail            string             `json:"id_detail"`
 	IdKpi               string             `json:"id_kpi"`
@@ -374,7 +381,7 @@ type GetDetailRealisasiKpiResponse struct {
 	EntryValidasi         EntryUserValidasi             `json:"entry_validasi"`
 	ApprovalPosisi        string                        `json:"approval_posisi"`
 	ApprovalListRealisasi []ApprovalUserRealisasiDetail `json:"approval_list_realisasi"`
-	Catatan               string                        `json:"catatan"`
+	Catatan               []CatatanTolakanEntry         `json:"catatan"`
 	TotalBobot            string                        `json:"total_bobot"`
 	TotalPencapaian       string                        `json:"total_pencapaian"`
 	TotalKpi              int                           `json:"total_kpi"`

@@ -416,7 +416,7 @@ func (h *PenyusunanKpiHandler) GetDetailPenyusunanKpi(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
 		Status:  true,
-		Message: "Detail KPI berhasil diambil",
+		Message: "Data detail Penyusunan KPI berhasil diambil",
 		Data:    data,
 	})
 }
