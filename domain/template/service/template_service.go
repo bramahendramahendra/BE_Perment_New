@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 
 	dto "permen_api/domain/template/dto"
 	"permen_api/errors"
@@ -782,16 +783,6 @@ var columnsRealisasiBase = []string{
 	"Realisasi Qualifier Kuantitatif",
 }
 
-// columnsRealisasiExtendedTW13 adalah header kolom N–S (khusus TW1 dan TW3).
-var columnsRealisasiExtendedTW13 = []string{
-	"Result",
-	"Deskripsi Result",
-	"Process",
-	"Deskripsi Process",
-	"Context",
-	"Deskripsi Context",
-}
-
 // columnsRealisasiExtendedTW24 adalah header kolom N–Y (khusus TW2 dan TW4).
 var columnsRealisasiExtendedTW24 = []string{
 	"Result",
@@ -838,12 +829,11 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	}
 
 	// Gabungkan header kolom sesuai triwulan
+	// TW1/TW3 hanya A–M; TW2/TW4 diperluas hingga Y
 	allColumns := make([]string, len(columnsRealisasiBase))
 	copy(allColumns, columnsRealisasiBase)
 	if isTW24 {
 		allColumns = append(allColumns, columnsRealisasiExtendedTW24...)
-	} else {
-		allColumns = append(allColumns, columnsRealisasiExtendedTW13...)
 	}
 
 	// -------------------------------------------------------------------------
@@ -881,6 +871,26 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style data: %v", err)}
 	}
 
+	// Style kuning untuk sel yang datanya berasal dari DB (penyusunan KPI)
+	styleDBData, err := f.NewStyle(&excelize.Style{
+		Protection: &excelize.Protection{
+			Locked: true,
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"FFFF00"},
+			Pattern: 1,
+		},
+		Border: borderStyle(),
+		Alignment: &excelize.Alignment{
+			Vertical: "top",
+			WrapText: true,
+		},
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style DB data: %v", err)}
+	}
+
 	// -------------------------------------------------------------------------
 	// Row 1: Header kolom (data mulai row 2)
 	// -------------------------------------------------------------------------
@@ -901,7 +911,19 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	// -------------------------------------------------------------------------
 	// Row 2+: Tulis data baris dari DB
 	// -------------------------------------------------------------------------
-	lastColIdx := len(allColumns)
+
+	// dbColSet: indeks kolom (0-based) yang datanya dari DB → warna kuning
+	// TW1/TW3: B–I (idx 1–8)
+	// TW2/TW4: B–I (idx 1–8) + N,O (13,14) + R,S (17,18) + V,W (21,22)
+	dbColSet := map[int]bool{1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true}
+	if isTW24 {
+		dbColSet[13] = true
+		dbColSet[14] = true
+		dbColSet[17] = true
+		dbColSet[18] = true
+		dbColSet[21] = true
+		dbColSet[22] = true
+	}
 
 	for rowIdx, row := range excelData.Rows {
 		rowNum := realisasiDataStartRow + rowIdx
@@ -941,12 +963,6 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
 				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
 				"", "", "", "", // J–M: kosong (diisi user)
-				row.NamaResult,       // N: Result
-				row.DeskripsiResult,  // O: Deskripsi Result
-				row.NamaProcess,      // P: Process
-				row.DeskripsiProcess, // Q: Deskripsi Process
-				row.NamaContext,      // R: Context
-				row.DeskripsiContext, // S: Deskripsi Context
 			}
 		}
 
@@ -957,7 +973,11 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 					Message: fmt.Sprintf("gagal set nilai baris %d kolom %d: %v", rowNum, colIdx+1, err),
 				}
 			}
-			if err := f.SetCellStyle(sheetName, cellName, cellName, styleData); err != nil {
+			cellStyle := styleData
+			if dbColSet[colIdx] {
+				cellStyle = styleDBData
+			}
+			if err := f.SetCellStyle(sheetName, cellName, cellName, cellStyle); err != nil {
 				return nil, "", &errors.InternalServerError{
 					Message: fmt.Sprintf("gagal set style baris %d kolom %d: %v", rowNum, colIdx+1, err),
 				}
@@ -965,17 +985,46 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		}
 	}
 
-	// Pre-fill style baris kosong setelah data
-	lastDataRow := realisasiDataStartRow + len(excelData.Rows)
-	for rowIdx := lastDataRow; rowIdx <= realisasiDataEndRow; rowIdx++ {
-		for colIdx := 1; colIdx <= lastColIdx; colIdx++ {
-			cellName, _ := excelize.CoordinatesToCellName(colIdx, rowIdx)
-			if err := f.SetCellStyle(sheetName, cellName, cellName, styleData); err != nil {
-				return nil, "", &errors.InternalServerError{
-					Message: fmt.Sprintf("gagal set pre-fill style baris %d kolom %d: %v", rowIdx, colIdx, err),
-				}
-			}
-		}
+	// -------------------------------------------------------------------------
+	// Legenda warna kuning di bawah tabel
+	// -------------------------------------------------------------------------
+	legendRow := realisasiDataStartRow + len(excelData.Rows) + 1
+
+	styleYellowLegend, err := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"FFFF00"},
+			Pattern: 1,
+		},
+		Border: borderStyle(),
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style legenda kuning: %v", err)}
+	}
+	styleTextLegend, err := f.NewStyle(&excelize.Style{
+		Border: borderStyle(),
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+			WrapText: true,
+		},
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style teks legenda: %v", err)}
+	}
+
+	legendColorCell, _ := excelize.CoordinatesToCellName(1, legendRow)
+	legendTextCell, _ := excelize.CoordinatesToCellName(2, legendRow)
+	if err := f.SetCellValue(sheetName, legendColorCell, ""); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set legenda warna: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, legendColorCell, legendColorCell, styleYellowLegend); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style legenda warna: %v", err)}
+	}
+	if err := f.SetCellValue(sheetName, legendTextCell, "Data yang didapat dari penyusunan KPI"); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set teks legenda: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, legendTextCell, legendTextCell, styleTextLegend); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style teks legenda: %v", err)}
 	}
 
 	// -------------------------------------------------------------------------
@@ -1101,13 +1150,6 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		colWidths["W"] = 30 // Deskripsi Context
 		colWidths["X"] = 25 // Realisasi Context
 		colWidths["Y"] = 25 // Link Context
-	} else {
-		colWidths["N"] = 25 // Result
-		colWidths["O"] = 30 // Deskripsi Result
-		colWidths["P"] = 25 // Process
-		colWidths["Q"] = 30 // Deskripsi Process
-		colWidths["R"] = 25 // Context
-		colWidths["S"] = 30 // Deskripsi Context
 	}
 	for col, width := range colWidths {
 		if err := f.SetColWidth(sheetName, col, col, width); err != nil {
@@ -1141,7 +1183,8 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	//   TW2/TW4 : tambah P (Realisasi Result), Q (Link Result),
 	//             T (Realisasi Process), U (Link Process),
 	//             X (Realisasi Context), Y (Link Context)
-	userInputCols := []string{"J", "K", "L", "M"}
+	// L dan M dikecualikan dari range unlock massal — diproses per-baris
+	userInputCols := []string{"J", "K"}
 	if isTW24 {
 		userInputCols = append(userInputCols, "P", "Q", "T", "U", "X", "Y")
 	}
@@ -1149,7 +1192,6 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	// Jumlah baris data aktual dari DB (baris 2 s.d. lastDataRow-1)
 	totalDataRows := len(excelData.Rows)
 	if totalDataRows > 0 {
-		// Style "unlocked" untuk sel input user
 		styleUnlocked, err := f.NewStyle(&excelize.Style{
 			Protection: &excelize.Protection{
 				Locked: false,
@@ -1164,12 +1206,57 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 			return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style unlocked: %v", err)}
 		}
 
+		// Style merah terkunci untuk L/M ketika qualifier tidak berlaku
+		styleLockedRed, err := f.NewStyle(&excelize.Style{
+			Protection: &excelize.Protection{
+				Locked: true,
+			},
+			Fill: excelize.Fill{
+				Type:    "pattern",
+				Color:   []string{"FF0000"},
+				Pattern: 1,
+			},
+			Border: borderStyle(),
+			Alignment: &excelize.Alignment{
+				Vertical:   "top",
+				Horizontal: "center",
+				WrapText:   true,
+			},
+		})
+		if err != nil {
+			return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style locked red: %v", err)}
+		}
+
 		dataEndRow := realisasiDataStartRow + totalDataRows - 1
+
+		// Unlock kolom J, K (dan TW2/TW4: P,Q,T,U,X,Y) secara massal
 		for _, col := range userInputCols {
 			rangeRef := fmt.Sprintf("%s%d:%s%d", col, realisasiDataStartRow, col, dataEndRow)
 			if err := f.SetCellStyle(sheetName, fmt.Sprintf("%s%d", col, realisasiDataStartRow),
 				fmt.Sprintf("%s%d", col, dataEndRow), styleUnlocked); err != nil {
 				return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style unlocked %s: %v", rangeRef, err)}
+			}
+		}
+
+		// Kolom L dan M diproses per-baris berdasarkan qualifier
+		for rowIdx, row := range excelData.Rows {
+			rowNum := realisasiDataStartRow + rowIdx
+			hasQualifier := strings.EqualFold(strings.TrimSpace(row.TerdapatQualifier), "ya")
+
+			for _, colNum := range []int{12, 13} { // L=12, M=13
+				cellName, _ := excelize.CoordinatesToCellName(colNum, rowNum)
+				if hasQualifier {
+					if err := f.SetCellStyle(sheetName, cellName, cellName, styleUnlocked); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style unlock L/M baris %d: %v", rowNum, err)}
+					}
+				} else {
+					if err := f.SetCellValue(sheetName, cellName, "-"); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set nilai - L/M baris %d: %v", rowNum, err)}
+					}
+					if err := f.SetCellStyle(sheetName, cellName, cellName, styleLockedRed); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style merah L/M baris %d: %v", rowNum, err)}
+					}
+				}
 			}
 		}
 	}

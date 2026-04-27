@@ -61,7 +61,8 @@ func (g *gormQuerier) Exec(query string, args ...any) error {
 // DUMMY MODE — ubah nilai konstanta di bawah untuk mengaktifkan/menonaktifkan data dummy.
 // true  = pakai data dummy (gunakan saat EDM external sedang dalam perbaikan/pengembangan)
 // false = call EDM API beneran (gunakan saat EDM external sudah siap)
-const useFallback = false
+// const useFallback = false
+const useFallback = true
 
 func New(db *gorm.DB, debug bool) EdmClient {
 	return &edmClient{
@@ -123,7 +124,7 @@ func (c *edmClient) GetToken() (string, error) {
 func (c *edmClient) GetDataKPI(tahun, triwulan, idKPI string) (any, error) {
 	// [DUMMY] kembalikan data dummy jika fallback aktif
 	if c.useFallback {
-		return dummyDataKPI(tahun, triwulan, idKPI), nil
+		return dummyDataKPI(), nil
 	}
 	token, err := c.getOrRefreshToken()
 	if err != nil {
@@ -229,15 +230,8 @@ func (c *edmClient) post(url, token string, body map[string]any) (map[string]any
 
 // dummyDataKPI mengembalikan data KPI statis untuk keperluan pengembangan
 // saat server EDM external sedang dalam perbaikan.
-func dummyDataKPI(tahun, triwulan, idKPI string) any {
+func dummyDataKPI() any {
 	return map[string]any{
-		"ID_KPI":          idKPI,
-		"TAHUN":           tahun,
-		"KUARTAL":         triwulan,
-		"NAMA_KPI":        "Dummy KPI (Fallback Mode)",
-		"NILAI_TARGET":    100.0,
-		"NILAI_REALISASI": 1234567.89,
-		"SATUAN":          "-",
-		"KETERANGAN":      "Data dummy — EDM external sedang dalam perbaikan",
+		"NILAI": 1234567.89,
 	}
 }
