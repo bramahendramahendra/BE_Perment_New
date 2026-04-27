@@ -1027,6 +1027,34 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style teks legenda: %v", err)}
 	}
 
+	// Legenda merah — kolom L/M tidak berlaku (tidak ada qualifier)
+	legendRedRow := legendRow + 1
+	styleRedLegend, err := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"FF0000"},
+			Pattern: 1,
+		},
+		Border: borderStyle(),
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style legenda merah: %v", err)}
+	}
+	legendRedColorCell, _ := excelize.CoordinatesToCellName(1, legendRedRow)
+	legendRedTextCell, _ := excelize.CoordinatesToCellName(2, legendRedRow)
+	if err := f.SetCellValue(sheetName, legendRedColorCell, ""); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set legenda merah: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, legendRedColorCell, legendRedColorCell, styleRedLegend); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style legenda merah: %v", err)}
+	}
+	if err := f.SetCellValue(sheetName, legendRedTextCell, "Kolom Realisasi Qualifier dan Realisasi Qualifier Kuantitatif tidak berlaku (tidak ada qualifier)"); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set teks legenda merah: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, legendRedTextCell, legendRedTextCell, styleTextLegend); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style teks legenda merah: %v", err)}
+	}
+
 	// -------------------------------------------------------------------------
 	// Data Validation
 	// -------------------------------------------------------------------------
