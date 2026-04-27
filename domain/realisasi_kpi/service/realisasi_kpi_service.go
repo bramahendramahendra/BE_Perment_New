@@ -29,6 +29,8 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 			Message: "file Excel tidak ditemukan, pastikan mengirim file via field 'files'",
 		}
 	}
+
+	// User error: format file salah
 	if !strings.HasSuffix(strings.ToLower(file.Filename), ".xlsx") {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("file '%s' bukan format Excel (.xlsx)", file.Filename),

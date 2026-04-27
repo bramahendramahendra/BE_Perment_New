@@ -16,23 +16,10 @@ import (
 
 const (
 	// =============================================================================
-	// Check
+	// Check Count
 	// =============================================================================
 
-	// Use func : ValidatePenyusunanKpi
-	queryCheckExistPenyusunan = `
-		SELECT COUNT(id_pengajuan)
-		FROM data_kpi
-		WHERE tahun = ? AND triwulan = ? AND kostl = ?`
-
-	// Use func : GetExistPenyusunanStatus
-	queryGetExistPenyusunanStatus = `
-		SELECT id_pengajuan, status
-		FROM data_kpi
-		WHERE tahun = ? AND triwulan = ? AND kostl = ?
-		LIMIT 1`
-
-	// Use func : RevisionPenyusunanKpi, CreatePenyusunanKpi
+	// Use func : CreatePenyusunanKpi
 	queryCheckExistIdPengajuan = `
 		SELECT COUNT(id_pengajuan)
 		FROM data_kpi
@@ -43,6 +30,17 @@ const (
 		SELECT COUNT(1)
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status`
+
+	// =============================================================================
+	// Check Data
+	// =============================================================================
+
+	// Use func : GetExistPenyusunanStatus
+	queryGetExistPenyusunanStatus = `
+		SELECT id_pengajuan, status
+		FROM data_kpi
+		WHERE tahun = ? AND triwulan = ? AND kostl = ?
+		LIMIT 1`
 
 	// queryGetKpiBaseData digunakan oleh: SubmitPenyusunanKpi (kostl_tx),
 	// ApprovePenyusunanKpi (entry_user), dan GetKpiExportData (kostl_tx, tahun, triwulan).
@@ -286,15 +284,6 @@ const (
 // =============================================================================
 // CHECK
 // =============================================================================
-
-func (r *penyusunanKpiRepo) CheckExistPenyusunan(tahun, triwulan, kostl string) (bool, error) {
-	var count int
-	if err := r.db.Raw(queryCheckExistPenyusunan, tahun, triwulan, kostl).Scan(&count).Error; err != nil {
-		return false, fmt.Errorf("gagal mengecek data Penyusunan KPI: %w", err)
-	}
-	return count > 0, nil
-}
-
 func (r *penyusunanKpiRepo) GetExistPenyusunanStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error) {
 	row := r.db.Raw(queryGetExistPenyusunanStatus, tahun, triwulan, kostl).Row()
 	if scanErr := row.Scan(&idPengajuan, &status); scanErr != nil {
