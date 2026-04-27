@@ -94,8 +94,8 @@ type (
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /get-pdf.
 		GetKpiExportData(idPengajuan, kostl, tahun, triwulan string) (*dto.KpiExportData, error)
 
-		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
-		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error)
+		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
+		GetExistDataKpi(idPengajuan string) (*model.KpiHeader, error)
 
 		GetDB() *gorm.DB
 	}

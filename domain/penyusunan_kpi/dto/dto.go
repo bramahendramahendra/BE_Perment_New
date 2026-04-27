@@ -166,7 +166,7 @@ type RevisionPenyusunanKpiRequest struct {
 	Triwulan    string `json:"triwulan" validate:"required"`
 
 	// Diisi service dari DB berdasarkan id_pengajuan, tidak boleh dari body.
-	Divisi Divisi `json:"-" validate:"-"`
+	// Divisi Divisi `json:"-" validate:"-"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	EntryUser string `json:"entry_user"`
@@ -285,7 +285,7 @@ type ValidatePenyusunanKpiResponse struct {
 // CreatePenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/create.
 type CreatePenyusunanKpiResponse struct {
 	IdPengajuan  string         `json:"id_pengajuan"`
-	Divisi       string         `json:"divisi"`
+	Divisi       Divisi         `json:"divisi"`
 	Tahun        string         `json:"tahun"`
 	Triwulan     string         `json:"triwulan"`
 	ApprovalList []ApprovalUser `json:"approval_list"`
@@ -361,26 +361,26 @@ type GetAllDaftarApprovalPenyusunanKpiResponse struct {
 
 // GetDetailPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-detail.
 type GetDetailPenyusunanKpiResponse struct {
-	IdPengajuan    string               `json:"id_pengajuan"`
-	Tahun          string               `json:"tahun"`
-	Triwulan       string               `json:"triwulan"`
-	Status         string               `json:"status"`
-	StatusDesc     string               `json:"status_desc"`
-	Divisi         DivisiOrgeh          `json:"divisi"`
-	Entry          EntryUser            `json:"entry"`
-	EntryRealisasi EntryUserRealisasi   `json:"entry_realisasi"`
-	EntryValidasi  EntryUserValidasi    `json:"entry_validasi"`
-	ApprovalPosisi string               `json:"approval_posisi"`
-	ApprovalList   []ApprovalUserDetail `json:"approval_list"`
+	IdPengajuan    string                `json:"id_pengajuan"`
+	Tahun          string                `json:"tahun"`
+	Triwulan       string                `json:"triwulan"`
+	Status         string                `json:"status"`
+	StatusDesc     string                `json:"status_desc"`
+	Divisi         DivisiOrgeh           `json:"divisi"`
+	Entry          EntryUser             `json:"entry"`
+	EntryRealisasi EntryUserRealisasi    `json:"entry_realisasi"`
+	EntryValidasi  EntryUserValidasi     `json:"entry_validasi"`
+	ApprovalPosisi string                `json:"approval_posisi"`
+	ApprovalList   []ApprovalUserDetail  `json:"approval_list"`
 	Catatan        []CatatanTolakanEntry `json:"catatan"`
-	TotalKpi       int                  `json:"total_kpi"`
-	Kpi            []DataKpiDetail      `json:"kpi"`
-	TotalResult    int                  `json:"total_result"`
-	ResultList     []DataResult         `json:"result_list"`
-	TotalProcess   int                  `json:"total_process"`
-	ProcessList    []DataProcess        `json:"process_list"`
-	TotalContext   int                  `json:"total_context"`
-	ContextList    []DataContext        `json:"context_list"`
+	TotalKpi       int                   `json:"total_kpi"`
+	Kpi            []DataKpiDetail       `json:"kpi"`
+	TotalResult    int                   `json:"total_result"`
+	ResultList     []DataResult          `json:"result_list"`
+	TotalProcess   int                   `json:"total_process"`
+	ProcessList    []DataProcess         `json:"process_list"`
+	TotalContext   int                   `json:"total_context"`
+	ContextList    []DataContext         `json:"context_list"`
 }
 
 // =============================================================================

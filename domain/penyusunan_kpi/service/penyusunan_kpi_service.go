@@ -134,20 +134,52 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 func (s *penyusunanKpiService) CreatePenyusunanKpi(
 	req *dto.CreatePenyusunanKpiRequest,
 ) (data dto.CreatePenyusunanKpiResponse, err error) {
-	exists, err := s.repo.CheckExistIdPengajuan(req.IdPengajuan, req.Kostl, req.Tahun, req.Triwulan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
-		return data, err
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
-	if !exists {
+
+	dbTahun := existData.Tahun
+	dbTriwulan := existData.Triwulan
+	dbKostl := existData.Kostl
+	dbKostlTx := existData.KostlTx
+	dbEntryUser := existData.EntryUser
+	dbStatus := existData.Status
+	dbStatusDesc := existData.StatusDesc
+
+	// Validasi: status harus 70
+	if dbStatus != 70 {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' dengan kostl '%s', tahun '%s', triwulan '%s' tidak ditemukan", req.IdPengajuan, req.Kostl, req.Tahun, req.Triwulan),
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
 		}
 	}
 
-	_, _, _, kostlTx, _, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
-	if err != nil {
-		return data, err
+	// Validasi: hanya pembuat pengajuan yang boleh merevisi
+	if req.EntryUser != dbEntryUser {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("user '%s' tidak berhak merevisi pengajuan ini", req.EntryUser),
+		}
 	}
+
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
+	if req.Kostl != dbKostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
+		}
+	}
+	if req.Triwulan != dbTriwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+		}
+	}
+	if req.Tahun != dbTahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+		}
+	}
+
+	divisi := dto.Divisi{Kostl: req.Kostl, KostlTx: dbKostlTx}
 
 	if err = s.repo.CreatePenyusunanKpi(req); err != nil {
 		return data, err
@@ -158,8 +190,11 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 		approvalList[i] = dto.ApprovalUser{Userid: a.Userid, Nama: a.Nama, Posisi: a.Posisi}
 	}
 	data = dto.CreatePenyusunanKpiResponse{
-		IdPengajuan:  req.IdPengajuan,
-		Divisi:       kostlTx,
+		IdPengajuan: req.IdPengajuan,
+		Divisi: dto.Divisi{
+			Kostl:   divisi.Kostl,
+			KostlTx: divisi.KostlTx,
+		},
 		Tahun:        req.Tahun,
 		Triwulan:     req.Triwulan,
 		ApprovalList: approvalList,
@@ -192,10 +227,18 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 	}
 
 	// Ambil header dari DB berdasarkan id_pengajuan
-	dbTahun, dbTriwulan, dbKostl, kostlTx, dbEntryUser, _, dbStatus, dbStatusDesc, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
+
+	dbTahun := existData.Tahun
+	dbTriwulan := existData.Triwulan
+	dbKostl := existData.Kostl
+	dbKostlTx := existData.KostlTx
+	dbEntryUser := existData.EntryUser
+	dbStatus := existData.Status
+	dbStatusDesc := existData.StatusDesc
 
 	// Validasi: status harus 1
 	if dbStatus != 1 {
@@ -228,7 +271,7 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		}
 	}
 
-	req.Divisi = dto.Divisi{Kostl: req.Kostl, KostlTx: kostlTx}
+	divisi := dto.Divisi{Kostl: req.Kostl, KostlTx: dbKostlTx}
 
 	// Parse dan validasi file Excel
 	kpiRows, kpiSubDetails, err := utils.ParseAndValidateExcel(file, req.Triwulan)
@@ -276,8 +319,8 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		Tahun:       req.Tahun,
 		Triwulan:    req.Triwulan,
 		Divisi: dto.Divisi{
-			Kostl:   req.Divisi.Kostl,
-			KostlTx: req.Divisi.KostlTx,
+			Kostl:   divisi.Kostl,
+			KostlTx: divisi.KostlTx,
 		},
 		Entry: dto.EntryUser{
 			EntryUser: req.EntryUser,
@@ -301,10 +344,25 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	req *dto.ApprovePenyusunanKpiRequest,
 ) (data dto.ApprovePenyusunanKpiResponse, err error) {
-	dbTahun, dbTriwulan, dbKostl, _, _, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
+
+	dbTahun := existData.Tahun
+	dbTriwulan := existData.Triwulan
+	dbKostl := existData.Kostl
+	dbStatus := existData.Status
+	dbStatusDesc := existData.StatusDesc
+
+	// Validasi: status harus 0
+	if dbStatus != 0 {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+		}
+	}
+
 	if req.Kostl != dbKostl {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
@@ -389,10 +447,24 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	req *dto.RejectPenyusunanKpiRequest,
 ) (data dto.RejectPenyusunanKpiResponse, err error) {
-	dbTahun, dbTriwulan, dbKostl, _, _, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
+	dbTahun := existData.Tahun
+	dbTriwulan := existData.Triwulan
+	dbKostl := existData.Kostl
+	dbStatus := existData.Status
+	dbStatusDesc := existData.StatusDesc
+
+	// Validasi: status harus 0
+	if dbStatus != 0 {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+		}
+	}
+
 	if req.Kostl != dbKostl {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
@@ -843,12 +915,14 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 	req *dto.GetExcelPenyusunanKpiRequest,
 ) ([]byte, string, error) {
-	_, _, _, _, _, _, status, statusDesc, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
 		return nil, "", &customErrors.BadRequestError{
 			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
 		}
 	}
+	status := existData.Status
+	statusDesc := existData.StatusDesc
 	if status == 0 || status == 1 {
 		return nil, "", &customErrors.BadRequestError{
 			Message: fmt.Sprintf("File tidak dapat diunduh, status pengajuan: %s", statusDesc),
@@ -875,12 +949,14 @@ func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 func (s *penyusunanKpiService) GetPdfPenyusunanKpi(
 	req *dto.GetPdfPenyusunanKpiRequest,
 ) ([]byte, string, error) {
-	_, _, _, _, _, _, status, statusDesc, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
 		return nil, "", &customErrors.BadRequestError{
 			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
 		}
 	}
+	status := existData.Status
+	statusDesc := existData.StatusDesc
 	if status == 0 || status == 1 {
 		return nil, "", &customErrors.BadRequestError{
 			Message: fmt.Sprintf("File tidak dapat diunduh, status pengajuan: %s", statusDesc),

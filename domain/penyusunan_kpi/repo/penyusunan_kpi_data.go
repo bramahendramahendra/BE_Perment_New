@@ -19,12 +19,6 @@ const (
 	// Check Count
 	// =============================================================================
 
-	// Use func : CreatePenyusunanKpi
-	queryCheckExistIdPengajuan = `
-		SELECT COUNT(id_pengajuan)
-		FROM data_kpi
-		WHERE id_pengajuan = ? AND kostl = ? AND tahun = ? AND triwulan = ?`
-
 	// Use func : GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, GetAllDaftarApprovalPenyusunanKpi
 	queryGetCountDataKpi = `
 		SELECT COUNT(1)
@@ -50,9 +44,9 @@ const (
 		WHERE id_pengajuan = ?
 		LIMIT 1`
 
-	// queryGetKpiHeader digunakan oleh: RevisionPenyusunanKpi (service) untuk mengambil
+	// queryGetExistDataKpi digunakan oleh: RevisionPenyusunanKpi (service) untuk mengambil
 	// tahun, triwulan, kostl, kostl_tx berdasarkan id_pengajuan.
-	queryGetKpiHeader = `
+	queryGetExistDataKpi = `
 		SELECT a.tahun, a.triwulan, a.kostl, a.kostl_tx, a.status, b.status_desc, a.entry_user, a.entry_name
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status
@@ -295,20 +289,24 @@ func (r *penyusunanKpiRepo) GetExistPenyusunanStatus(tahun, triwulan, kostl stri
 	return idPengajuan, status, true, nil
 }
 
-func (r *penyusunanKpiRepo) CheckExistIdPengajuan(idPengajuan, kostl, tahun, triwulan string) (bool, error) {
-	var count int
-	if err := r.db.Raw(queryCheckExistIdPengajuan, idPengajuan, kostl, tahun, triwulan).Scan(&count).Error; err != nil {
-		return false, fmt.Errorf("gagal mengecek id_pengajuan: %w", err)
-	}
-	return count > 0, nil
-}
-
 func (r *penyusunanKpiRepo) CheckApprovalExists(user, idPengajuan string) (bool, error) {
 	var count int64
 	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
 		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
 	}
 	return count > 0, nil
+}
+
+func (r *penyusunanKpiRepo) GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error) {
+	var result model.DataKpiExist
+	db := r.db.Raw(queryGetExistDataKpi, idPengajuan).Scan(&result)
+	if db.Error != nil {
+		return nil, fmt.Errorf("gagal mengambil header KPI: %w", db.Error)
+	}
+	if db.RowsAffected == 0 {
+		return nil, fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
+	}
+	return &result, nil
 }
 
 // =============================================================================
@@ -1555,29 +1553,4 @@ func (r *penyusunanKpiRepo) GetKpiExportData(
 		Triwulan:   header.Triwulan,
 		Rows:       rows,
 	}, nil
-}
-
-// =============================================================================
-// GetKpiHeader
-// =============================================================================
-
-func (r *penyusunanKpiRepo) GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error) {
-	type kpiHeader struct {
-		Tahun      string `gorm:"column:tahun"`
-		Triwulan   string `gorm:"column:triwulan"`
-		Kostl      string `gorm:"column:kostl"`
-		KostlTx    string `gorm:"column:kostl_tx"`
-		Status     int    `gorm:"column:status"`
-		StatusDesc string `gorm:"column:status_desc"`
-		EntryUser  string `gorm:"column:entry_user"`
-		EntryName  string `gorm:"column:entry_name"`
-	}
-	var h kpiHeader
-	if err = r.db.Raw(queryGetKpiHeader, idPengajuan).Scan(&h).Error; err != nil {
-		return "", "", "", "", "", "", 0, "", fmt.Errorf("gagal mengambil header KPI: %w", err)
-	}
-	if h.Tahun == "" {
-		return "", "", "", "", "", "", 0, "", fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
-	}
-	return h.Tahun, h.Triwulan, h.Kostl, h.KostlTx, h.EntryUser, h.EntryName, h.Status, h.StatusDesc, nil
 }

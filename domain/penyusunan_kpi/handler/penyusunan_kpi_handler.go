@@ -91,8 +91,6 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	// req.Kostl = req.Divisi.Kostl
-	// req.KostlTx = req.Divisi.KostlTx
 	req.EntryUser = strings.TrimSpace(parts[0])
 	req.EntryName = strings.TrimSpace(parts[1])
 	req.EntryTime = time.Now().Format("2006-01-02 15:04:05")

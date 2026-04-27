@@ -145,7 +145,7 @@ type ValidateRealisasiKpiRequest struct {
 	Triwulan    string `json:"triwulan" validate:"required"`
 
 	// Diisi service dari DB berdasarkan id_pengajuan, tidak boleh dari body.
-	Divisi Divisi `json:"-" validate:"-"`
+	// Divisi Divisi `json:"-" validate:"-"`
 
 	// Di-populate dari header "userq" oleh handler, tidak dari body
 	EntryUserRealisasi string `json:"entry_user_realisasi"`
@@ -156,8 +156,11 @@ type ValidateRealisasiKpiRequest struct {
 // CreateRealisasiKpiRequest adalah request untuk endpoint POST /realisasi-kpi/create.
 // Submit realisasi ke approval (status → 3).
 type CreateRealisasiKpiRequest struct {
-	IdPengajuan           string                  `json:"id_pengajuan"            validate:"required"`
-	ApprovalListRealisasi []ApprovalUserRealisasi `json:"approval_list_realisasi" validate:"required,min=1,dive"`
+	IdPengajuan           string                        `json:"id_pengajuan"            validate:"required"`
+	Kostl                 string                        `json:"kostl"         			validate:"required"`
+	Tahun                 string                        `json:"tahun"         			validate:"required"`
+	Triwulan              string                        `json:"triwulan"      			validate:"required"`
+	ApprovalListRealisasi []ApprovalUserRealisasiDetail `json:"approval_list_realisasi" validate:"required,min=1,dive"`
 	// ApprovalPosisi        string `json:"approval_posisi"          validate:"required"`
 	// ApprovalListRealisasi string `json:"approval_list_realisasi"  validate:"required"`
 
@@ -175,7 +178,7 @@ type RevisionRealisasiKpiRequest struct {
 	Triwulan    string `json:"triwulan" validate:"required"`
 
 	// Diisi service dari DB berdasarkan id_pengajuan, tidak boleh dari body.
-	Divisi Divisi `json:"-" validate:"-"`
+	// Divisi Divisi `json:"-" validate:"-"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	EntryUserRealisasi string `json:"entry_user_realisasi"`
@@ -287,6 +290,9 @@ type ValidateRealisasiKpiResponse struct {
 // CreateRealisasiKpiResponse adalah response untuk endpoint /realisasi-kpi/create.
 type CreateRealisasiKpiResponse struct {
 	IdPengajuan           string                  `json:"id_pengajuan"`
+	Divisi                Divisi                  `json:"divisi"`
+	Tahun                 string                  `json:"tahun"`
+	Triwulan              string                  `json:"triwulan"`
 	ApprovalListRealisasi []ApprovalUserRealisasi `json:"approval_list_realisasi"`
 }
 

@@ -110,6 +110,9 @@ type (
 		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
 		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error)
 
+		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
+		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
+
 		GetDB() *gorm.DB
 	}
 

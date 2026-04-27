@@ -37,26 +37,44 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 		}
 	}
 
-	// Validasi status: harus 2, 4, 80, atau 81 agar bisa input realisasi
-	exists, err := s.repo.CheckExistRealisasi(req.IdPengajuan)
-	if err != nil {
-		return data, err
-	}
-	if !exists {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf(
-				"id_pengajuan '%s' tidak ditemukan atau status tidak mengizinkan input realisasi",
-				req.IdPengajuan,
-			),
-		}
-	}
-
-	// Ambil triwulan dari DB berdasarkan id_pengajuan
-	triwulan, err := s.repo.GetTriwulanByIdPengajuan(req.IdPengajuan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
-	req.Triwulan = triwulan
+
+	dbTahun := existData.Tahun
+	dbTriwulan := existData.Triwulan
+	dbKostl := existData.Kostl
+	dbKostlTx := existData.KostlTx
+	dbStatus := existData.Status
+	dbStatusDesc := existData.StatusDesc
+
+	// Validasi: status harus 2
+	if dbStatus != 2 {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+		}
+	}
+
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
+	if req.Kostl != dbKostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
+		}
+	}
+	if req.Triwulan != dbTriwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+		}
+	}
+	if req.Tahun != dbTahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+		}
+	}
+
+	divisi := dto.Divisi{Kostl: req.Kostl, KostlTx: dbKostlTx}
 
 	// Parse dan validasi file Excel
 	kpiRows, kpiSubDetails, err := utils.ParseAndValidateRealisasiExcel(file, req.Triwulan)
@@ -70,12 +88,6 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 	// lalu hitung Pencapaian dan Skor
 	if err := s.enrichRowsFromDB(req.IdPengajuan, kpiRows, kpiSubDetails); err != nil {
 		return data, err
-	}
-
-	// Ambil header (tahun, kostl, kostlTx) untuk response
-	tahun, _, kostl, kostlTx, err := s.repo.GetKpiHeaderByIdPengajuan(req.IdPengajuan)
-	if err != nil {
-		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	// Build resultList, processList, contextList (hanya TW2 dan TW4)
@@ -108,11 +120,11 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 
 	data = dto.ValidateRealisasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
-		Tahun:       tahun,
+		Tahun:       req.Tahun,
 		Triwulan:    req.Triwulan,
 		Divisi: dto.Divisi{
-			Kostl:   kostl,
-			KostlTx: kostlTx,
+			Kostl:   divisi.Kostl,
+			KostlTx: divisi.KostlTx,
 		},
 		EntryRealisasi: dto.EntryUserRealisasi{
 			EntryUserRealisasi: req.EntryUserRealisasi,
@@ -136,16 +148,52 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 func (s *realisasiKpiService) CreateRealisasiKpi(
 	req *dto.CreateRealisasiKpiRequest,
 ) (data dto.CreateRealisasiKpiResponse, err error) {
-
-	exists, err := s.repo.CheckStatusCreateRealisasi(req.IdPengajuan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
-		return data, err
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
-	if !exists {
+
+	dbTahun := existData.Tahun
+	dbTriwulan := existData.Triwulan
+	dbKostl := existData.Kostl
+	dbKostlTx := existData.KostlTx
+	dbEntryUserRealisasi := existData.EntryNameRealisasi
+	dbStatus := existData.Status
+	dbStatusDesc := existData.StatusDesc
+
+	// Validasi: status harus 4
+	if dbStatus != 4 {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan atau belum dalam status draft realisasi (80)", req.IdPengajuan),
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
 		}
 	}
+
+	// Validasi: hanya pembuat pengajuan yang boleh merevisi
+	if req.EntryUserRealisasi != dbEntryUserRealisasi {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("user '%s' tidak berhak merevisi pengajuan ini", req.EntryUserRealisasi),
+		}
+	}
+
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
+	if req.Kostl != dbKostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
+		}
+	}
+	if req.Triwulan != dbTriwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+		}
+	}
+	if req.Tahun != dbTahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+		}
+	}
+
+	divisi := dto.Divisi{Kostl: req.Kostl, KostlTx: dbKostlTx}
 
 	if err := s.repo.CreateRealisasiKpi(req); err != nil {
 		return data, err
@@ -157,7 +205,13 @@ func (s *realisasiKpiService) CreateRealisasiKpi(
 	}
 
 	data = dto.CreateRealisasiKpiResponse{
-		IdPengajuan:           req.IdPengajuan,
+		IdPengajuan: req.IdPengajuan,
+		Divisi: dto.Divisi{
+			Kostl:   divisi.Kostl,
+			KostlTx: divisi.KostlTx,
+		},
+		Tahun:                 req.Tahun,
+		Triwulan:              req.Triwulan,
 		ApprovalListRealisasi: ApprovalListRealisasi,
 	}
 
@@ -187,26 +241,52 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 		}
 	}
 
-	// Validasi status: harus 80 (draft) atau 4 (ditolak) untuk revisi
-	existsRevisi, err := s.repo.CheckStatusRevisiRealisasi(req.IdPengajuan)
-	if err != nil {
-		return data, err
-	}
-	if !existsRevisi {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf(
-				"id_pengajuan '%s' tidak ditemukan atau status tidak mengizinkan revisi realisasi (harus draft atau ditolak)",
-				req.IdPengajuan,
-			),
-		}
-	}
-
-	// Ambil triwulan dari DB berdasarkan id_pengajuan
-	triwulan, err := s.repo.GetTriwulanByIdPengajuan(req.IdPengajuan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
-	req.Triwulan = triwulan
+
+	dbTahun := existData.Tahun
+	dbTriwulan := existData.Triwulan
+	dbKostl := existData.Kostl
+	dbKostlTx := existData.KostlTx
+	dbEntryUser := existData.EntryUserRealisasi
+	dbStatus := existData.Status
+	dbStatusDesc := existData.StatusDesc
+
+	// Validasi: status harus 3
+	if dbStatus != 3 {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+		}
+	}
+
+	// Validasi: hanya pembuat pengajuan yang boleh merevisi
+	if req.EntryUserRealisasi != dbEntryUser {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("user '%s' tidak berhak merevisi pengajuan ini", req.EntryUserRealisasi),
+		}
+	}
+
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
+	if req.Kostl != dbKostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
+		}
+	}
+	if req.Triwulan != dbTriwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+		}
+	}
+	if req.Tahun != dbTahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+		}
+	}
+
+	divisi := dto.Divisi{Kostl: req.Kostl, KostlTx: dbKostlTx}
 
 	kpiRows, kpiSubDetails, err := utils.ParseAndValidateRealisasiExcel(file, req.Triwulan)
 	if err != nil {
@@ -259,8 +339,8 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 		Tahun:       tahun,
 		Triwulan:    req.Triwulan,
 		Divisi: dto.Divisi{
-			Kostl:   req.Divisi.Kostl,
-			KostlTx: req.Divisi.KostlTx,
+			Kostl:   divisi.Kostl,
+			KostlTx: divisi.KostlTx,
 		},
 		EntryRealisasi: dto.EntryUserRealisasi{
 			EntryUserRealisasi: req.EntryUserRealisasi,
