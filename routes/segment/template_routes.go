@@ -14,9 +14,10 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /template/format-penyusunan-kpi   → GetFormatPenyusunanKpi  (application/json body + file download)
+//	POST /template/format-penyusunan-kpi    → GetFormatPenyusunanKpi   (application/json body + file download)
 //	POST /template/revision-penyusunan-kpi  → GetRevisionPenyusunanKpi (application/json body + file download)
-//	POST /template/format-realisasi-kpi    → GetFormatRealisasiKpi   (application/json body + file download)
+//	POST /template/format-realisasi-kpi     → GetFormatRealisasiKpi    (application/json body + file download)
+//	POST /template/revision-realisasi-kpi   → GetRevisionRealisasiKpi  (application/json body + file download)
 func TemplateRoutes(r *gin.RouterGroup) {
 	templateRepo := repo.NewTemplateRepo(db.DB)
 	templateService := service.NewTemplateService(templateRepo)
@@ -26,4 +27,5 @@ func TemplateRoutes(r *gin.RouterGroup) {
 	templateGroup.POST("/format-penyusunan-kpi", templateHandler.GetFormatPenyusunanKpi)
 	templateGroup.POST("/revision-penyusunan-kpi", templateHandler.GetRevisionPenyusunanKpi)
 	templateGroup.POST("/format-realisasi-kpi", templateHandler.GetFormatRealisasiKpi)
+	templateGroup.POST("/revision-realisasi-kpi", templateHandler.GetRevisionRealisasiKpi)
 }

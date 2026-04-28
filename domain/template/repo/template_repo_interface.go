@@ -25,6 +25,14 @@ type (
 		// Mengembalikan status jika ditemukan, dan found=false jika tidak ada.
 		GetExistPenyusunanStatus(tahun, triwulan, kostl string) (status int, found bool, err error)
 
+		// CheckRevisiRealisasiExist mengecek apakah pengajuan memiliki data realisasi
+		// yang dapat direvisi (status 4=tolak realisasi atau 80=draft realisasi).
+		CheckRevisiRealisasiExist(idPengajuan, kostl, tahun, triwulan string) (bool, error)
+
+		// GetRealisasiKpiData mengambil seluruh baris realisasi KPI dari DB
+		// berdasarkan id_pengajuan, termasuk data realisasi yang sudah diisi user sebelumnya.
+		GetRealisasiKpiData(idPengajuan string) (*model.RealisasiExcelData, error)
+
 		GetDB() *gorm.DB
 	}
 

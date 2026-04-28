@@ -1313,6 +1313,506 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	return buf.Bytes(), filename, nil
 }
 
+func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisasiKpiRequest) ([]byte, string, error) {
+	exists, err := s.repo.CheckRevisiRealisasiExist(req.IdPengajuan, req.Divisi.Kostl, req.Tahun, req.Triwulan)
+	if err != nil {
+		return nil, "", err
+	}
+	if !exists {
+		return nil, "", &errors.BadRequestError{
+			Message: fmt.Sprintf("data realisasi KPI tahun '%s' triwulan '%s' dengan id pengajuan '%s' untuk divisi '%s', tidak ditemukan atau tidak dalam status yang dapat direvisi", req.Tahun, req.Triwulan, req.IdPengajuan, req.Divisi.KostlTx),
+		}
+	}
+
+	excelData, err := s.repo.GetRealisasiKpiData(req.IdPengajuan)
+	if err != nil {
+		return nil, "", err
+	}
+
+	isTW24 := req.Triwulan == "TW2" || req.Triwulan == "TW4"
+
+	sheetName := req.Triwulan
+
+	f := excelize.NewFile()
+	defer f.Close()
+
+	defaultSheet := f.GetSheetName(0)
+	if err := f.SetSheetName(defaultSheet, sheetName); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set nama sheet: %v", err)}
+	}
+
+	allColumns := make([]string, len(columnsRealisasiBase))
+	copy(allColumns, columnsRealisasiBase)
+	if isTW24 {
+		allColumns = append(allColumns, columnsRealisasiExtendedTW24...)
+	}
+
+	// -------------------------------------------------------------------------
+	// Style
+	// -------------------------------------------------------------------------
+	styleHeader, err := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"BDD7EE"},
+			Pattern: 1,
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+			WrapText:   true,
+		},
+		Border: borderStyle(),
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style header: %v", err)}
+	}
+
+	styleData, err := f.NewStyle(&excelize.Style{
+		Protection: &excelize.Protection{
+			Locked: true,
+		},
+		Border: borderStyle(),
+		Alignment: &excelize.Alignment{
+			Vertical: "top",
+			WrapText: true,
+		},
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style data: %v", err)}
+	}
+
+	// Style kuning untuk sel dari DB (penyusunan KPI)
+	styleDBData, err := f.NewStyle(&excelize.Style{
+		Protection: &excelize.Protection{
+			Locked: true,
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"FFFF00"},
+			Pattern: 1,
+		},
+		Border: borderStyle(),
+		Alignment: &excelize.Alignment{
+			Vertical: "top",
+			WrapText: true,
+		},
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style DB data: %v", err)}
+	}
+
+	// -------------------------------------------------------------------------
+	// Row 1: Header kolom
+	// -------------------------------------------------------------------------
+	const revRealisasiHeaderRow = 1
+	const revRealisasiDataStartRow = 2
+	const revRealisasiDataEndRow = 100
+
+	for colIdx, header := range allColumns {
+		cellName, _ := excelize.CoordinatesToCellName(colIdx+1, revRealisasiHeaderRow)
+		if err := f.SetCellValue(sheetName, cellName, header); err != nil {
+			return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set header %s: %v", cellName, err)}
+		}
+		if err := f.SetCellStyle(sheetName, cellName, cellName, styleHeader); err != nil {
+			return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style header %s: %v", cellName, err)}
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Row 2+: Tulis data baris dari DB (pre-filled termasuk realisasi)
+	// -------------------------------------------------------------------------
+
+	// dbColSet: indeks kolom (0-based) yang datanya dari DB → warna kuning
+	// TW1/TW3: B–I (idx 1–8)
+	// TW2/TW4: B–I (idx 1–8) + N,O (13,14) + R,S (17,18) + V,W (21,22)
+	dbColSet := map[int]bool{1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true}
+	if isTW24 {
+		dbColSet[13] = true
+		dbColSet[14] = true
+		dbColSet[17] = true
+		dbColSet[18] = true
+		dbColSet[21] = true
+		dbColSet[22] = true
+	}
+
+	for rowIdx, row := range excelData.Rows {
+		rowNum := revRealisasiDataStartRow + rowIdx
+
+		var values []interface{}
+		if isTW24 {
+			values = []interface{}{
+				rowIdx + 1,                    // A: No
+				row.KpiNama,                   // B: KPI
+				row.SubKpi,                    // C: Sub KPI
+				row.Polarisasi,                // D: Polarisasi
+				row.Capping + "%",             // E: Capping
+				parseFloatOrString(row.Bobot), // F: Bobot %
+				row.TargetTriwulan,            // G: Target Triwulanan
+				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
+				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
+				row.Realisasi,                                  // J: Realisasi (pre-filled)
+				parseFloatOrString(row.RealisasiKuantitatif),  // K: Realisasi Kuantitatif (pre-filled)
+				row.RealisasiQualifier,                         // L: Realisasi Qualifier (pre-filled, diproses per-baris)
+				row.RealisasiKuantitatifQualifier,              // M: Realisasi Qualifier Kuantitatif (pre-filled)
+				row.NamaResult,      // N: Result
+				row.DeskripsiResult, // O: Deskripsi Result
+				row.RealisasiResult, // P: Realisasi Result (pre-filled)
+				row.LinkResult,      // Q: Link Result (pre-filled)
+				row.NamaProcess,      // R: Process
+				row.DeskripsiProcess, // S: Deskripsi Process
+				row.RealisasiProcess, // T: Realisasi Process (pre-filled)
+				row.LinkProcess,      // U: Link Process (pre-filled)
+				row.NamaContext,      // V: Context
+				row.DeskripsiContext, // W: Deskripsi Context
+				row.RealisasiContext, // X: Realisasi Context (pre-filled)
+				row.LinkContext,      // Y: Link Context (pre-filled)
+			}
+		} else {
+			values = []interface{}{
+				rowIdx + 1,                    // A: No
+				row.KpiNama,                   // B: KPI
+				row.SubKpi,                    // C: Sub KPI
+				row.Polarisasi,                // D: Polarisasi
+				row.Capping + "%",             // E: Capping
+				parseFloatOrString(row.Bobot), // F: Bobot %
+				row.TargetTriwulan,            // G: Target Triwulanan
+				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
+				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
+				row.Realisasi,                                  // J: Realisasi (pre-filled)
+				parseFloatOrString(row.RealisasiKuantitatif),  // K: Realisasi Kuantitatif (pre-filled)
+				row.RealisasiQualifier,                         // L: Realisasi Qualifier (pre-filled, diproses per-baris)
+				row.RealisasiKuantitatifQualifier,              // M: Realisasi Qualifier Kuantitatif (pre-filled)
+			}
+		}
+
+		for colIdx, val := range values {
+			cellName, _ := excelize.CoordinatesToCellName(colIdx+1, rowNum)
+			if err := f.SetCellValue(sheetName, cellName, val); err != nil {
+				return nil, "", &errors.InternalServerError{
+					Message: fmt.Sprintf("gagal set nilai baris %d kolom %d: %v", rowNum, colIdx+1, err),
+				}
+			}
+			cellStyle := styleData
+			if dbColSet[colIdx] {
+				cellStyle = styleDBData
+			}
+			if err := f.SetCellStyle(sheetName, cellName, cellName, cellStyle); err != nil {
+				return nil, "", &errors.InternalServerError{
+					Message: fmt.Sprintf("gagal set style baris %d kolom %d: %v", rowNum, colIdx+1, err),
+				}
+			}
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Legenda warna kuning di bawah tabel
+	// -------------------------------------------------------------------------
+	legendRow := revRealisasiDataStartRow + len(excelData.Rows) + 1
+
+	styleYellowLegend, err := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"FFFF00"},
+			Pattern: 1,
+		},
+		Border: borderStyle(),
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style legenda kuning: %v", err)}
+	}
+	styleTextLegend, err := f.NewStyle(&excelize.Style{
+		Border: borderStyle(),
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+			WrapText: true,
+		},
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style teks legenda: %v", err)}
+	}
+
+	legendColorCell, _ := excelize.CoordinatesToCellName(1, legendRow)
+	legendTextCell, _ := excelize.CoordinatesToCellName(2, legendRow)
+	if err := f.SetCellValue(sheetName, legendColorCell, ""); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set legenda warna: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, legendColorCell, legendColorCell, styleYellowLegend); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style legenda warna: %v", err)}
+	}
+	if err := f.SetCellValue(sheetName, legendTextCell, "Data yang didapat dari penyusunan KPI"); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set teks legenda: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, legendTextCell, legendTextCell, styleTextLegend); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style teks legenda: %v", err)}
+	}
+
+	legendRedRow := legendRow + 1
+	styleRedLegend, err := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"FF0000"},
+			Pattern: 1,
+		},
+		Border: borderStyle(),
+	})
+	if err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style legenda merah: %v", err)}
+	}
+	legendRedColorCell, _ := excelize.CoordinatesToCellName(1, legendRedRow)
+	legendRedTextCell, _ := excelize.CoordinatesToCellName(2, legendRedRow)
+	if err := f.SetCellValue(sheetName, legendRedColorCell, ""); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set legenda merah: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, legendRedColorCell, legendRedColorCell, styleRedLegend); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style legenda merah: %v", err)}
+	}
+	if err := f.SetCellValue(sheetName, legendRedTextCell, "Kolom Realisasi Qualifier dan Realisasi Qualifier Kuantitatif tidak berlaku (tidak ada qualifier)"); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set teks legenda merah: %v", err)}
+	}
+	if err := f.SetCellStyle(sheetName, legendRedTextCell, legendRedTextCell, styleTextLegend); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style teks legenda merah: %v", err)}
+	}
+
+	// -------------------------------------------------------------------------
+	// Data Validation
+	// -------------------------------------------------------------------------
+	sqrefDataRange := func(col string) string {
+		return fmt.Sprintf("%s%d:%s%d", col, revRealisasiDataStartRow, col, revRealisasiDataEndRow)
+	}
+
+	if err := f.AddDataValidation(sheetName, &excelize.DataValidation{
+		Type:             "whole",
+		Operator:         "greaterThan",
+		Formula1:         "0",
+		ShowErrorMessage: true,
+		ErrorStyle:       strPtr("stop"),
+		ErrorTitle:       strPtr("Input Tidak Valid"),
+		Error:            strPtr("Kolom No harus berupa angka bulat positif."),
+		Sqref:            sqrefDataRange("A"),
+	}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom A: %v", err)}
+	}
+
+	dvPolarisasi := excelize.NewDataValidation(true)
+	dvPolarisasi.Sqref = sqrefDataRange("D")
+	if err := dvPolarisasi.SetDropList([]string{"Maximize", "Minimize"}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Polarisasi: %v", err)}
+	}
+	dvPolarisasi.ShowErrorMessage = true
+	dvPolarisasi.ErrorStyle = strPtr("stop")
+	dvPolarisasi.ErrorTitle = strPtr("Input Tidak Valid")
+	dvPolarisasi.Error = strPtr("Pilih salah satu: Maximize atau Minimize.")
+	if err := f.AddDataValidation(sheetName, dvPolarisasi); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Polarisasi: %v", err)}
+	}
+
+	dvCapping := excelize.NewDataValidation(true)
+	dvCapping.Sqref = sqrefDataRange("E")
+	if err := dvCapping.SetDropList([]string{"100%", "110%"}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Capping: %v", err)}
+	}
+	dvCapping.ShowErrorMessage = true
+	dvCapping.ErrorStyle = strPtr("stop")
+	dvCapping.ErrorTitle = strPtr("Input Tidak Valid")
+	dvCapping.Error = strPtr("Pilih salah satu: 100% atau 110%.")
+	if err := f.AddDataValidation(sheetName, dvCapping); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Capping: %v", err)}
+	}
+
+	if err := f.AddDataValidation(sheetName, &excelize.DataValidation{
+		Type:             "decimal",
+		Operator:         "between",
+		Formula1:         "0",
+		Formula2:         "100",
+		ShowErrorMessage: true,
+		ErrorStyle:       strPtr("stop"),
+		ErrorTitle:       strPtr("Input Tidak Valid"),
+		Error:            strPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
+		Sqref:            sqrefDataRange("F"),
+	}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom F: %v", err)}
+	}
+
+	if err := f.AddDataValidation(sheetName, &excelize.DataValidation{
+		Type:             "decimal",
+		Operator:         "greaterThanOrEqual",
+		Formula1:         "0",
+		ShowErrorMessage: true,
+		ErrorStyle:       strPtr("stop"),
+		ErrorTitle:       strPtr("Input Tidak Valid"),
+		Error:            strPtr("Realisasi Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
+		Sqref:            sqrefDataRange("K"),
+	}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom K: %v", err)}
+	}
+
+	dvRealisasiQualifier := excelize.NewDataValidation(true)
+	dvRealisasiQualifier.Sqref = sqrefDataRange("L")
+	if err := dvRealisasiQualifier.SetDropList([]string{"Ya", "Tidak"}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Realisasi Qualifier: %v", err)}
+	}
+	dvRealisasiQualifier.ShowErrorMessage = true
+	dvRealisasiQualifier.ErrorStyle = strPtr("stop")
+	dvRealisasiQualifier.ErrorTitle = strPtr("Input Tidak Valid")
+	dvRealisasiQualifier.Error = strPtr("Pilih salah satu: Ya atau Tidak.")
+	if err := f.AddDataValidation(sheetName, dvRealisasiQualifier); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Realisasi Qualifier: %v", err)}
+	}
+
+	// -------------------------------------------------------------------------
+	// Set lebar kolom
+	// -------------------------------------------------------------------------
+	colWidths := map[string]float64{
+		"A": 6,  // No
+		"B": 25, // KPI
+		"C": 25, // Sub KPI
+		"D": 20, // Polarisasi
+		"E": 18, // Capping
+		"F": 20, // Bobot %
+		"G": 25, // Target Triwulanan
+		"H": 25, // Qualifier
+		"I": 25, // Target Qualifier
+		"J": 25, // Realisasi
+		"K": 25, // Realisasi Kuantitatif
+		"L": 25, // Realisasi Qualifier
+		"M": 30, // Realisasi Qualifier Kuantitatif
+	}
+	if isTW24 {
+		colWidths["N"] = 25 // Result
+		colWidths["O"] = 30 // Deskripsi Result
+		colWidths["P"] = 25 // Realisasi Result
+		colWidths["Q"] = 25 // Link Result
+		colWidths["R"] = 25 // Process
+		colWidths["S"] = 30 // Deskripsi Process
+		colWidths["T"] = 25 // Realisasi Process
+		colWidths["U"] = 25 // Link Process
+		colWidths["V"] = 25 // Context
+		colWidths["W"] = 30 // Deskripsi Context
+		colWidths["X"] = 25 // Realisasi Context
+		colWidths["Y"] = 25 // Link Context
+	}
+	for col, width := range colWidths {
+		if err := f.SetColWidth(sheetName, col, col, width); err != nil {
+			return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set lebar kolom %s: %v", col, err)}
+		}
+	}
+
+	if err := f.SetRowHeight(sheetName, revRealisasiHeaderRow, 40); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set tinggi row header: %v", err)}
+	}
+
+	if err := f.SetPanes(sheetName, &excelize.Panes{
+		Freeze:      true,
+		Split:       false,
+		XSplit:      0,
+		YSplit:      1,
+		TopLeftCell: "A2",
+		ActivePane:  "bottomLeft",
+	}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set freeze pane: %v", err)}
+	}
+
+	// -------------------------------------------------------------------------
+	// Sheet Protection: kunci semua sel, unlock hanya kolom input user
+	// -------------------------------------------------------------------------
+	userInputCols := []string{"J", "K"}
+	if isTW24 {
+		userInputCols = append(userInputCols, "P", "Q", "T", "U", "X", "Y")
+	}
+
+	totalDataRows := len(excelData.Rows)
+	if totalDataRows > 0 {
+		styleUnlocked, err := f.NewStyle(&excelize.Style{
+			Protection: &excelize.Protection{
+				Locked: false,
+			},
+			Border: borderStyle(),
+			Alignment: &excelize.Alignment{
+				Vertical: "top",
+				WrapText: true,
+			},
+		})
+		if err != nil {
+			return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style unlocked: %v", err)}
+		}
+
+		styleLockedRed, err := f.NewStyle(&excelize.Style{
+			Protection: &excelize.Protection{
+				Locked: true,
+			},
+			Fill: excelize.Fill{
+				Type:    "pattern",
+				Color:   []string{"FF0000"},
+				Pattern: 1,
+			},
+			Border: borderStyle(),
+			Alignment: &excelize.Alignment{
+				Vertical:   "top",
+				Horizontal: "center",
+				WrapText:   true,
+			},
+		})
+		if err != nil {
+			return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style locked red: %v", err)}
+		}
+
+		dataEndRow := revRealisasiDataStartRow + totalDataRows - 1
+
+		for _, col := range userInputCols {
+			rangeRef := fmt.Sprintf("%s%d:%s%d", col, revRealisasiDataStartRow, col, dataEndRow)
+			if err := f.SetCellStyle(sheetName, fmt.Sprintf("%s%d", col, revRealisasiDataStartRow),
+				fmt.Sprintf("%s%d", col, dataEndRow), styleUnlocked); err != nil {
+				return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style unlocked %s: %v", rangeRef, err)}
+			}
+		}
+
+		// Kolom L dan M diproses per-baris berdasarkan qualifier
+		for rowIdx, row := range excelData.Rows {
+			rowNum := revRealisasiDataStartRow + rowIdx
+			hasQualifier := strings.EqualFold(strings.TrimSpace(row.TerdapatQualifier), "ya")
+
+			for _, colNum := range []int{12, 13} { // L=12, M=13
+				cellName, _ := excelize.CoordinatesToCellName(colNum, rowNum)
+				if hasQualifier {
+					if err := f.SetCellStyle(sheetName, cellName, cellName, styleUnlocked); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style unlock L/M baris %d: %v", rowNum, err)}
+					}
+				} else {
+					if err := f.SetCellValue(sheetName, cellName, "-"); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set nilai - L/M baris %d: %v", rowNum, err)}
+					}
+					if err := f.SetCellStyle(sheetName, cellName, cellName, styleLockedRed); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set style merah L/M baris %d: %v", rowNum, err)}
+					}
+				}
+			}
+		}
+	}
+
+	if err := f.ProtectSheet(sheetName, &excelize.SheetProtectionOptions{
+		SelectLockedCells:   true,
+		SelectUnlockedCells: true,
+	}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal protect sheet: %v", err)}
+	}
+
+	// =========================================================================
+	// Sheet 2: "KPI" — data dari mst_kpi join mst_polarisasi
+	// =========================================================================
+	if err := s.generateSheetKpi(f); err != nil {
+		return nil, "", err
+	}
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal write file Excel: %v", err)}
+	}
+
+	filename := fmt.Sprintf("Revisi Realisasi KPI Aplikasi Performance Management %s %s %s.xlsx", req.Divisi.KostlTx, req.Tahun, req.Triwulan)
+	return buf.Bytes(), filename, nil
+}
+
 // realisasiQualifierOrDash mengembalikan nilai string, atau "-" jika kosong.
 func realisasiQualifierOrDash(s string) string {
 	if s == "" {

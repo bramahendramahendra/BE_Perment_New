@@ -56,3 +56,73 @@ type SubDetailRow struct {
 type ExcelData struct {
 	Rows []SubDetailRow
 }
+
+// RealisasiSubDetailRow merepresentasikan 1 baris data realisasi KPI dari DB
+// untuk keperluan generate Excel revisi realisasi KPI.
+//
+// Kolom Excel format-realisasi-kpi (TW1/TW3):
+//
+//	A  = No (sequential)
+//	B  = KpiNama        → data_kpi_detail.kpi
+//	C  = SubKpi         → data_kpi_subdetail.kpi
+//	D  = Polarisasi     → mst_polarisasi.polarisasi
+//	E  = Capping        → data_kpi_subdetail.capping
+//	F  = Bobot          → data_kpi_subdetail.bobot
+//	G  = TargetTriwulan → data_kpi_subdetail.target_triwulan
+//	H  = ItemQualifier  → data_kpi_subdetail.item_qualifier
+//	I  = TargetQualifier → data_kpi_subdetail.target_qualifier
+//	J  = Realisasi      → data_kpi_subdetail.realisasi          (pre-filled)
+//	K  = RealisasiKuantitatif → data_kpi_subdetail.realisasi_kuantitatif (pre-filled)
+//	L  = RealisasiQualifier   → data_kpi_subdetail.realisasi_qualifier   (pre-filled, jika ada qualifier)
+//	M  = RealisasiKuantitatifQualifier → data_kpi_subdetail.realisasi_kuantitatif_qualifier (pre-filled)
+//
+// Kolom TW2/TW4 extended:
+//
+//	N  = NamaResult         → data_result_detail.nama_result
+//	O  = DeskripsiResult    → data_result_detail.deskripsi_result
+//	P  = RealisasiResult    → data_result_detail.realisasi_result (pre-filled)
+//	Q  = LinkResult         → data_result_detail.lampiran_evidence (pre-filled)
+//	R  = NamaProcess        → data_method_detail.nama_method
+//	S  = DeskripsiProcess   → data_method_detail.deskripsi_method
+//	T  = RealisasiProcess   → data_method_detail.realisasi_method (pre-filled)
+//	U  = LinkProcess        → data_method_detail.lampiran_evidence (pre-filled)
+//	V  = NamaContext        → data_challenge_detail.nama_challenge
+//	W  = DeskripsiContext   → data_challenge_detail.deskripsi_challenge
+//	X  = RealisasiContext   → data_challenge_detail.realisasi_challenge (pre-filled)
+//	Y  = LinkContext        → data_challenge_detail.lampiran_evidence (pre-filled)
+type RealisasiSubDetailRow struct {
+	KpiNama       string
+	SubKpi        string
+	Polarisasi    string
+	Capping       string
+	Bobot         string
+	TargetTriwulan  string
+	ItemQualifier   string
+	TargetQualifier string
+	TerdapatQualifier string
+	// Kolom realisasi (J–M) — pre-filled dari DB
+	Realisasi                    string
+	RealisasiKuantitatif         string
+	RealisasiQualifier           string
+	RealisasiKuantitatifQualifier string
+	// TW2/TW4 penyusunan (N,O,R,S,V,W)
+	NamaResult       string
+	DeskripsiResult  string
+	NamaProcess      string
+	DeskripsiProcess string
+	NamaContext      string
+	DeskripsiContext string
+	// TW2/TW4 realisasi extended (P,Q,T,U,X,Y) — pre-filled dari DB
+	RealisasiResult  string
+	LinkResult       string
+	RealisasiProcess string
+	LinkProcess      string
+	RealisasiContext string
+	LinkContext      string
+}
+
+// RealisasiExcelData berisi daftar baris realisasi KPI
+// untuk keperluan generate Excel revisi realisasi KPI.
+type RealisasiExcelData struct {
+	Rows []RealisasiSubDetailRow
+}

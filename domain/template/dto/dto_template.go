@@ -28,6 +28,20 @@ type RevisionPenyusunanKpiRequest struct {
 	Triwulan    string        `json:"triwulan"     validate:"required,oneof=TW1 TW2 TW3 TW4"`
 }
 
+// RevisionRealisasiKpiRequest digunakan untuk endpoint POST /template/revision-realisasi-kpi.
+// Menghasilkan file Excel realisasi KPI yang sudah terisi data baris realisasi berdasarkan id_pengajuan,
+// sehingga user dapat langsung merevisi dan mengupload ulang via /realisasi-kpi/revision.
+// Format kolom mengikuti triwulan dari request:
+//
+//	TW1/TW3 → A–M (kolom A–I dari DB, J–M pre-filled data realisasi).
+//	TW2/TW4 → A–Y (kolom extended N,O,R,S,V,W dari DB; P,Q,T,U,X,Y pre-filled realisasi).
+type RevisionRealisasiKpiRequest struct {
+	IdPengajuan string        `json:"id_pengajuan" validate:"required"`
+	Divisi      DivisiRequest `json:"divisi"       validate:"required"`
+	Tahun       string        `json:"tahun"        validate:"required"`
+	Triwulan    string        `json:"triwulan"     validate:"required,oneof=TW1 TW2 TW3 TW4"`
+}
+
 // FormatRealisasiKpiRequest digunakan untuk endpoint POST /template/format-realisasi-kpi.
 // Menghasilkan file Excel template realisasi KPI yang sudah terisi data A–I (dari DB),
 // dengan kolom J–M dikosongkan untuk diisi user.

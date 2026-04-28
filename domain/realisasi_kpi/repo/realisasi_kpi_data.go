@@ -542,7 +542,7 @@ func (r *realisasiKpiRepo) CreateRealisasiKpi(
 
 	approvalListBytes, err := json.Marshal(req.ApprovalListRealisasi)
 	if err != nil {
-		return fmt.Errorf("gagal serialize approval_list_realisasi", err)
+		return fmt.Errorf("gagal serialize approval_list: %w", err)
 	}
 
 	// Ambil kostl_tx sebelum transaksi dimulai

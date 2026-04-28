@@ -25,6 +25,15 @@ type (
 		//   Kolom A (KPI) dan B (Polarisasi) dari join mst_kpi dan mst_polarisasi.
 		GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusunanKpiRequest) (fileBytes []byte, filename string, err error)
 
+		// GenerateRevisionRealisasiKpi digunakan oleh endpoint POST /template/revision-realisasi-kpi.
+		// Menghasilkan file Excel realisasi KPI yang sudah terisi data realisasi berdasarkan id_pengajuan,
+		// sehingga user dapat langsung merevisi dan mengupload ulang via /realisasi-kpi/revision.
+		// Kolom A–I dari penyusunan; kolom J–M pre-filled data realisasi sebelumnya.
+		// Format kolom extended mengikuti triwulan dari request:
+		//   TW1/TW3 → A–M.
+		//   TW2/TW4 → A–Y (N,O,R,S,V,W dari penyusunan; P,Q,T,U,X,Y pre-filled realisasi).
+		GenerateRevisionRealisasiKpi(req *dto.RevisionRealisasiKpiRequest) (fileBytes []byte, filename string, err error)
+
 		// GenerateFormatRealisasiKpi digunakan oleh endpoint POST /template/format-realisasi-kpi.
 		// Menghasilkan file Excel template realisasi KPI berdasarkan id_pengajuan dan triwulan dari request.
 		// Kolom A–I terisi data dari DB; kolom J–M dikosongkan untuk diisi user.
