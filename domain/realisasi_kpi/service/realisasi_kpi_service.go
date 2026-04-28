@@ -556,7 +556,6 @@ func (s *realisasiKpiService) GetAllRealisasiKpi(
 func (s *realisasiKpiService) GetAllApprovalRealisasiKpi(
 	req *dto.GetAllApprovalRealisasiKpiRequest,
 ) (data []*dto.GetAllApprovalRealisasiKpiResponse, total int64, err error) {
-
 	dataDB, total, err := s.repo.GetAllApprovalRealisasiKpi(req)
 	if err != nil {
 		return data, 0, err

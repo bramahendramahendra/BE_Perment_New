@@ -24,17 +24,21 @@ Backend service untuk aplikasi **Penyusunan KPI** BRI, dibangun menggunakan Go +
 ├── domain/             # Domain logic (handler, service, repo, model, dto)
 │   ├── audit_trail/
 │   ├── auth/
-│   ├── master_challenge/
+│   ├── edm/
+│   ├── master_context/
 │   ├── master_divisi/
 │   ├── master_kpi/
-│   ├── master_method/
 │   ├── master_perspektif/
+│   ├── master_process/
 │   ├── master_status/
 │   ├── master_tahun/
 │   ├── master_triwulan/
 │   ├── penyusunan_kpi/
+│   ├── realisasi_kpi/
 │   ├── sample/
-│   └── template/
+│   ├── template/
+│   ├── user/
+│   └── validasi_kpi/
 ├── dto/                # Shared DTO (response, error, filter, log)
 ├── errors/             # Custom error types
 ├── helper/             # Utility functions (ID generator, status code, dll)
@@ -103,16 +107,51 @@ Base URL: `http://localhost:8006/api`
 |--------|----------|------------|
 | POST | `/penyusunan-kpi/validate` | Validasi file Excel KPI | ✅
 | POST | `/penyusunan-kpi/create` | Simpan data KPI | ✅
-| POST | `/penyusunan-kpi/revision` | Revisi KPI (upload ulang) | ✅ Cek ULang code yang lama
-| POST | `/penyusunan-kpi/approve` | Approval disetujuai KPI | 
-| POST | `/penyusunan-kpi/reject` | Approval ditolak KPI | ✅ Cek ULang code yang lama
+| POST | `/penyusunan-kpi/revision` | Revisi KPI (upload ulang) | ✅
+| POST | `/penyusunan-kpi/approve` | Approval disetujui KPI | ✅
+| POST | `/penyusunan-kpi/reject` | Approval ditolak KPI | ✅
 | POST | `/penyusunan-kpi/get-all-approval` | Daftar KPI menunggu approval | ✅
 | POST | `/penyusunan-kpi/get-all-tolakan` | Daftar KPI yang ditolak | ✅
 | POST | `/penyusunan-kpi/get-all-daftar-penyusunan` | Daftar penyusunan KPI | ✅
 | POST | `/penyusunan-kpi/get-all-daftar-approval` | Daftar approval KPI | ✅
 | POST | `/penyusunan-kpi/get-detail` | Detail KPI | ✅
-| POST | `/penyusunan-kpi/get-excel` | Download KPI format Excel | 
-| POST | `/penyusunan-kpi/get-pdf` | Download KPI format PDF | 
+| POST | `/penyusunan-kpi/get-excel` | Download KPI format Excel | ✅
+| POST | `/penyusunan-kpi/get-pdf` | Download KPI format PDF | ✅
+
+---
+
+### Realisasi KPI *(Protected)*
+
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| POST | `/realisasi-kpi/validate` | Validasi file Excel realisasi KPI |
+| POST | `/realisasi-kpi/create` | Simpan data realisasi KPI |
+| POST | `/realisasi-kpi/revision` | Revisi realisasi KPI (upload ulang) |
+| POST | `/realisasi-kpi/approve` | Approval disetujui realisasi KPI |
+| POST | `/realisasi-kpi/reject` | Approval ditolak realisasi KPI |
+| POST | `/realisasi-kpi/get-all` | Daftar semua realisasi KPI |
+| POST | `/realisasi-kpi/get-all-approval` | Daftar realisasi KPI menunggu approval |
+| POST | `/realisasi-kpi/get-all-tolakan` | Daftar realisasi KPI yang ditolak |
+| POST | `/realisasi-kpi/get-all-daftar-realisasi` | Daftar realisasi KPI |
+| POST | `/realisasi-kpi/get-all-daftar-approval` | Daftar approval realisasi KPI |
+| POST | `/realisasi-kpi/get-detail` | Detail realisasi KPI |
+
+---
+
+### Validasi KPI *(Protected)*
+
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| POST | `/validasi-kpi/input` | Input validasi KPI |
+| POST | `/validasi-kpi/approval` | Kirim validasi ke approval |
+| POST | `/validasi-kpi/approve` | Approve validasi KPI |
+| POST | `/validasi-kpi/reject` | Reject validasi KPI |
+| POST | `/validasi-kpi/batal` | Batalkan validasi KPI |
+| POST | `/validasi-kpi/get-all-approval` | Daftar validasi menunggu approval |
+| POST | `/validasi-kpi/get-all-tolakan` | Daftar validasi yang ditolak |
+| POST | `/validasi-kpi/get-all-daftar-penyusunan` | Daftar penyusunan validasi |
+| POST | `/validasi-kpi/get-all-daftar-approval` | Daftar approval validasi |
+| POST | `/validasi-kpi/get-all-validasi` | Daftar semua validasi KPI |
 
 ---
 
@@ -122,7 +161,15 @@ Base URL: `http://localhost:8006/api`
 |--------|----------|------------|
 | POST | `/template/format-penyusunan-kpi` | Download template penyusunan KPI | ✅
 | POST | `/template/revision-penyusunan-kpi` | Download template revision KPI | ✅
-| POST | `/template/format-realisasi-kpi` | Download template realisasi KPI |
+| POST | `/template/format-realisasi-kpi` | Download template realisasi KPI | ✅
+
+---
+
+### EDM *(Protected)*
+
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| POST | `/edm/realisasi` | Ambil data realisasi dari EDM | 
 
 ---
 
@@ -130,12 +177,12 @@ Base URL: `http://localhost:8006/api`
 
 | Method | Endpoint | Keterangan |
 |--------|----------|------------|
-| POST | `/master-triwulan/get-all` | Daftar triwulan | 
-| POST | `/master-perspektif/get-all` | Daftar perspektif | 
-| POST | `/master-tahun/get-all` | Daftar tahun | 
-| POST | `/master-divisi/get-all` | Daftar divisi | 
-| POST | `/master-kpi/get-all` | Daftar master KPI | 
-| POST | `/master-status/get-all` | Semua status | 
-| POST | `/master-process/get-all` | Daftar process | 
-| POST | `/master-context/get-all` | Daftar context | 
-| POST | `/user/get-all` | Daftar user | 
+| POST | `/master-triwulan/get-all` | Daftar triwulan | ✅
+| POST | `/master-perspektif/get-all` | Daftar perspektif | ✅
+| POST | `/master-tahun/get-all` | Daftar tahun | ✅
+| POST | `/master-divisi/get-all` | Daftar divisi | ✅
+| POST | `/master-kpi/get-all` | Daftar master KPI | ✅
+| POST | `/master-status/get-all` | Semua status | ✅
+| POST | `/master-process/get-all` | Daftar process | ✅
+| POST | `/master-context/get-all` | Daftar context | ✅
+| POST | `/user/get-all` | Daftar user | ✅

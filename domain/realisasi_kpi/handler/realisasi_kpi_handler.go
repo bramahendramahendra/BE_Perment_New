@@ -259,6 +259,11 @@ func (h *RealisasiKpiHandler) GetAllRealisasiKpi(c *gin.Context) {
 		return
 	}
 
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	data, total, err := h.service.GetAllRealisasiKpi(&req)
 	if err != nil {
 		c.Error(err)
@@ -301,6 +306,11 @@ func (h *RealisasiKpiHandler) GetAllApprovalRealisasiKpi(c *gin.Context) {
 
 	req.ApprovalUserRealisasi = strings.TrimSpace(parts[0])
 
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	data, total, err := h.service.GetAllApprovalRealisasiKpi(&req)
 	if err != nil {
 		c.Error(err)
@@ -322,7 +332,6 @@ func (h *RealisasiKpiHandler) GetAllApprovalRealisasiKpi(c *gin.Context) {
 }
 
 // GetAllTolakanRealisasiKpi handles POST /realisasi-kpi/get-all-tolakan
-// Mengembalikan list pengajuan realisasi yang ditolak milik user tertentu (status 4).
 func (h *RealisasiKpiHandler) GetAllTolakanRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllTolakanRealisasiKpiRequest](c)
 	if err != nil {
@@ -330,24 +339,15 @@ func (h *RealisasiKpiHandler) GetAllTolakanRealisasiKpi(c *gin.Context) {
 		return
 	}
 
-	// if err := validator.Validate.Struct(req); err != nil {
-	// 	c.Error(err)
-	// 	return
-	// }
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
 
 	data, total, err := h.service.GetAllTolakanRealisasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
-	}
-
-	page := req.Page
-	if page <= 0 {
-		page = 1
-	}
-	limit := req.Limit
-	if limit <= 0 {
-		limit = 10
 	}
 
 	pagination := response_helper.SetPagination(&globalDTO.FilterRequestParams{
@@ -365,7 +365,6 @@ func (h *RealisasiKpiHandler) GetAllTolakanRealisasiKpi(c *gin.Context) {
 }
 
 // GetAllDaftarRealisasiKpi handles POST /realisasi-kpi/get-all-daftar-realisasi
-// Mengembalikan semua pengajuan dalam konteks realisasi dengan filter opsional.
 func (h *RealisasiKpiHandler) GetAllDaftarRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllDaftarRealisasiKpiRequest](c)
 	if err != nil {
@@ -373,10 +372,10 @@ func (h *RealisasiKpiHandler) GetAllDaftarRealisasiKpi(c *gin.Context) {
 		return
 	}
 
-	// if err := validator.Validate.Struct(req); err != nil {
-	// 	c.Error(err)
-	// 	return
-	// }
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
 
 	data, total, err := h.service.GetAllDaftarRealisasiKpi(&req)
 	if err != nil {
@@ -399,7 +398,6 @@ func (h *RealisasiKpiHandler) GetAllDaftarRealisasiKpi(c *gin.Context) {
 }
 
 // GetAllDaftarApprovalRealisasiKpi handles POST /realisasi-kpi/get-all-daftar-approval
-// Mengembalikan semua pengajuan realisasi yang sudah masuk proses approval.
 func (h *RealisasiKpiHandler) GetAllDaftarApprovalRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllDaftarApprovalRealisasiKpiRequest](c)
 	if err != nil {

@@ -264,6 +264,11 @@ func (h *PenyusunanKpiHandler) GetAllApprovalPenyusunanKpi(c *gin.Context) {
 
 	req.ApprovalUser = strings.TrimSpace(parts[0])
 
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	data, total, err := h.service.GetAllApprovalPenyusunanKpi(&req)
 	if err != nil {
 		c.Error(err)
@@ -292,6 +297,11 @@ func (h *PenyusunanKpiHandler) GetAllTolakanPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	data, total, err := h.service.GetAllTolakanPenyusunanKpi(&req)
 	if err != nil {
 		c.Error(err)
@@ -306,7 +316,7 @@ func (h *PenyusunanKpiHandler) GetAllTolakanPenyusunanKpi(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:       "00",
 		Status:     true,
-		Message:    "Data Penolakan KPI berhasil diambil",
+		Message:    "Data Penolakan Penyusunan KPI berhasil diambil",
 		Data:       data,
 		Pagination: pagination,
 	})

@@ -1327,6 +1327,7 @@ func (r *penyusunanKpiRepo) GetAllDaftarApprovalPenyusunanKpi(
 	// BUILD DYNAMIC WHERE
 	// =========================================================================
 	conditions := []string{
+		"a.status IN (3, 5)",
 		"a.approval_list LIKE ?",
 	}
 	args := []interface{}{"%" + req.ApprovalUser + "%"}
