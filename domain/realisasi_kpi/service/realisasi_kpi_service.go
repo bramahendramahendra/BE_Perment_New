@@ -853,7 +853,7 @@ func (s *realisasiKpiService) enrichRowsFromDB(
 		for i := range subRows {
 			sub := &kpiSubDetails[kpiRow.KpiIndex][i]
 
-			idSubDetail, idDetail, rumus, targetKuantitatif, err :=
+			idSubDetail, idDetail, rumus, idQualifier, targetKuantitatif, err :=
 				s.repo.LookupSubDetailByKpiSubKpi(idPengajuan, kpiRow.Kpi, sub.SubKPI)
 			if err != nil {
 				return &customErrors.BadRequestError{Message: err.Error()}
@@ -861,8 +861,15 @@ func (s *realisasiKpiService) enrichRowsFromDB(
 
 			sub.IdSubDetail = idSubDetail
 			sub.IdDetail = idDetail
+			sub.IdQualifier = idQualifier
 			sub.Rumus = rumus
 			sub.TargetKuantitatifTriwulan = targetKuantitatif
+
+			// Kolom L dan M hanya disimpan jika id_qualifier = "ya"
+			if strings.ToLower(strings.TrimSpace(idQualifier)) != "ya" {
+				sub.RealisasiQualifierVal = ""
+				sub.RealisasiKuantitatifQualifier = ""
+			}
 
 			// Hitung Pencapaian dan Skor
 			pencapaian, skor := calculatePencapaianSkor(

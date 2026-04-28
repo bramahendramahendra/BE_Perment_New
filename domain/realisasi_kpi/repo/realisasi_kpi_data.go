@@ -81,13 +81,14 @@ const (
 	// =============================================================================
 
 	// queryLookupSubDetail mencari id_sub_detail, id_detail, target_kuantitatif_triwulan,
-	// dan rumus (id_polarisasi) berdasarkan id_pengajuan + nama kpi (dari detail) + nama sub_kpi.
+	// rumus (id_polarisasi), dan id_qualifier berdasarkan id_pengajuan + nama kpi (dari detail) + nama sub_kpi.
 	queryLookupSubDetail = `
 		SELECT
 			s.id_sub_detail,
 			s.id_detail,
 			s.rumus,
-			IFNULL(s.target_kuantitatif_triwulan, 0) AS target_kuantitatif_triwulan
+			IFNULL(s.target_kuantitatif_triwulan, 0) AS target_kuantitatif_triwulan,
+			IFNULL(s.id_qualifier, '') AS id_qualifier
 		FROM data_kpi_subdetail s
 		INNER JOIN data_kpi_detail d ON d.id_detail = s.id_detail
 		WHERE s.id_pengajuan = ?
@@ -413,18 +414,18 @@ func (r *realisasiKpiRepo) GetKpiHeader(idPengajuan string) (tahun, triwulan, ko
 
 func (r *realisasiKpiRepo) LookupSubDetailByKpiSubKpi(
 	idPengajuan, kpiName, subKpiName string,
-) (idSubDetail, idDetail, rumus string, targetKuantitatifTriwulan float64, err error) {
+) (idSubDetail, idDetail, rumus, idQualifier string, targetKuantitatifTriwulan float64, err error) {
 	row := r.db.Raw(queryLookupSubDetail, idPengajuan, kpiName, subKpiName).Row()
-	if scanErr := row.Scan(&idSubDetail, &idDetail, &rumus, &targetKuantitatifTriwulan); scanErr != nil {
+	if scanErr := row.Scan(&idSubDetail, &idDetail, &rumus, &targetKuantitatifTriwulan, &idQualifier); scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
-			return "", "", "", 0, fmt.Errorf(
+			return "", "", "", "", 0, fmt.Errorf(
 				"sub KPI '%s' pada KPI '%s' tidak ditemukan di id_pengajuan '%s'",
 				subKpiName, kpiName, idPengajuan,
 			)
 		}
-		return "", "", "", 0, fmt.Errorf("gagal lookup sub detail untuk sub KPI '%s': %w", subKpiName, scanErr)
+		return "", "", "", "", 0, fmt.Errorf("gagal lookup sub detail untuk sub KPI '%s': %w", subKpiName, scanErr)
 	}
-	return idSubDetail, idDetail, rumus, targetKuantitatifTriwulan, nil
+	return idSubDetail, idDetail, rumus, idQualifier, targetKuantitatifTriwulan, nil
 }
 
 // =============================================================================

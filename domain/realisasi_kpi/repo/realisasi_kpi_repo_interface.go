@@ -29,10 +29,10 @@ type (
 		GetKpiHeaderByIdPengajuan(idPengajuan string) (tahun, triwulan, kostl, kostlTx string, err error)
 
 		// LookupSubDetailByKpiSubKpi mencari id_sub_detail, id_detail, target_kuantitatif_triwulan,
-		// dan rumus (id_polarisasi) berdasarkan id_pengajuan + kpi_name + sub_kpi_name dari Excel.
+		// rumus (id_polarisasi), dan id_qualifier berdasarkan id_pengajuan + kpi_name + sub_kpi_name dari Excel.
 		LookupSubDetailByKpiSubKpi(
 			idPengajuan, kpiName, subKpiName string,
-		) (idSubDetail, idDetail, rumus string, targetKuantitatifTriwulan float64, err error)
+		) (idSubDetail, idDetail, rumus, idQualifier string, targetKuantitatifTriwulan float64, err error)
 
 		// ValidateRealisasiKpi menyimpan data realisasi ke data_kpi_subdetail (status 80 = draft realisasi).
 		// Juga meng-update data_challenge_detail dan data_method_detail jika ada extended data (TW2/TW4).

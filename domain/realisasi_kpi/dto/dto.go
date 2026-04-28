@@ -449,6 +449,7 @@ type KpiSubDetailRow struct {
 	// Di-populate dari DB oleh service setelah parse (via enrichRowsFromDB)
 	IdSubDetail               string
 	IdDetail                  string
+	IdQualifier               string
 	TargetKuantitatifTriwulan float64
 	Rumus                     string
 	Pencapaian                float64
