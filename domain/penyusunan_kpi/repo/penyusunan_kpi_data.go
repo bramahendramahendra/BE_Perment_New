@@ -25,6 +25,10 @@ const (
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status`
 
+	queryCheckApprovalPenyusunan = `
+		SELECT COUNT(*) FROM data_kpi
+		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
+
 	// =============================================================================
 	// Check Data
 	// =============================================================================
@@ -175,16 +179,17 @@ const (
 		WHERE a.id_pengajuan = ? AND b.kostl = ? AND b.tahun = ? AND b.triwulan = ?
 		ORDER BY a.id_sub_detail ASC`
 
-	queryCheckApprovalPenyusunan = `
-		SELECT COUNT(*) FROM data_kpi
-		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
-
 	queryGetApprovalListJSON = `
 		SELECT approval_list FROM data_kpi
 		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
 
 	queryGetCatatanTolakan = `
 		SELECT IFNULL(catatan_tolakan, '') FROM data_kpi
+		WHERE id_pengajuan = ? LIMIT 1`
+
+	// queryGetApprovalForRevision digunakan oleh RevisionPenyusunanKpi untuk membaca
+	queryGetApprovalForRevision = `
+		SELECT approval_posisi, approval_list FROM data_kpi
 		WHERE id_pengajuan = ? LIMIT 1`
 	// =============================================================================
 	// Insert
@@ -248,12 +253,6 @@ const (
 
 	queryRejectPenyusunan = `
 		UPDATE data_kpi SET status = 1, approval_list = ?, catatan_tolakan = ? WHERE id_pengajuan = ?`
-
-	// queryGetApprovalForRevision digunakan oleh RevisionPenyusunanKpi untuk membaca
-	// approval_posisi dan approval_list sebelum dikosongkan.
-	queryGetApprovalForRevision = `
-		SELECT approval_posisi, approval_list FROM data_kpi
-		WHERE id_pengajuan = ? LIMIT 1`
 
 	// queryUpdateKpiRevision digunakan oleh RevisionPenyusunanKpi untuk update header data_kpi.
 	// status = 0 → langsung ke approval (tidak perlu draft lagi).
@@ -956,9 +955,7 @@ func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, appr
 // =============================================================================
 // REJECT PENYUSUNAN KPI
 // =============================================================================
-
 // RejectPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/reject.
-// Menerima approval_list (JSON string sudah diupdate) dan catatan penolakan.
 func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catatan, user string) error {
 	// Ambil entry_user untuk dikirim notifikasi penolakan
 	var kpiBase struct {
@@ -996,6 +993,10 @@ func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catat
 	return nil
 }
 
+// =============================================================================
+// GET APPROVAL LIST JSON
+// =============================================================================
+
 func (r *penyusunanKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (string, error) {
 	var approvalListBytes []byte
 	row := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Row()
@@ -1009,6 +1010,9 @@ func (r *penyusunanKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (str
 	return approvalList, nil
 }
 
+// =============================================================================
+// GET CATATAn
+// =============================================================================
 func (r *penyusunanKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error) {
 	var val []byte
 	row := r.db.Raw(queryGetCatatanTolakan, idPengajuan).Row()

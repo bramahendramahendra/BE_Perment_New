@@ -9,6 +9,7 @@ import (
 
 	dto "permen_api/domain/realisasi_kpi/dto"
 	model "permen_api/domain/realisasi_kpi/model"
+	customErrors "permen_api/errors"
 	notif "permen_api/pkg/notif"
 )
 
@@ -43,6 +44,10 @@ const (
 		FROM data_kpi
 		WHERE id_pengajuan = ? AND status = 3`
 
+	// =============================================================================
+	// Get Data
+	// =============================================================================
+
 	// queryGetKpiBaseData digunakan oleh: SubmitPenyusunanKpi (kostl_tx),
 	// ApprovePenyusunanKpi (entry_user), dan GetKpiExportData (kostl_tx, tahun, triwulan).
 	queryGetKpiBaseData = `
@@ -57,6 +62,19 @@ const (
 		INNER JOIN mst_status b ON a.status = b.id_status
 		WHERE a.id_pengajuan = ? AND status IN (2, 4, 80, 81)
 		LIMIT 1`
+
+	queryGetApprovalListJSON = `
+		SELECT approval_list FROM data_kpi
+		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
+
+	queryGetCatatanTolakan = `
+		SELECT IFNULL(catatan_tolakan, '') FROM data_kpi
+		WHERE id_pengajuan = ? LIMIT 1`
+
+	// queryGetApprovalForRevision digunakan oleh RevisionPenyusunanKpi untuk membaca
+	queryGetApprovalForRevision = `
+		SELECT approval_posisi, approval_list_realisasi FROM data_kpi
+		WHERE id_pengajuan = ? LIMIT 1`
 
 	// =============================================================================
 	// Lookup
@@ -87,29 +105,33 @@ const (
 	// =============================================================================
 	// Update
 	// =============================================================================
-	// queryUpdateKpiRealisasi digunakan oleh CreateRealisasiKpi untuk mengisi approval dan mengubah status.
+	// queryUpdateKpi meng-update header data_kpi ke status realisasi yang diberikan.
 	queryUpdateKpiRealisasi = `
-		UPDATE data_kpi 
-		SET approval_posisi = ?, approval_list_realisasi = ?, status = 2
-		WHERE id_pengajuan = ?`
-
-	// queryUpdateKpiStatusDraft meng-update header data_kpi ke status 80 (draft realisasi).
-	queryUpdateKpiStatusDraft = `
 		UPDATE data_kpi
-		SET status                  = 80,
+		SET status                  = ?,
 		    entry_user_realisasi    = ?,
 		    entry_name_realisasi    = ?,
-		    entry_time_realisasi    = NOW()
+		    entry_time_realisasi    = ?
+		WHERE id_pengajuan = ?`
+
+	// queryUpdateKpiRealisasi digunakan oleh CreateRealisasiKpi untuk mengisi approval dan mengubah status.
+	queryUpdateKpiRealisasiCreate = `
+		UPDATE data_kpi 
+		SET approval_posisi = ?, approval_list_realisasi = ?, status = 3
+		WHERE id_pengajuan = ?`
+
+	queryUpdateKpiRealisasiRevision = `
+		UPDATE data_kpi
+		SET entry_time_realisasi = ?, approval_posisi = ?, approval_list_realisasi = ?, status = 3
 		WHERE id_pengajuan = ?`
 
 	// queryUpdateSubDetailRealisasi meng-update satu baris data_kpi_subdetail dengan nilai realisasi.
-	queryUpdateSubDetailRealisasi = `
+	queryUpdateKpiSubDetailRealisasi = `
 		UPDATE data_kpi_subdetail
 		SET realisasi                      = ?,
 		    realisasi_kuantitatif          = ?,
 		    realisasi_validated            = ?,
 		    realisasi_kuantitatif_validated = ?,
-		    realisasi_keterangan           = '',
 		    pencapaian                     = ?,
 		    skor                           = ?,
 		    realisasi_qualifier            = ?,
@@ -117,31 +139,30 @@ const (
 		WHERE id_pengajuan = ?
 		  AND id_sub_detail = ?`
 
-	// queryUpdateChallengeRealisasi meng-update realisasi pada data_challenge_detail.
-	queryUpdateChallengeRealisasi = `
-		UPDATE data_challenge_detail
-		SET realisasi_challenge = ?
+	// queryUpdateResultDetailRealisasi meng-update realisasi pada data_result_detail.
+	queryUpdateResultDetailRealisasi = `
+		UPDATE data_result_detail
+		SET realisasi_result = ?
 		WHERE id_pengajuan = ?
-		  AND id_detail_challenge = ?`
+		  AND id_detail_result = ?`
 
-	// queryUpdateMethodRealisasi meng-update realisasi pada data_method_detail.
-	queryUpdateMethodRealisasi = `
+	// queryUpdateProcessDetailRealisasi meng-update realisasi pada data_method_detail.
+	queryUpdateProcessDetailRealisasi = `
 		UPDATE data_method_detail
 		SET realisasi_method = ?
 		WHERE id_pengajuan = ?
 		  AND id_detail_method = ?`
 
+	// queryUpdateContextDetailRealisasi meng-update realisasi pada data_challenge_detail.
+	queryUpdateContextDetailRealisasi = `
+		UPDATE data_challenge_detail
+		SET realisasi_challenge = ?
+		WHERE id_pengajuan = ?
+		  AND id_detail_challenge = ?`
+
 	// =============================================================================
 	// Update — Create (Submit)
 	// =============================================================================
-
-	// querySubmitRealisasi meng-update header data_kpi ke status 3 (pending approval realisasi).
-	querySubmitRealisasi = `
-		UPDATE data_kpi
-		SET status                   = 3,
-		    approval_posisi          = ?,
-		    approval_list_realisasi  = ?
-		WHERE id_pengajuan = ?`
 
 	queryApproveChainRealisasi = `
 		UPDATE data_kpi
@@ -418,6 +439,13 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	processList []dto.DataProcess,
 	contextList []dto.DataContext,
 ) error {
+
+	// status 80 = draft realisasi
+	var statusKpi any = 80
+
+	// =========================================================================
+	// Eksekusi semua UPDATE dalam satu transaksi
+	// =========================================================================
 	tx := r.db.Begin()
 	if tx.Error != nil {
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
@@ -428,7 +456,7 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	// -------------------------------------------------------------------------
 	for _, kpiRow := range kpiRows {
 		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
-			if err := tx.Exec(queryUpdateSubDetailRealisasi,
+			if err := tx.Exec(queryUpdateKpiSubDetailRealisasi,
 				row.Realisasi,
 				row.RealisasiKuantitatif,
 				row.Realisasi,            // realisasi_validated = sama dengan realisasi
@@ -450,11 +478,11 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	// UPDATE result (data_challenge_detail.realisasi_challenge) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, r2 := range resultList {
-		if err := tx.Exec(queryUpdateChallengeRealisasi,
+		if err := tx.Exec(queryUpdateResultDetailRealisasi,
 			r2.RealisasiResult, req.IdPengajuan, r2.IdDetailResult,
 		).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal update challenge result '%s': %w", r2.IdDetailResult, err)
+			return fmt.Errorf("gagal update result '%s': %w", r2.IdDetailResult, err)
 		}
 	}
 
@@ -462,11 +490,11 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	// UPDATE process (data_method_detail.realisasi_method) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, p := range processList {
-		if err := tx.Exec(queryUpdateMethodRealisasi,
+		if err := tx.Exec(queryUpdateProcessDetailRealisasi,
 			p.RealisasiProcess, req.IdPengajuan, p.IdDetailProcess,
 		).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal update method process '%s': %w", p.IdDetailProcess, err)
+			return fmt.Errorf("gagal update process '%s': %w", p.IdDetailProcess, err)
 		}
 	}
 
@@ -474,22 +502,22 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	// UPDATE context (data_challenge_detail.realisasi_challenge untuk context) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, c := range contextList {
-		if err := tx.Exec(queryUpdateChallengeRealisasi,
+		if err := tx.Exec(queryUpdateContextDetailRealisasi,
 			c.RealisasiContext, req.IdPengajuan, c.IdDetailContext,
 		).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal update challenge context '%s': %w", c.IdDetailContext, err)
+			return fmt.Errorf("gagal update context '%s': %w", c.IdDetailContext, err)
 		}
 	}
 
 	// -------------------------------------------------------------------------
 	// UPDATE header data_kpi → status 80
 	// -------------------------------------------------------------------------
-	if err := tx.Exec(queryUpdateKpiStatusDraft,
-		req.EntryUserRealisasi, req.EntryNameRealisasi, req.IdPengajuan,
+	if err := tx.Exec(queryUpdateKpiRealisasi,
+		statusKpi, req.EntryUserRealisasi, req.EntryNameRealisasi, req.EntryTimeRealisasi, req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("gagal update header realisasi: %w", err)
+		return fmt.Errorf("gagal update kpi realisasi: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -514,7 +542,7 @@ func (r *realisasiKpiRepo) CreateRealisasiKpi(
 
 	approvalListBytes, err := json.Marshal(req.ApprovalListRealisasi)
 	if err != nil {
-		return fmt.Errorf("gagal serialize approval_list: %w", err)
+		return fmt.Errorf("gagal serialize approval_list_realisasi", err)
 	}
 
 	// Ambil kostl_tx sebelum transaksi dimulai
@@ -534,7 +562,7 @@ func (r *realisasiKpiRepo) CreateRealisasiKpi(
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
 	}
 
-	if err := tx.Exec(querySubmitRealisasi,
+	if err := tx.Exec(queryUpdateKpiRealisasiCreate,
 		approvalPosisi, string(approvalListBytes), req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
@@ -570,6 +598,41 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	processList []dto.DataProcess,
 	contextList []dto.DataContext,
 ) error {
+	// =========================================================================
+	// Ambil approval_posisi dan approval_list lama, lalu kosongkan entry
+	// yang posisi-nya sama dengan approval_posisi (yaitu approver yang reject).
+	// =========================================================================
+	var approvalPosisi string
+	var approvalListRaw []byte
+	row := r.db.Raw(queryGetApprovalForRevision, req.IdPengajuan).Row()
+	if err := row.Scan(&approvalPosisi, &approvalListRaw); err != nil {
+		return fmt.Errorf("gagal membaca approval data: %w", err)
+	}
+
+	var approvalList []dto.ApprovalUserRealisasiDetail
+	if err := json.Unmarshal(approvalListRaw, &approvalList); err != nil {
+		return fmt.Errorf("gagal parse approval_list: %w", err)
+	}
+
+	// Reset semua entry approval_list ke posisi awal
+	for i := range approvalList {
+		approvalList[i].Status = ""
+		approvalList[i].Keterangan = ""
+		approvalList[i].Waktu = ""
+	}
+
+	// approval_posisi dikembalikan ke approver pertama dalam list
+	firstApprovalPosisi := approvalPosisi
+	if len(approvalList) > 0 {
+		firstApprovalPosisi = approvalList[0].Userid
+	}
+
+	updatedApprovalListBytes, err := json.Marshal(approvalList)
+	if err != nil {
+		return fmt.Errorf("gagal serialize approval_list: %w", err)
+	}
+	updatedApprovalList := string(updatedApprovalListBytes)
+
 	tx := r.db.Begin()
 	if tx.Error != nil {
 		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
@@ -580,7 +643,7 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	// -------------------------------------------------------------------------
 	for _, kpiRow := range kpiRows {
 		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
-			if err := tx.Exec(queryUpdateSubDetailRealisasi,
+			if err := tx.Exec(queryUpdateKpiSubDetailRealisasi,
 				row.Realisasi,
 				row.RealisasiKuantitatif,
 				row.Realisasi,
@@ -602,11 +665,11 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	// UPDATE result (data_challenge_detail.realisasi_challenge) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, r2 := range resultList {
-		if err := tx.Exec(queryUpdateChallengeRealisasi,
+		if err := tx.Exec(queryUpdateResultDetailRealisasi,
 			r2.RealisasiResult, req.IdPengajuan, r2.IdDetailResult,
 		).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal update challenge result '%s': %w", r2.IdDetailResult, err)
+			return fmt.Errorf("gagal update result '%s': %w", r2.IdDetailResult, err)
 		}
 	}
 
@@ -614,11 +677,11 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	// UPDATE process (data_method_detail.realisasi_method) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, p := range processList {
-		if err := tx.Exec(queryUpdateMethodRealisasi,
+		if err := tx.Exec(queryUpdateProcessDetailRealisasi,
 			p.RealisasiProcess, req.IdPengajuan, p.IdDetailProcess,
 		).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal update method process '%s': %w", p.IdDetailProcess, err)
+			return fmt.Errorf("gagal update process '%s': %w", p.IdDetailProcess, err)
 		}
 	}
 
@@ -626,19 +689,19 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	// UPDATE context (data_challenge_detail.realisasi_challenge untuk context) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, c := range contextList {
-		if err := tx.Exec(queryUpdateChallengeRealisasi,
+		if err := tx.Exec(queryUpdateContextDetailRealisasi,
 			c.RealisasiContext, req.IdPengajuan, c.IdDetailContext,
 		).Error; err != nil {
 			tx.Rollback()
-			return fmt.Errorf("gagal update challenge context '%s': %w", c.IdDetailContext, err)
+			return fmt.Errorf("gagal update context '%s': %w", c.IdDetailContext, err)
 		}
 	}
 
 	// -------------------------------------------------------------------------
 	// UPDATE header → status tetap 80 (draft), update entry time
 	// -------------------------------------------------------------------------
-	if err := tx.Exec(queryUpdateKpiStatusDraft,
-		req.EntryUserRealisasi, req.EntryNameRealisasi, req.IdPengajuan,
+	if err := tx.Exec(queryUpdateKpiRealisasiRevision,
+		req.EntryTimeRealisasi, firstApprovalPosisi, updatedApprovalList, req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal update header revisi realisasi: %w", err)
@@ -699,7 +762,7 @@ func (r *realisasiKpiRepo) ApproveRealisasiKpi(idPengajuan, approvalList, approv
 // =============================================================================
 // REJECT REALISASI KPI
 // =============================================================================
-
+// RejectRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/reject.
 func (r *realisasiKpiRepo) RejectRealisasiKpi(idPengajuan, approvalList, catatan, user string) error {
 	// Ambil entry_user_realisasi untuk notifikasi penolakan ke pengaju
 	var header struct {
@@ -741,15 +804,28 @@ func (r *realisasiKpiRepo) RejectRealisasiKpi(idPengajuan, approvalList, catatan
 // =============================================================================
 
 func (r *realisasiKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (string, error) {
-	var approvalListJSON string
-	row := r.db.Raw(`SELECT approval_list_realisasi FROM data_kpi WHERE id_pengajuan = ? LIMIT 1`, idPengajuan).Row()
-	if err := row.Scan(&approvalListJSON); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
-		}
-		return "", fmt.Errorf("gagal mengambil approval_list_realisasi: %w", err)
+	var approvalListBytes []byte
+	row := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Row()
+	if err := row.Scan(&approvalListBytes); err != nil {
+		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
 	}
-	return approvalListJSON, nil
+	approvalList := string(approvalListBytes)
+	if approvalList == "" {
+		return "", &customErrors.BadRequestError{Message: "Data KPI untuk Pengajuan ini tidak ditemukan."}
+	}
+	return approvalList, nil
+}
+
+// =============================================================================
+// GET CATATAn
+// =============================================================================
+func (r *realisasiKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error) {
+	var val []byte
+	row := r.db.Raw(queryGetCatatanTolakan, idPengajuan).Row()
+	if err := row.Scan(&val); err != nil {
+		return "", err
+	}
+	return string(val), nil
 }
 
 // =============================================================================
