@@ -1133,18 +1133,18 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom K: %v", err)}
 	}
 
-	// Kolom L (Realisasi Qualifier) → Dropdown: Ya / Tidak (diisi user)
-	dvRealisasiQualifier := excelize.NewDataValidation(true)
-	dvRealisasiQualifier.Sqref = sqrefDataRange("L")
-	if err := dvRealisasiQualifier.SetDropList([]string{"Ya", "Tidak"}); err != nil {
-		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Realisasi Qualifier: %v", err)}
-	}
-	dvRealisasiQualifier.ShowErrorMessage = true
-	dvRealisasiQualifier.ErrorStyle = strPtr("stop")
-	dvRealisasiQualifier.ErrorTitle = strPtr("Input Tidak Valid")
-	dvRealisasiQualifier.Error = strPtr("Pilih salah satu: Ya atau Tidak.")
-	if err := f.AddDataValidation(sheetName, dvRealisasiQualifier); err != nil {
-		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Realisasi Qualifier: %v", err)}
+	// Kolom M (Realisasi Qualifier Kuantitatif) → Angka desimal (diisi user, seperti kolom K)
+	if err := f.AddDataValidation(sheetName, &excelize.DataValidation{
+		Type:             "decimal",
+		Operator:         "greaterThanOrEqual",
+		Formula1:         "0",
+		ShowErrorMessage: true,
+		ErrorStyle:       strPtr("stop"),
+		ErrorTitle:       strPtr("Input Tidak Valid"),
+		Error:            strPtr("Realisasi Qualifier Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
+		Sqref:            sqrefDataRange("M"),
+	}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom M: %v", err)}
 	}
 
 	// -------------------------------------------------------------------------
@@ -1647,17 +1647,18 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom K: %v", err)}
 	}
 
-	dvRealisasiQualifier := excelize.NewDataValidation(true)
-	dvRealisasiQualifier.Sqref = sqrefDataRange("L")
-	if err := dvRealisasiQualifier.SetDropList([]string{"Ya", "Tidak"}); err != nil {
-		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Realisasi Qualifier: %v", err)}
-	}
-	dvRealisasiQualifier.ShowErrorMessage = true
-	dvRealisasiQualifier.ErrorStyle = strPtr("stop")
-	dvRealisasiQualifier.ErrorTitle = strPtr("Input Tidak Valid")
-	dvRealisasiQualifier.Error = strPtr("Pilih salah satu: Ya atau Tidak.")
-	if err := f.AddDataValidation(sheetName, dvRealisasiQualifier); err != nil {
-		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Realisasi Qualifier: %v", err)}
+	// Kolom M (Realisasi Qualifier Kuantitatif) → Angka desimal (diisi user, seperti kolom K)
+	if err := f.AddDataValidation(sheetName, &excelize.DataValidation{
+		Type:             "decimal",
+		Operator:         "greaterThanOrEqual",
+		Formula1:         "0",
+		ShowErrorMessage: true,
+		ErrorStyle:       strPtr("stop"),
+		ErrorTitle:       strPtr("Input Tidak Valid"),
+		Error:            strPtr("Realisasi Qualifier Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
+		Sqref:            sqrefDataRange("M"),
+	}); err != nil {
+		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom M: %v", err)}
 	}
 
 	// -------------------------------------------------------------------------

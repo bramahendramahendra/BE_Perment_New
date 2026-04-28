@@ -257,20 +257,18 @@ func parseAndValidateExcelInternal(
 			)
 		}
 
-		// Kolom L: Realisasi Qualifier — dropdown [Ya, Tidak]
+		// Kolom L: Realisasi Qualifier — wajib diisi (free text, seperti kolom J)
 		if colL == "" {
 			return nil, nil, fmt.Errorf("baris %d, Kolom L (Realisasi Qualifier): tidak boleh kosong", displayRow)
 		}
-		if !strings.EqualFold(colL, QualifierYa) && !strings.EqualFold(colL, QualifierTidak) {
-			return nil, nil, fmt.Errorf(
-				"baris %d, Kolom L (Realisasi Qualifier): harus 'Ya' atau 'Tidak', nilai saat ini: '%s'",
-				displayRow, colL,
-			)
-		}
 
-		// Kolom M: Realisasi Qualifier Kuantitatif — free text, wajib diisi
-		if colM == "" {
-			return nil, nil, fmt.Errorf("baris %d, Kolom M (Realisasi Qualifier Kuantitatif): tidak boleh kosong", displayRow)
+		// Kolom M: Realisasi Qualifier Kuantitatif — wajib angka 2 desimal (seperti kolom K)
+		_, errM := parseFloat2Decimal(colM)
+		if errM != nil {
+			return nil, nil, fmt.Errorf(
+				"baris %d, Kolom M (Realisasi Qualifier Kuantitatif): harus berupa angka, nilai saat ini: '%s'",
+				displayRow, colM,
+			)
 		}
 
 		subRow := dto.KpiSubDetailRow{
