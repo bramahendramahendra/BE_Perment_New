@@ -76,6 +76,12 @@ const (
 		SELECT approval_posisi, approval_list_realisasi FROM data_kpi
 		WHERE id_pengajuan = ? LIMIT 1`
 
+	queryGetLinkFormats = `
+		SELECT url_prefix
+		FROM mst_link_format
+		WHERE is_active = 1
+		ORDER BY id_link_format ASC`
+
 	// =============================================================================
 	// Lookup
 	// =============================================================================
@@ -136,7 +142,8 @@ const (
 		    pencapaian                     = ?,
 		    skor                           = ?,
 		    realisasi_qualifier            = ?,
-		    realisasi_kuantitatif_qualifier = ?
+		    realisasi_kuantitatif_qualifier = ?,
+		    link_dokumen_sumber            = ?
 		WHERE id_pengajuan = ?
 		  AND id_sub_detail = ?`
 
@@ -457,6 +464,10 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	// -------------------------------------------------------------------------
 	for _, kpiRow := range kpiRows {
 		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
+			linkDokumen := ""
+			if row.LinkDokumenSumber != nil {
+				linkDokumen = *row.LinkDokumenSumber
+			}
 			if err := tx.Exec(queryUpdateKpiSubDetailRealisasi,
 				row.Realisasi,
 				row.RealisasiKuantitatif,
@@ -466,6 +477,7 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 				row.Skor,
 				row.RealisasiQualifierVal,
 				row.RealisasiKuantitatifQualifier,
+				linkDokumen,
 				req.IdPengajuan,
 				row.IdSubDetail,
 			).Error; err != nil {
@@ -1406,4 +1418,22 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	result.TotalContext = len(contextList)
 
 	return &result, nil
+}
+
+func (r *realisasiKpiRepo) GetLinkFormats() ([]string, error) {
+	rows, err := r.db.Raw(queryGetLinkFormats).Rows()
+	if err != nil {
+		return nil, fmt.Errorf("gagal mengambil data format link: %w", err)
+	}
+	defer rows.Close()
+
+	var prefixes []string
+	for rows.Next() {
+		var prefix string
+		if err := rows.Scan(&prefix); err != nil {
+			return nil, fmt.Errorf("gagal scan format link: %w", err)
+		}
+		prefixes = append(prefixes, prefix)
+	}
+	return prefixes, nil
 }

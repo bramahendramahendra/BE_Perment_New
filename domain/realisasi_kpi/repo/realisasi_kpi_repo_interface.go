@@ -113,6 +113,10 @@ type (
 		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
 		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
 
+		// GetLinkFormats mengambil semua url_prefix yang aktif dari mst_link_format.
+		// Digunakan untuk memvalidasi kolom "Link Dokumen Sumber" pada Excel upload.
+		GetLinkFormats() ([]string, error)
+
 		GetDB() *gorm.DB
 	}
 

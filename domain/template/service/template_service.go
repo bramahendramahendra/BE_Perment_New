@@ -766,7 +766,7 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 // GenerateFormatRealisasiKpi
 // =============================================================================
 
-// columnsRealisasiBase adalah header kolom A–M (sama untuk semua triwulan).
+// columnsRealisasiBase adalah header kolom A–N (sama untuk semua triwulan).
 var columnsRealisasiBase = []string{
 	"No",
 	"KPI",
@@ -781,9 +781,10 @@ var columnsRealisasiBase = []string{
 	"Realisasi Kuantitatif",
 	"Realisasi Qualifier",
 	"Realisasi Qualifier Kuantitatif",
+	"Link Dokumen Sumber",
 }
 
-// columnsRealisasiExtendedTW24 adalah header kolom N–Y (khusus TW2 dan TW4).
+// columnsRealisasiExtendedTW24 adalah header kolom O–Z (khusus TW2 dan TW4).
 var columnsRealisasiExtendedTW24 = []string{
 	"Result",
 	"Deskripsi Result",
@@ -829,7 +830,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	}
 
 	// Gabungkan header kolom sesuai triwulan
-	// TW1/TW3 hanya A–M; TW2/TW4 diperluas hingga Y
+	// TW1/TW3: A–N; TW2/TW4: diperluas hingga Z
 	allColumns := make([]string, len(columnsRealisasiBase))
 	copy(allColumns, columnsRealisasiBase)
 	if isTW24 {
@@ -914,15 +915,15 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 
 	// dbColSet: indeks kolom (0-based) yang datanya dari DB → warna kuning
 	// TW1/TW3: B–I (idx 1–8)
-	// TW2/TW4: B–I (idx 1–8) + N,O (13,14) + R,S (17,18) + V,W (21,22)
+	// TW2/TW4: B–I (idx 1–8) + O,P (14,15) + S,T (18,19) + W,X (22,23)
 	dbColSet := map[int]bool{1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true}
 	if isTW24 {
-		dbColSet[13] = true
 		dbColSet[14] = true
-		dbColSet[17] = true
+		dbColSet[15] = true
 		dbColSet[18] = true
-		dbColSet[21] = true
+		dbColSet[19] = true
 		dbColSet[22] = true
+		dbColSet[23] = true
 	}
 
 	for rowIdx, row := range excelData.Rows {
@@ -940,16 +941,17 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				row.TargetTriwulan,            // G: Target Triwulanan
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
 				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
-				"", "", "", "", // J–M: kosong (diisi user)
-				row.NamaResult,      // N: Result
-				row.DeskripsiResult, // O: Deskripsi Result
-				"", "",              // P–Q: kosong (diisi user)
-				row.NamaProcess,      // R: Process
-				row.DeskripsiProcess, // S: Deskripsi Process
-				"", "",               // T–U: kosong (diisi user)
-				row.NamaContext,      // V: Context
-				row.DeskripsiContext, // W: Deskripsi Context
-				"", "",               // X–Y: kosong (diisi user)
+				"", "", "", "",      // J–M: kosong (diisi user)
+				"",                  // N: Link Dokumen Sumber (diisi user)
+				row.NamaResult,      // O: Result
+				row.DeskripsiResult, // P: Deskripsi Result
+				"", "",              // Q–R: kosong (diisi user)
+				row.NamaProcess,      // S: Process
+				row.DeskripsiProcess, // T: Deskripsi Process
+				"", "",               // U–V: kosong (diisi user)
+				row.NamaContext,      // W: Context
+				row.DeskripsiContext, // X: Deskripsi Context
+				"", "",               // Y–Z: kosong (diisi user)
 			}
 		} else {
 			values = []interface{}{
@@ -963,6 +965,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
 				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
 				"", "", "", "", // J–M: kosong (diisi user)
+				"",             // N: Link Dokumen Sumber (diisi user)
 			}
 		}
 
@@ -1164,20 +1167,21 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		"K": 25, // Realisasi Kuantitatif
 		"L": 25, // Realisasi Qualifier
 		"M": 30, // Realisasi Qualifier Kuantitatif
+		"N": 45, // Link Dokumen Sumber
 	}
 	if isTW24 {
-		colWidths["N"] = 25 // Result
-		colWidths["O"] = 30 // Deskripsi Result
-		colWidths["P"] = 25 // Realisasi Result
-		colWidths["Q"] = 25 // Link Result
-		colWidths["R"] = 25 // Process
-		colWidths["S"] = 30 // Deskripsi Process
-		colWidths["T"] = 25 // Realisasi Process
-		colWidths["U"] = 25 // Link Process
-		colWidths["V"] = 25 // Context
-		colWidths["W"] = 30 // Deskripsi Context
-		colWidths["X"] = 25 // Realisasi Context
-		colWidths["Y"] = 25 // Link Context
+		colWidths["O"] = 25 // Result
+		colWidths["P"] = 30 // Deskripsi Result
+		colWidths["Q"] = 25 // Realisasi Result
+		colWidths["R"] = 45 // Link Result
+		colWidths["S"] = 25 // Process
+		colWidths["T"] = 30 // Deskripsi Process
+		colWidths["U"] = 25 // Realisasi Process
+		colWidths["V"] = 45 // Link Process
+		colWidths["W"] = 25 // Context
+		colWidths["X"] = 30 // Deskripsi Context
+		colWidths["Y"] = 25 // Realisasi Context
+		colWidths["Z"] = 45 // Link Context
 	}
 	for col, width := range colWidths {
 		if err := f.SetColWidth(sheetName, col, col, width); err != nil {
@@ -1206,15 +1210,16 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	// Sheet Protection: kunci semua sel, unlock hanya kolom input user
 	// -------------------------------------------------------------------------
 	// Tentukan kolom yang boleh diisi user sesuai triwulan:
-	//   TW1/TW3 : J (Realisasi), K (Realisasi Kuantitatif),
-	//             L (Realisasi Qualifier), M (Realisasi Qualifier Kuantitatif)
-	//   TW2/TW4 : tambah P (Realisasi Result), Q (Link Result),
-	//             T (Realisasi Process), U (Link Process),
-	//             X (Realisasi Context), Y (Link Context)
+	//   Semua TW : J (Realisasi), K (Realisasi Kuantitatif),
+	//             L (Realisasi Qualifier), M (Realisasi Qualifier Kuantitatif),
+	//             N (Link Dokumen Sumber)
+	//   TW2/TW4 : tambah Q (Realisasi Result), R (Link Result),
+	//             U (Realisasi Process), V (Link Process),
+	//             Y (Realisasi Context), Z (Link Context)
 	// L dan M dikecualikan dari range unlock massal — diproses per-baris
-	userInputCols := []string{"J", "K"}
+	userInputCols := []string{"J", "K", "N"}
 	if isTW24 {
-		userInputCols = append(userInputCols, "P", "Q", "T", "U", "X", "Y")
+		userInputCols = append(userInputCols, "Q", "R", "U", "V", "Y", "Z")
 	}
 
 	// Jumlah baris data aktual dari DB (baris 2 s.d. lastDataRow-1)
@@ -1425,15 +1430,15 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 
 	// dbColSet: indeks kolom (0-based) yang datanya dari DB → warna kuning
 	// TW1/TW3: B–I (idx 1–8)
-	// TW2/TW4: B–I (idx 1–8) + N,O (13,14) + R,S (17,18) + V,W (21,22)
+	// TW2/TW4: B–I (idx 1–8) + O,P (14,15) + S,T (18,19) + W,X (22,23)
 	dbColSet := map[int]bool{1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true}
 	if isTW24 {
-		dbColSet[13] = true
 		dbColSet[14] = true
-		dbColSet[17] = true
+		dbColSet[15] = true
 		dbColSet[18] = true
-		dbColSet[21] = true
+		dbColSet[19] = true
 		dbColSet[22] = true
+		dbColSet[23] = true
 	}
 
 	for rowIdx, row := range excelData.Rows {
@@ -1455,18 +1460,19 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 				parseFloatOrString(row.RealisasiKuantitatif),  // K: Realisasi Kuantitatif (pre-filled)
 				row.RealisasiQualifier,                         // L: Realisasi Qualifier (pre-filled, diproses per-baris)
 				row.RealisasiKuantitatifQualifier,              // M: Realisasi Qualifier Kuantitatif (pre-filled)
-				row.NamaResult,      // N: Result
-				row.DeskripsiResult, // O: Deskripsi Result
-				row.RealisasiResult, // P: Realisasi Result (pre-filled)
-				row.LinkResult,      // Q: Link Result (pre-filled)
-				row.NamaProcess,      // R: Process
-				row.DeskripsiProcess, // S: Deskripsi Process
-				row.RealisasiProcess, // T: Realisasi Process (pre-filled)
-				row.LinkProcess,      // U: Link Process (pre-filled)
-				row.NamaContext,      // V: Context
-				row.DeskripsiContext, // W: Deskripsi Context
-				row.RealisasiContext, // X: Realisasi Context (pre-filled)
-				row.LinkContext,      // Y: Link Context (pre-filled)
+				row.LinkDokumenSumber,                          // N: Link Dokumen Sumber (pre-filled)
+				row.NamaResult,      // O: Result
+				row.DeskripsiResult, // P: Deskripsi Result
+				row.RealisasiResult, // Q: Realisasi Result (pre-filled)
+				row.LinkResult,      // R: Link Result (pre-filled)
+				row.NamaProcess,      // S: Process
+				row.DeskripsiProcess, // T: Deskripsi Process
+				row.RealisasiProcess, // U: Realisasi Process (pre-filled)
+				row.LinkProcess,      // V: Link Process (pre-filled)
+				row.NamaContext,      // W: Context
+				row.DeskripsiContext, // X: Deskripsi Context
+				row.RealisasiContext, // Y: Realisasi Context (pre-filled)
+				row.LinkContext,      // Z: Link Context (pre-filled)
 			}
 		} else {
 			values = []interface{}{
@@ -1483,6 +1489,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 				parseFloatOrString(row.RealisasiKuantitatif),  // K: Realisasi Kuantitatif (pre-filled)
 				row.RealisasiQualifier,                         // L: Realisasi Qualifier (pre-filled, diproses per-baris)
 				row.RealisasiKuantitatifQualifier,              // M: Realisasi Qualifier Kuantitatif (pre-filled)
+				row.LinkDokumenSumber,                          // N: Link Dokumen Sumber (pre-filled)
 			}
 		}
 
@@ -1678,20 +1685,21 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		"K": 25, // Realisasi Kuantitatif
 		"L": 25, // Realisasi Qualifier
 		"M": 30, // Realisasi Qualifier Kuantitatif
+		"N": 45, // Link Dokumen Sumber
 	}
 	if isTW24 {
-		colWidths["N"] = 25 // Result
-		colWidths["O"] = 30 // Deskripsi Result
-		colWidths["P"] = 25 // Realisasi Result
-		colWidths["Q"] = 25 // Link Result
-		colWidths["R"] = 25 // Process
-		colWidths["S"] = 30 // Deskripsi Process
-		colWidths["T"] = 25 // Realisasi Process
-		colWidths["U"] = 25 // Link Process
-		colWidths["V"] = 25 // Context
-		colWidths["W"] = 30 // Deskripsi Context
-		colWidths["X"] = 25 // Realisasi Context
-		colWidths["Y"] = 25 // Link Context
+		colWidths["O"] = 25 // Result
+		colWidths["P"] = 30 // Deskripsi Result
+		colWidths["Q"] = 25 // Realisasi Result
+		colWidths["R"] = 45 // Link Result
+		colWidths["S"] = 25 // Process
+		colWidths["T"] = 30 // Deskripsi Process
+		colWidths["U"] = 25 // Realisasi Process
+		colWidths["V"] = 45 // Link Process
+		colWidths["W"] = 25 // Context
+		colWidths["X"] = 30 // Deskripsi Context
+		colWidths["Y"] = 25 // Realisasi Context
+		colWidths["Z"] = 45 // Link Context
 	}
 	for col, width := range colWidths {
 		if err := f.SetColWidth(sheetName, col, col, width); err != nil {

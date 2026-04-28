@@ -432,6 +432,7 @@ type KpiSubDetailRow struct {
 	RealisasiKuantitatif          float64
 	RealisasiQualifierVal         string
 	RealisasiKuantitatifQualifier string
+	LinkDokumenSumber             *string
 	IsTW24                        bool
 	Result                        *string
 	DeskripsiResult               *string

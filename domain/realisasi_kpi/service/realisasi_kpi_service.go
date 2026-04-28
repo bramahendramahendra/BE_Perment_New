@@ -84,6 +84,15 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 		}
 	}
 
+	// Validasi kolom N (Link Dokumen Sumber) terhadap format yang diizinkan di DB
+	linkFormats, err := s.repo.GetLinkFormats()
+	if err != nil {
+		return data, err
+	}
+	if err := validateLinkDokumenSumber(kpiRows, kpiSubDetails, linkFormats); err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
+	}
+
 	// Lookup DB per baris: isi IdSubDetail, IdDetail, TargetKuantitatifTriwulan, Rumus,
 	// lalu hitung Pencapaian dan Skor
 	if err := s.enrichRowsFromDB(req.IdPengajuan, kpiRows, kpiSubDetails); err != nil {
@@ -293,6 +302,15 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("validasi file Excel '%s' gagal: %s", file.Filename, err.Error()),
 		}
+	}
+
+	// Validasi kolom N (Link Dokumen Sumber) terhadap format yang diizinkan di DB
+	linkFormats, err := s.repo.GetLinkFormats()
+	if err != nil {
+		return data, err
+	}
+	if err := validateLinkDokumenSumber(kpiRows, kpiSubDetails, linkFormats); err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	// Lookup DB per baris: isi IdSubDetail, IdDetail, TargetKuantitatifTriwulan, Rumus,
@@ -940,6 +958,40 @@ func calculatePencapaianSkor(
 	return pencapaian, skor
 }
 
+// validateLinkDokumenSumber memvalidasi kolom N (Link Dokumen Sumber) setiap baris Excel
+// terhadap daftar prefix URL yang diizinkan dari DB (mst_link_format).
+func validateLinkDokumenSumber(
+	kpiRows []dto.KpiRow,
+	kpiSubDetails map[int][]dto.KpiSubDetailRow,
+	allowedPrefixes []string,
+) error {
+	for _, kpiRow := range kpiRows {
+		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
+			if row.LinkDokumenSumber == nil || *row.LinkDokumenSumber == "" {
+				return fmt.Errorf(
+					"baris No %d, Sub KPI '%s': Kolom N (Link Dokumen Sumber) tidak boleh kosong",
+					row.No, row.SubKPI,
+				)
+			}
+			link := strings.TrimSpace(*row.LinkDokumenSumber)
+			valid := false
+			for _, prefix := range allowedPrefixes {
+				if strings.HasPrefix(link, prefix) {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				return fmt.Errorf(
+					"baris No %d, Sub KPI '%s': Link Dokumen Sumber '%s' tidak sesuai format yang diizinkan",
+					row.No, row.SubKPI, link,
+				)
+			}
+		}
+	}
+	return nil
+}
+
 // parseCapping mengubah string capping ("100%" atau "110%") menjadi nilai float64.
 // Mengembalikan 0 jika format tidak dikenal (tidak ada capping yang diterapkan).
 func parseCapping(cappingStr string) float64 {
@@ -952,3 +1004,4 @@ func parseCapping(cappingStr string) float64 {
 		return 0
 	}
 }
+

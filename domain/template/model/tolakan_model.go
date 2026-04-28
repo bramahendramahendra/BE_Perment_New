@@ -75,21 +75,22 @@ type ExcelData struct {
 //	K  = RealisasiKuantitatif → data_kpi_subdetail.realisasi_kuantitatif (pre-filled)
 //	L  = RealisasiQualifier   → data_kpi_subdetail.realisasi_qualifier   (pre-filled, jika ada qualifier)
 //	M  = RealisasiKuantitatifQualifier → data_kpi_subdetail.realisasi_kuantitatif_qualifier (pre-filled)
+//	N  = LinkDokumenSumber → data_kpi_subdetail.link_dokumen_sumber (pre-filled)
 //
 // Kolom TW2/TW4 extended:
 //
-//	N  = NamaResult         → data_result_detail.nama_result
-//	O  = DeskripsiResult    → data_result_detail.deskripsi_result
-//	P  = RealisasiResult    → data_result_detail.realisasi_result (pre-filled)
-//	Q  = LinkResult         → data_result_detail.lampiran_evidence (pre-filled)
-//	R  = NamaProcess        → data_method_detail.nama_method
-//	S  = DeskripsiProcess   → data_method_detail.deskripsi_method
-//	T  = RealisasiProcess   → data_method_detail.realisasi_method (pre-filled)
-//	U  = LinkProcess        → data_method_detail.lampiran_evidence (pre-filled)
-//	V  = NamaContext        → data_challenge_detail.nama_challenge
-//	W  = DeskripsiContext   → data_challenge_detail.deskripsi_challenge
-//	X  = RealisasiContext   → data_challenge_detail.realisasi_challenge (pre-filled)
-//	Y  = LinkContext        → data_challenge_detail.lampiran_evidence (pre-filled)
+//	O  = NamaResult         → data_result_detail.nama_result
+//	P  = DeskripsiResult    → data_result_detail.deskripsi_result
+//	Q  = RealisasiResult    → data_result_detail.realisasi_result (pre-filled)
+//	R  = LinkResult         → data_result_detail.lampiran_evidence (pre-filled)
+//	S  = NamaProcess        → data_method_detail.nama_method
+//	T  = DeskripsiProcess   → data_method_detail.deskripsi_method
+//	U  = RealisasiProcess   → data_method_detail.realisasi_method (pre-filled)
+//	V  = LinkProcess        → data_method_detail.lampiran_evidence (pre-filled)
+//	W  = NamaContext        → data_challenge_detail.nama_challenge
+//	X  = DeskripsiContext   → data_challenge_detail.deskripsi_challenge
+//	Y  = RealisasiContext   → data_challenge_detail.realisasi_challenge (pre-filled)
+//	Z  = LinkContext        → data_challenge_detail.lampiran_evidence (pre-filled)
 type RealisasiSubDetailRow struct {
 	KpiNama       string
 	SubKpi        string
@@ -100,19 +101,20 @@ type RealisasiSubDetailRow struct {
 	ItemQualifier   string
 	TargetQualifier string
 	TerdapatQualifier string
-	// Kolom realisasi (J–M) — pre-filled dari DB
+	// Kolom realisasi (J–N) — pre-filled dari DB
 	Realisasi                    string
 	RealisasiKuantitatif         string
 	RealisasiQualifier           string
 	RealisasiKuantitatifQualifier string
-	// TW2/TW4 penyusunan (N,O,R,S,V,W)
+	LinkDokumenSumber             string
+	// TW2/TW4 penyusunan (O,P,S,T,W,X)
 	NamaResult       string
 	DeskripsiResult  string
 	NamaProcess      string
 	DeskripsiProcess string
 	NamaContext      string
 	DeskripsiContext string
-	// TW2/TW4 realisasi extended (P,Q,T,U,X,Y) — pre-filled dari DB
+	// TW2/TW4 realisasi extended (Q,R,U,V,Y,Z) — pre-filled dari DB
 	RealisasiResult  string
 	LinkResult       string
 	RealisasiProcess string
