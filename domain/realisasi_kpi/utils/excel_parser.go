@@ -66,14 +66,13 @@ func ParseAndValidateRealisasiExcel(
 }
 
 // ParseAndValidateRealisasiExcel membaca file Excel realisasi, memvalidasi, dan mengembalikan
-// slice RealisasiKpiRow yang sudah terisi data dari kolom A–S (TW1/TW3) atau A–Y (TW2/TW4).
+// slice RealisasiKpiRow yang sudah terisi data dari kolom A–M (TW1/TW3) atau A–Y (TW2/TW4).
 //
 // Aturan kolom:
 //
 //	A=No, B=KPI, C=SubKPI, D=Polarisasi, E=Capping, F=Bobot%,
 //	G=TargetTriwulan, H=Qualifier (auto-fill "-"), I=TargetQualifier (auto-fill "-"),
 //	J=Realisasi, K=RealisasiKuantitatif, L=RealisasiQualifier, M=RealisasiQualifierKuantitatif
-//	TW1/TW3: N=Result, O=DeskripsiResult, P=Process, Q=DeskripsiProcess, R=Context, S=DeskripsiContext
 //	TW2/TW4: N=Result, O=DeskripsiResult, P=RealisasiResult, Q=LinkResult,
 //	         R=Process, S=DeskripsiProcess, T=RealisasiProcess, U=LinkProcess,
 //	         V=Context, W=DeskripsiContext, X=RealisasiContext, Y=LinkContext
@@ -143,7 +142,7 @@ func parseAndValidateExcelInternal(
 	if isTW24 {
 		expectedCols = 25 // A–Y
 	} else {
-		expectedCols = 19 // A–S
+		expectedCols = 13 // A–M
 	}
 
 	for rowIdx, row := range limitedRows {
@@ -353,40 +352,6 @@ func parseAndValidateExcelInternal(
 			subRow.DeskripsiContext = &colW
 			subRow.RealisasiContext = &colX
 			subRow.LampiranEvidenceContext = &colY
-		} else {
-			// TW1/TW3: N=Result, O=DeskripsiResult, P=Process, Q=DeskripsiProcess, R=Context, S=DeskripsiContext
-			colN := strings.TrimSpace(row[13])
-			colO := strings.TrimSpace(row[14])
-			colP := strings.TrimSpace(row[15])
-			colQ := strings.TrimSpace(row[16])
-			colR := strings.TrimSpace(row[17])
-			colS := strings.TrimSpace(row[18])
-
-			if colN == "" {
-				return nil, nil, fmt.Errorf("baris %d, Kolom N (Result): tidak boleh kosong", displayRow)
-			}
-			if colO == "" {
-				return nil, nil, fmt.Errorf("baris %d, Kolom O (Deskripsi Result): tidak boleh kosong", displayRow)
-			}
-			if colP == "" {
-				return nil, nil, fmt.Errorf("baris %d, Kolom P (Process): tidak boleh kosong", displayRow)
-			}
-			if colQ == "" {
-				return nil, nil, fmt.Errorf("baris %d, Kolom Q (Deskripsi Process): tidak boleh kosong", displayRow)
-			}
-			if colR == "" {
-				return nil, nil, fmt.Errorf("baris %d, Kolom R (Context): tidak boleh kosong", displayRow)
-			}
-			if colS == "" {
-				return nil, nil, fmt.Errorf("baris %d, Kolom S (Deskripsi Context): tidak boleh kosong", displayRow)
-			}
-
-			subRow.Result = &colN
-			subRow.DeskripsiResult = &colO
-			subRow.Process = &colP
-			subRow.DeskripsiProcess = &colQ
-			subRow.Context = &colR
-			subRow.DeskripsiContext = &colS
 		}
 
 		kpiSubDetails[kpiIdx] = append(kpiSubDetails[kpiIdx], subRow)
