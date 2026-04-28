@@ -166,8 +166,8 @@ func parseAndValidateExcelInternal(
 		colL := strings.TrimSpace(row[11]) // Realisasi Qualifier
 		colM := strings.TrimSpace(row[12]) // Realisasi Qualifier Kuantitatif (free text)
 
-		// Lewati baris kosong
-		if colA == "" && colB == "" && colC == "" {
+		// Lewati baris kosong atau baris tanpa nomor urut
+		if colA == "" {
 			continue
 		}
 

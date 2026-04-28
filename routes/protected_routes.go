@@ -81,6 +81,11 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.EdmRoutes(r)
 
 	// =============================================
+	// DOMAIN: SUMBER
+	// =============================================
+	segment.MasterSumberRoutes(r)
+
+	// =============================================
 	// ENDPOINT TESTING — hapus setelah verified ✅
 	// =============================================
 	r.POST("/health", func(c *gin.Context) {

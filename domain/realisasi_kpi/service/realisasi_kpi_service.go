@@ -154,16 +154,16 @@ func (s *realisasiKpiService) CreateRealisasiKpi(
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
-	dbTahun := existData.Tahun
 	dbTriwulan := existData.Triwulan
+	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbKostlTx := existData.KostlTx
-	dbEntryUserRealisasi := existData.EntryNameRealisasi
+	dbEntryUserRealisasi := existData.EntryUserRealisasi
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 4
-	if dbStatus != 4 {
+	// Validasi: status harus 80
+	if dbStatus != 80 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
 		}

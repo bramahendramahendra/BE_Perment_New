@@ -60,7 +60,7 @@ const (
 		SELECT a.tahun, a.triwulan, a.kostl, a.kostl_tx, a.status, b.status_desc, a.entry_user_realisasi, a.entry_name_realisasi
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status
-		WHERE a.id_pengajuan = ? AND status IN (2, 4, 80, 81)
+		WHERE a.id_pengajuan = ? AND status IN (2, 3, 4, 80, 81)
 		LIMIT 1`
 
 	queryGetApprovalListJSON = `
