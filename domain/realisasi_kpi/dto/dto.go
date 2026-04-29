@@ -87,7 +87,6 @@ type DataKpiSubdetail struct {
 	TargetTahunan                 string  `json:"target_tahunan"`
 	TargetKuantitatifTahunan      float64 `json:"target_kuantitatif_tahunan"`
 	TerdapatQualifier             string  `json:"terdapat_qualifier"`
-	IdQualifier                   string  `json:"id_qualifier"`
 	Qualifier                     string  `json:"qualifier"`
 	DeskripsiQualifier            string  `json:"deskripsi_qualifier"`
 	TargetQualifier               string  `json:"target_qualifier"`
