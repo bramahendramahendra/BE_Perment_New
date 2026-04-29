@@ -92,6 +92,9 @@ const (
 		SELECT
 			s.id_sub_detail,
 			s.id_detail,
+			d.id_kpi,
+			d.rumus    AS detail_rumus,
+			s.id_kpi   AS id_sub_kpi,
 			s.rumus,
 			s.otomatis,
 			IFNULL(s.deskripsi_glossary, '') glossary,

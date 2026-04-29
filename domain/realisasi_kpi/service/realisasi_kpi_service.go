@@ -866,18 +866,18 @@ func (s *realisasiKpiService) enrichRowsFromDB(
 	kpiRows []dto.KpiRow,
 	kpiSubDetails map[int][]dto.KpiSubDetailRow,
 ) error {
-	for _, kpiRow := range kpiRows {
-		subRows := kpiSubDetails[kpiRow.KpiIndex]
-		for i := range subRows {
-			sub := &kpiSubDetails[kpiRow.KpiIndex][i]
+	for ki := range kpiRows {
+		for i := range kpiSubDetails[kpiRows[ki].KpiIndex] {
+			sub := &kpiSubDetails[kpiRows[ki].KpiIndex][i]
 
-			lookup, err := s.repo.LookupSubDetailByKpiSubKpi(idPengajuan, kpiRow.Kpi, sub.SubKPI)
+			lookup, err := s.repo.LookupSubDetailByKpiSubKpi(idPengajuan, kpiRows[ki].Kpi, sub.SubKPI)
 			if err != nil {
 				return &customErrors.BadRequestError{Message: err.Error()}
 			}
 
 			sub.IdSubDetail = lookup.IdSubDetail
 			sub.IdDetail = lookup.IdDetail
+			sub.IdSubKpi = lookup.IdSubKpi
 			sub.Otomatis = lookup.Otomatis
 			sub.TerdapatQualifier = lookup.IdQualifier
 			sub.Rumus = lookup.Rumus
@@ -886,6 +886,13 @@ func (s *realisasiKpiService) enrichRowsFromDB(
 			sub.TargetTahunan = lookup.TargetTahunan
 			sub.TargetKuantitatifTahunan = lookup.TargetKuantitatifTahunan
 			sub.DeskripsiQualifier = lookup.DeskripsiQualifier
+
+			// Isi field KPI-level dari sub pertama dalam grup ini
+			if kpiRows[ki].IdDetail == "" {
+				kpiRows[ki].IdDetail = lookup.IdDetail
+				kpiRows[ki].IdKpi = lookup.IdKpi
+				kpiRows[ki].Rumus = lookup.DetailRumus
+			}
 
 			// Kolom L dan M hanya disimpan jika id_qualifier = "ya"
 			if strings.ToLower(strings.TrimSpace(lookup.IdQualifier)) != "ya" {
@@ -904,6 +911,14 @@ func (s *realisasiKpiService) enrichRowsFromDB(
 
 			sub.Pencapaian = pencapaian
 			sub.Skor = skor
+		}
+
+		// Isi LinkDokumenSumber KPI-level dari sub pertama yang tidak kosong
+		for _, sub := range kpiSubDetails[kpiRows[ki].KpiIndex] {
+			if sub.LinkDokumenSumber != nil && *sub.LinkDokumenSumber != "" {
+				kpiRows[ki].LinkDokumenSumber = *sub.LinkDokumenSumber
+				break
+			}
 		}
 	}
 

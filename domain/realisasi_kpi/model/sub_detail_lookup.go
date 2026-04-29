@@ -3,6 +3,9 @@ package model
 type SubDetailLookup struct {
 	IdSubDetail               string  `gorm:"column:id_sub_detail"`
 	IdDetail                  string  `gorm:"column:id_detail"`
+	IdKpi                     string  `gorm:"column:id_kpi"`
+	DetailRumus               string  `gorm:"column:detail_rumus"`
+	IdSubKpi                  string  `gorm:"column:id_sub_kpi"`
 	Rumus                     string  `gorm:"column:rumus"`
 	Otomatis                  string  `gorm:"column:otomatis"`
 	Glossary                  string  `gorm:"column:glossary"`
