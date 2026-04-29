@@ -989,6 +989,37 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	}
 
 	// -------------------------------------------------------------------------
+	// Merge kolom B (KPI) dan N (Link Dokumen Sumber) per grup KPI yang sama
+	// -------------------------------------------------------------------------
+	if len(excelData.Rows) > 1 {
+		prevKpi := excelData.Rows[0].KpiNama
+		groupStartRow := realisasiDataStartRow
+		for rowIdx := 1; rowIdx <= len(excelData.Rows); rowIdx++ {
+			currentKpi := ""
+			if rowIdx < len(excelData.Rows) {
+				currentKpi = excelData.Rows[rowIdx].KpiNama
+			}
+			if currentKpi != prevKpi {
+				groupEndRow := realisasiDataStartRow + rowIdx - 1
+				if groupEndRow > groupStartRow {
+					startCellB, _ := excelize.CoordinatesToCellName(2, groupStartRow)
+					endCellB, _ := excelize.CoordinatesToCellName(2, groupEndRow)
+					if err := f.MergeCell(sheetName, startCellB, endCellB); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal merge kolom B baris %d-%d: %v", groupStartRow, groupEndRow, err)}
+					}
+					startCellN, _ := excelize.CoordinatesToCellName(14, groupStartRow)
+					endCellN, _ := excelize.CoordinatesToCellName(14, groupEndRow)
+					if err := f.MergeCell(sheetName, startCellN, endCellN); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal merge kolom N baris %d-%d: %v", groupStartRow, groupEndRow, err)}
+					}
+				}
+				groupStartRow = realisasiDataStartRow + rowIdx
+				prevKpi = currentKpi
+			}
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// Legenda warna kuning di bawah tabel
 	// -------------------------------------------------------------------------
 	legendRow := realisasiDataStartRow + len(excelData.Rows) + 1
@@ -1513,6 +1544,37 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 	}
 
 	// -------------------------------------------------------------------------
+	// Merge kolom B (KPI) dan N (Link Dokumen Sumber) per grup KPI yang sama
+	// -------------------------------------------------------------------------
+	if len(excelData.Rows) > 1 {
+		prevKpi := excelData.Rows[0].KpiNama
+		groupStartRow := revRealisasiDataStartRow
+		for rowIdx := 1; rowIdx <= len(excelData.Rows); rowIdx++ {
+			currentKpi := ""
+			if rowIdx < len(excelData.Rows) {
+				currentKpi = excelData.Rows[rowIdx].KpiNama
+			}
+			if currentKpi != prevKpi {
+				groupEndRow := revRealisasiDataStartRow + rowIdx - 1
+				if groupEndRow > groupStartRow {
+					startCellB, _ := excelize.CoordinatesToCellName(2, groupStartRow)
+					endCellB, _ := excelize.CoordinatesToCellName(2, groupEndRow)
+					if err := f.MergeCell(sheetName, startCellB, endCellB); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal merge kolom B baris %d-%d: %v", groupStartRow, groupEndRow, err)}
+					}
+					startCellN, _ := excelize.CoordinatesToCellName(14, groupStartRow)
+					endCellN, _ := excelize.CoordinatesToCellName(14, groupEndRow)
+					if err := f.MergeCell(sheetName, startCellN, endCellN); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal merge kolom N baris %d-%d: %v", groupStartRow, groupEndRow, err)}
+					}
+				}
+				groupStartRow = revRealisasiDataStartRow + rowIdx
+				prevKpi = currentKpi
+			}
+		}
+	}
+
+	// -------------------------------------------------------------------------
 	// Legenda warna kuning di bawah tabel
 	// -------------------------------------------------------------------------
 	legendRow := revRealisasiDataStartRow + len(excelData.Rows) + 1
@@ -1725,9 +1787,9 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 	// -------------------------------------------------------------------------
 	// Sheet Protection: kunci semua sel, unlock hanya kolom input user
 	// -------------------------------------------------------------------------
-	userInputCols := []string{"J", "K"}
+	userInputCols := []string{"J", "K", "N"}
 	if isTW24 {
-		userInputCols = append(userInputCols, "P", "Q", "T", "U", "X", "Y")
+		userInputCols = append(userInputCols, "Q", "R", "U", "V", "Y", "Z")
 	}
 
 	totalDataRows := len(excelData.Rows)

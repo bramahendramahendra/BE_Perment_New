@@ -135,17 +135,23 @@ const (
 	// queryUpdateSubDetailRealisasi meng-update satu baris data_kpi_subdetail dengan nilai realisasi.
 	queryUpdateKpiSubDetailRealisasi = `
 		UPDATE data_kpi_subdetail
-		SET realisasi                      = ?,
-		    realisasi_kuantitatif          = ?,
-		    realisasi_validated            = ?,
+		SET realisasi                      	= ?,
+		    realisasi_kuantitatif          	= ?,
+		    realisasi_validated            	= ?,
 		    realisasi_kuantitatif_validated = ?,
-		    pencapaian                     = ?,
-		    skor                           = ?,
-		    realisasi_qualifier            = ?,
-		    realisasi_kuantitatif_qualifier = ?,
-		    link_dokumen_sumber            = ?
+		    pencapaian                     	= ?,
+		    skor                           	= ?,
+		    realisasi_qualifier            	= ?,
+		    realisasi_kuantitatif_qualifier = ?
 		WHERE id_pengajuan = ?
 		  AND id_sub_detail = ?`
+
+	// queryUpdateKpiDetailLampiranFile meng-update lampiran_file pada data_kpi_detail (1 per KPI).
+	queryUpdateKpiDetailLampiranFile = `
+		UPDATE data_kpi_detail
+		SET lampiran_file = ?
+		WHERE id_pengajuan = ?
+		  AND id_detail = ?`
 
 	// queryUpdateResultDetailRealisasi meng-update realisasi pada data_result_detail.
 	queryUpdateResultDetailRealisasi = `
@@ -464,10 +470,6 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	// -------------------------------------------------------------------------
 	for _, kpiRow := range kpiRows {
 		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
-			linkDokumen := ""
-			if row.LinkDokumenSumber != nil {
-				linkDokumen = *row.LinkDokumenSumber
-			}
 			if err := tx.Exec(queryUpdateKpiSubDetailRealisasi,
 				row.Realisasi,
 				row.RealisasiKuantitatif,
@@ -477,13 +479,27 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 				row.Skor,
 				row.RealisasiQualifierVal,
 				row.RealisasiKuantitatifQualifier,
-				linkDokumen,
 				req.IdPengajuan,
 				row.IdSubDetail,
 			).Error; err != nil {
 				tx.Rollback()
 				return fmt.Errorf("gagal update sub detail '%s': %w", row.IdSubDetail, err)
 			}
+		}
+		// UPDATE lampiran_file pada data_kpi_detail (1 Link Dokumen Sumber per KPI)
+		// Ambil link dari sub-detail pertama yang tidak kosong dalam grup KPI ini
+		linkDokumen := ""
+		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
+			if row.LinkDokumenSumber != nil && *row.LinkDokumenSumber != "" {
+				linkDokumen = *row.LinkDokumenSumber
+				break
+			}
+		}
+		if err := tx.Exec(queryUpdateKpiDetailLampiranFile,
+			linkDokumen, req.IdPengajuan, kpiRow.IdDetail,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal update lampiran_file detail '%s': %w", kpiRow.IdDetail, err)
 		}
 	}
 
@@ -671,6 +687,20 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 				tx.Rollback()
 				return fmt.Errorf("gagal update sub detail '%s': %w", row.IdSubDetail, err)
 			}
+		}
+		// UPDATE lampiran_file pada data_kpi_detail (1 Link Dokumen Sumber per KPI)
+		linkDokumen := ""
+		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
+			if row.LinkDokumenSumber != nil && *row.LinkDokumenSumber != "" {
+				linkDokumen = *row.LinkDokumenSumber
+				break
+			}
+		}
+		if err := tx.Exec(queryUpdateKpiDetailLampiranFile,
+			linkDokumen, req.IdPengajuan, kpiRow.IdDetail,
+		).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("gagal update lampiran_file detail '%s': %w", kpiRow.IdDetail, err)
 		}
 	}
 

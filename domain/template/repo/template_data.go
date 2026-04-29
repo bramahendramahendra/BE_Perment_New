@@ -87,7 +87,7 @@ const (
 			IFNULL(CAST(a.realisasi_kuantitatif AS CHAR), '')            AS realisasi_kuantitatif,
 			IFNULL(a.realisasi_qualifier, '')                            AS realisasi_qualifier,
 			IFNULL(a.realisasi_kuantitatif_qualifier, '')                AS realisasi_kuantitatif_qualifier,
-			IFNULL(a.link_dokumen_sumber, '')                            AS link_dokumen_sumber,
+			IFNULL(b.lampiran_file, '')                                  AS link_dokumen_sumber,
 			IFNULL(rd.nama_result, '')                                   AS nama_result,
 			IFNULL(rd.deskripsi_result, '')                              AS deskripsi_result,
 			IFNULL(md.nama_method, '')                                   AS nama_method,
