@@ -138,6 +138,11 @@ func parseAndValidateExcelInternal(
 	// totalBobot: akumulasi seluruh bobot semua baris (perubahan utama — tidak lagi per KPI)
 	totalBobot := 0.0
 
+	// Variabel untuk propagasi nilai dari merged cells (A, B, N)
+	prevNo := 0
+	prevKpiName := ""
+	prevLinkDokumen := ""
+
 	// Jumlah kolom minimum yang dibutuhkan
 	var expectedCols int
 	if isTW24 {
@@ -168,9 +173,21 @@ func parseAndValidateExcelInternal(
 		colM := strings.TrimSpace(row[12]) // Realisasi Qualifier Kuantitatif (free text)
 		colN := strings.TrimSpace(row[13]) // Link Dokumen Sumber
 
-		// Lewati baris kosong atau baris tanpa nomor urut
-		if colA == "" {
+		// Lewati baris benar-benar kosong (tidak ada Sub KPI sama sekali)
+		if colC == "" {
 			continue
+		}
+
+		// Kolom A, B, N bisa kosong karena merged cells di template.
+		// Jika kosong, gunakan nilai dari baris sebelumnya dalam grup yang sama.
+		if colA == "" {
+			colA = strconv.Itoa(prevNo)
+		}
+		if colB == "" {
+			colB = prevKpiName
+		}
+		if colN == "" {
+			colN = prevLinkDokumen
 		}
 
 		// Kolom A: No (harus angka)
@@ -269,6 +286,11 @@ func parseAndValidateExcelInternal(
 				)
 			}
 		}
+
+		// Update prev-values untuk propagasi ke baris berikutnya dalam grup merged
+		prevNo = no
+		prevKpiName = colB
+		prevLinkDokumen = colN
 
 		subRow := dto.KpiSubDetailRow{
 			No:                            no,

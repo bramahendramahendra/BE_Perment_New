@@ -67,6 +67,7 @@ type DataKpiDetail struct {
 	Persfektif          string             `json:"persfektif"`
 	IdKeteranganProject string             `json:"id_keterangan_project"`
 	KeteranganProject   string             `json:"keterangan_project"`
+	LinkDokumenSumber   string             `json:"link_dokumen_sumber"`
 	TotalSubKpi         int                `json:"total_sub_kpi"`
 	KpiSubDetail        []DataKpiSubdetail `json:"kpi_sub_detail"`
 }
@@ -409,11 +410,12 @@ type RealisasiKpiRow = KpiRow
 type RealisasiKpiSubDetailRow = KpiSubDetailRow
 
 type KpiRow struct {
-	KpiIndex int
-	IdDetail string
-	IdKpi    string
-	Kpi      string
-	Rumus    string
+	KpiIndex          int
+	IdDetail          string
+	IdKpi             string
+	Kpi               string
+	Rumus             string
+	LinkDokumenSumber string
 }
 
 type KpiSubDetailRow struct {
@@ -421,16 +423,23 @@ type KpiSubDetailRow struct {
 	KPI                           string
 	SubKPI                        string
 	IdSubKpi                      string
+	Otomatis                      string
 	Polarisasi                    string
 	IdPolarisasi                  string
 	Capping                       string
 	Bobot                         float64
+	Glossary                      string
 	TargetTriwulan                string
+	TargetKuantitatifTriwulan     float64
+	TargetTahunan                 string
+	TargetKuantitatifTahunan      float64
+	TerdapatQualifier             string
 	Qualifier                     string
+	DeskripsiQualifier            string
 	TargetQualifier               string
 	Realisasi                     string
 	RealisasiKuantitatif          float64
-	RealisasiQualifierVal         string
+	RealisasiQualifier            string
 	RealisasiKuantitatifQualifier string
 	LinkDokumenSumber             *string
 	IsTW24                        bool
@@ -448,11 +457,10 @@ type KpiSubDetailRow struct {
 	LampiranEvidenceContext       *string
 
 	// Di-populate dari DB oleh service setelah parse (via enrichRowsFromDB)
-	IdSubDetail               string
-	IdDetail                  string
-	IdQualifier               string
-	TargetKuantitatifTriwulan float64
-	Rumus                     string
-	Pencapaian                float64
-	Skor                      float64
+	IdSubDetail string
+	IdDetail    string
+	IdQualifier string
+	Rumus       string
+	Pencapaian  float64
+	Skor        float64
 }

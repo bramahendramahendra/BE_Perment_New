@@ -926,13 +926,25 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		dbColSet[23] = true
 	}
 
+	// Hitung nomor urut per grup KPI (bukan per baris sub-detail)
+	kpiNoMap := make([]int, len(excelData.Rows))
+	kpiNo := 0
+	prevKpiName := ""
+	for rowIdx, row := range excelData.Rows {
+		if row.KpiNama != prevKpiName {
+			kpiNo++
+			prevKpiName = row.KpiNama
+		}
+		kpiNoMap[rowIdx] = kpiNo
+	}
+
 	for rowIdx, row := range excelData.Rows {
 		rowNum := realisasiDataStartRow + rowIdx
 
 		var values []interface{}
 		if isTW24 {
 			values = []interface{}{
-				rowIdx + 1,                    // A: No
+				kpiNoMap[rowIdx],              // A: No (urut per KPI)
 				row.KpiNama,                   // B: KPI
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
@@ -955,7 +967,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 			}
 		} else {
 			values = []interface{}{
-				rowIdx + 1,                    // A: No
+				kpiNoMap[rowIdx],              // A: No (urut per KPI)
 				row.KpiNama,                   // B: KPI
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
@@ -989,7 +1001,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 	}
 
 	// -------------------------------------------------------------------------
-	// Merge kolom B (KPI) dan N (Link Dokumen Sumber) per grup KPI yang sama
+	// Merge kolom A (No), B (KPI), dan N (Link Dokumen Sumber) per grup KPI yang sama
 	// -------------------------------------------------------------------------
 	if len(excelData.Rows) > 1 {
 		prevKpi := excelData.Rows[0].KpiNama
@@ -1002,6 +1014,11 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 			if currentKpi != prevKpi {
 				groupEndRow := realisasiDataStartRow + rowIdx - 1
 				if groupEndRow > groupStartRow {
+					startCellA, _ := excelize.CoordinatesToCellName(1, groupStartRow)
+					endCellA, _ := excelize.CoordinatesToCellName(1, groupEndRow)
+					if err := f.MergeCell(sheetName, startCellA, endCellA); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal merge kolom A baris %d-%d: %v", groupStartRow, groupEndRow, err)}
+					}
 					startCellB, _ := excelize.CoordinatesToCellName(2, groupStartRow)
 					endCellB, _ := excelize.CoordinatesToCellName(2, groupEndRow)
 					if err := f.MergeCell(sheetName, startCellB, endCellB); err != nil {
@@ -1472,13 +1489,25 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		dbColSet[23] = true
 	}
 
+	// Hitung nomor urut per grup KPI (bukan per baris sub-detail)
+	kpiNoMapRev := make([]int, len(excelData.Rows))
+	kpiNoRev := 0
+	prevKpiNameRev := ""
+	for rowIdx, row := range excelData.Rows {
+		if row.KpiNama != prevKpiNameRev {
+			kpiNoRev++
+			prevKpiNameRev = row.KpiNama
+		}
+		kpiNoMapRev[rowIdx] = kpiNoRev
+	}
+
 	for rowIdx, row := range excelData.Rows {
 		rowNum := revRealisasiDataStartRow + rowIdx
 
 		var values []interface{}
 		if isTW24 {
 			values = []interface{}{
-				rowIdx + 1,                    // A: No
+				kpiNoMapRev[rowIdx],           // A: No (urut per KPI)
 				row.KpiNama,                   // B: KPI
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
@@ -1507,7 +1536,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 			}
 		} else {
 			values = []interface{}{
-				rowIdx + 1,                    // A: No
+				kpiNoMapRev[rowIdx],           // A: No (urut per KPI)
 				row.KpiNama,                   // B: KPI
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
@@ -1544,7 +1573,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 	}
 
 	// -------------------------------------------------------------------------
-	// Merge kolom B (KPI) dan N (Link Dokumen Sumber) per grup KPI yang sama
+	// Merge kolom A (No), B (KPI), dan N (Link Dokumen Sumber) per grup KPI yang sama
 	// -------------------------------------------------------------------------
 	if len(excelData.Rows) > 1 {
 		prevKpi := excelData.Rows[0].KpiNama
@@ -1557,6 +1586,11 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 			if currentKpi != prevKpi {
 				groupEndRow := revRealisasiDataStartRow + rowIdx - 1
 				if groupEndRow > groupStartRow {
+					startCellA, _ := excelize.CoordinatesToCellName(1, groupStartRow)
+					endCellA, _ := excelize.CoordinatesToCellName(1, groupEndRow)
+					if err := f.MergeCell(sheetName, startCellA, endCellA); err != nil {
+						return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal merge kolom A baris %d-%d: %v", groupStartRow, groupEndRow, err)}
+					}
 					startCellB, _ := excelize.CoordinatesToCellName(2, groupStartRow)
 					endCellB, _ := excelize.CoordinatesToCellName(2, groupEndRow)
 					if err := f.MergeCell(sheetName, startCellB, endCellB); err != nil {

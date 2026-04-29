@@ -3,14 +3,10 @@ package excel
 // KpiRow merepresentasikan 1 KPI unik yang ditemukan dari kolom B Excel,
 // beserta hasil lookup ke tabel mst_kpi.
 type KpiRow struct {
-	// KpiIndex adalah urutan KPI unik (0-based) dari kolom B Excel.
 	KpiIndex int
-	// IdKpi adalah id_kpi dari mst_kpi. Jika tidak ditemukan, bernilai "0".
-	IdKpi string
-	// Kpi adalah nama KPI dari kolom B Excel (persis seperti yang diinput user).
-	Kpi string
-	// Rumus dari mst_kpi. Jika tidak ditemukan, bernilai "0".
-	Rumus string
+	IdKpi    string
+	Kpi      string
+	Rumus    string
 }
 
 // KpiSubDetailRow merepresentasikan 1 baris data dari file Excel

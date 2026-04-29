@@ -37,7 +37,7 @@ func GenerateKpiPDF(exportData *dto.KpiExportData) ([]byte, string, error) {
 	// No | KPI | Bobot (%) | Target Tahunan | Capping
 	colWidths := []float64{12, 100, 25, 80, 25}
 	headers := []string{"No", "KPI", "Bobot (%)", "Target Tahunan", "Capping"}
-	rowHeight := 8.0
+	lineHeight := 7.0
 
 	// Header tabel
 	pdf.SetFont("Arial", "B", 9)
@@ -45,7 +45,7 @@ func GenerateKpiPDF(exportData *dto.KpiExportData) ([]byte, string, error) {
 	pdf.SetTextColor(headerFgR, headerFgG, headerFgB)
 	pdf.SetDrawColor(255, 255, 255)
 	for i, h := range headers {
-		pdf.CellFormat(colWidths[i], rowHeight, h, "1", 0, "C", true, 0, "")
+		pdf.CellFormat(colWidths[i], lineHeight, h, "1", 0, "C", true, 0, "")
 	}
 	pdf.Ln(-1)
 
@@ -54,8 +54,36 @@ func GenerateKpiPDF(exportData *dto.KpiExportData) ([]byte, string, error) {
 	pdf.SetDrawColor(200, 200, 200)
 	dataAligns := []string{"C", "L", "C", "L", "C"}
 
+	// countLines menghitung jumlah baris yang dibutuhkan teks dalam lebar kolom
+	countLines := func(text string, width float64) int {
+		n := pdf.SplitLines([]byte(text), width)
+		if len(n) == 0 {
+			return 1
+		}
+		return len(n)
+	}
+
 	for _, row := range exportData.Rows {
 		group := ((row.No - 1) / 3) % 3
+
+		values := []string{
+			strconv.Itoa(row.No),
+			row.KpiNama,
+			row.Bobot,
+			row.TargetTahunan,
+			row.Capping,
+		}
+
+		// Hitung tinggi baris berdasarkan kolom yang paling banyak teksnya
+		maxLines := 1
+		for i, v := range values {
+			n := countLines(v, colWidths[i]-2)
+			if n > maxLines {
+				maxLines = n
+			}
+		}
+		rowHeight := lineHeight * float64(maxLines)
+
 		switch group {
 		case 0:
 			pdf.SetFillColor(rowBlueR, rowBlueG, rowBlueB)
@@ -66,17 +94,22 @@ func GenerateKpiPDF(exportData *dto.KpiExportData) ([]byte, string, error) {
 		}
 		pdf.SetTextColor(textR, textG, textB)
 
-		values := []string{
-			strconv.Itoa(row.No),
-			row.KpiNama,
-			row.Bobot,
-			row.TargetTahunan,
-			row.Capping,
-		}
+		startX := pdf.GetX()
+		startY := pdf.GetY()
+
 		for i, v := range values {
-			pdf.CellFormat(colWidths[i], rowHeight, v, "1", 0, dataAligns[i], true, 0, "")
+			x := startX
+			for j := 0; j < i; j++ {
+				x += colWidths[j]
+			}
+			pdf.SetXY(x, startY)
+			// Gambar border + background cell penuh setinggi rowHeight
+			pdf.CellFormat(colWidths[i], rowHeight, "", "1", 0, dataAligns[i], true, 0, "")
+			// Tulis teks dengan MultiCell agar wrapping terjadi
+			pdf.SetXY(x, startY)
+			pdf.MultiCell(colWidths[i], lineHeight, v, "", dataAligns[i], false)
 		}
-		pdf.Ln(-1)
+		pdf.SetXY(startX, startY+rowHeight)
 	}
 
 	var buf bytes.Buffer

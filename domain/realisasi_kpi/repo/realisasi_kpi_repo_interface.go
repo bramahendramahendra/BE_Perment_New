@@ -52,8 +52,6 @@ type (
 		) error
 
 		// Digunakan oleh endpoint POST /realisasi-kpi/revision.
-		// RevisionRealisasiKpi meng-update ulang data realisasi di DB.
-		// Mengizinkan update dari status 80 (draft) atau 4 (ditolak).
 		RevisionRealisasiKpi(
 			req *dto.RevisionRealisasiKpiRequest,
 			kpiRows []dto.RealisasiKpiRow,
@@ -70,7 +68,6 @@ type (
 		RejectRealisasiKpi(idPengajuan, approvalList, catatan, user string) error
 
 		// Digunakan oleh endpoint POST /realisasi-kpi/approve dan /reject.
-		// Mengambil approval_list JSON untuk id_pengajuan jika user adalah approval_posisi aktif.
 		GetApprovalListJSON(idPengajuan, userID string) (string, error)
 
 		// Digunakan oleh endpoint POST /realisasi-kpi/get-all.

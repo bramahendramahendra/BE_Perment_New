@@ -24,6 +24,10 @@ func NewPenyusunanKpiHandler(service service.PenyusunanKpiServiceInterface) *Pen
 	return &PenyusunanKpiHandler{service: service}
 }
 
+// =============================================================================
+// VALIDATE
+// =============================================================================
+
 // ValidatePenyusunanKpi handles POST /penyusunan-kpi/validate
 // Menerima multipart/form-data dengan field REQUEST (JSON) dan files (Excel).
 func (h *PenyusunanKpiHandler) ValidatePenyusunanKpi(c *gin.Context) {
@@ -70,6 +74,10 @@ func (h *PenyusunanKpiHandler) ValidatePenyusunanKpi(c *gin.Context) {
 	})
 }
 
+// =============================================================================
+// CREATE
+// =============================================================================
+
 // CreatePenyusunanKpi handles POST /penyusunan-kpi/create
 // Menerima JSON biasa (bukan multipart) dengan idPengajuan dan ApprovalList.
 func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
@@ -114,6 +122,10 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 	})
 }
 
+// =============================================================================
+// REVISION
+// =============================================================================
+
 // RevisionPenyusunanKpi handles POST /penyusunan-kpi/revision
 // Menerima multipart/form-data dengan field REQUEST (JSON) dan files (Excel revisi).
 func (h *PenyusunanKpiHandler) RevisionPenyusunanKpi(c *gin.Context) {
@@ -157,6 +169,10 @@ func (h *PenyusunanKpiHandler) RevisionPenyusunanKpi(c *gin.Context) {
 		Data:    data,
 	})
 }
+
+// =============================================================================
+// APPROVAL
+// =============================================================================
 
 // ApprovePenyusunanKpi handles POST /penyusunan-kpi/approve
 func (h *PenyusunanKpiHandler) ApprovePenyusunanKpi(c *gin.Context) {
@@ -241,6 +257,10 @@ func (h *PenyusunanKpiHandler) RejectPenyusunanKpi(c *gin.Context) {
 		Data:    data,
 	})
 }
+
+// =============================================================================
+// GET ALL
+// =============================================================================
 
 // GetAllApprovalPenyusunanKpi handles POST /penyusunan-kpi/get-all-approval
 func (h *PenyusunanKpiHandler) GetAllApprovalPenyusunanKpi(c *gin.Context) {
@@ -402,6 +422,10 @@ func (h *PenyusunanKpiHandler) GetAllDaftarApprovalPenyusunanKpi(c *gin.Context)
 	})
 }
 
+// =============================================================================
+// GET DETAIL
+// =============================================================================
+
 // GetDetailPenyusunanKpi handles POST /penyusunan-kpi/get-detail
 func (h *PenyusunanKpiHandler) GetDetailPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetDetailPenyusunanKpiRequest](c)
@@ -428,6 +452,10 @@ func (h *PenyusunanKpiHandler) GetDetailPenyusunanKpi(c *gin.Context) {
 		Data:    data,
 	})
 }
+
+// =============================================================================
+// EXPORT DATA
+// =============================================================================
 
 // GetExcelPenyusunanKpi handles POST /penyusunan-kpi/get-excel
 func (h *PenyusunanKpiHandler) GetExcelPenyusunanKpi(c *gin.Context) {

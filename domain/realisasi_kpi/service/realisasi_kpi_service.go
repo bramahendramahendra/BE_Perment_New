@@ -879,13 +879,14 @@ func (s *realisasiKpiService) enrichRowsFromDB(
 
 			sub.IdSubDetail = idSubDetail
 			sub.IdDetail = idDetail
+			// sub.Otomatis = idQualifier
 			sub.IdQualifier = idQualifier
 			sub.Rumus = rumus
 			sub.TargetKuantitatifTriwulan = targetKuantitatif
 
 			// Kolom L dan M hanya disimpan jika id_qualifier = "ya"
 			if strings.ToLower(strings.TrimSpace(idQualifier)) != "ya" {
-				sub.RealisasiQualifierVal = ""
+				sub.RealisasiQualifier = ""
 				sub.RealisasiKuantitatifQualifier = ""
 			}
 
@@ -1004,4 +1005,3 @@ func parseCapping(cappingStr string) float64 {
 		return 0
 	}
 }
-

@@ -23,18 +23,25 @@ func BuildKpiResponse(
 
 			subDetails = append(subDetails, dto.DataKpiSubdetail{
 				IdSubDetail:                   subRow.IdSubDetail,
-				IdSubKpi:                      subRow.IdDetail,
+				IdSubKpi:                      subRow.IdSubKpi,
 				SubKpi:                        subRow.SubKPI,
+				Otomatis:                      subRow.Otomatis,
 				Polarisasi:                    subRow.Polarisasi,
+				IdPolarisasi:                  subRow.IdPolarisasi,
 				Capping:                       subRow.Capping,
 				Bobot:                         subRow.Bobot,
+				Glossary:                      subRow.Glossary,
 				TargetTriwulan:                subRow.TargetTriwulan,
 				TargetKuantitatifTriwulan:     subRow.TargetKuantitatifTriwulan,
+				TargetTahunan:                 subRow.TargetTahunan,
+				TargetKuantitatifTahunan:      subRow.TargetKuantitatifTahunan,
+				TerdapatQualifier:             subRow.TerdapatQualifier,
 				Qualifier:                     subRow.Qualifier,
+				DeskripsiQualifier:            subRow.DeskripsiQualifier,
 				TargetQualifier:               subRow.TargetQualifier,
 				Realisasi:                     subRow.Realisasi,
 				RealisasiKuantitatif:          subRow.RealisasiKuantitatif,
-				RealisasiQualifier:            subRow.RealisasiQualifierVal,
+				RealisasiQualifier:            subRow.RealisasiQualifier,
 				RealisasiKuantitatifQualifier: subRow.RealisasiKuantitatifQualifier,
 				Pencapaian:                    subRow.Pencapaian,
 				Skor:                          subRow.Skor,
@@ -42,13 +49,14 @@ func BuildKpiResponse(
 		}
 
 		result = append(result, dto.DataKpiDetail{
-			IdDetail:     kpiRow.IdDetail,
-			IdKpi:        kpiRow.IdKpi,
-			Kpi:          kpiRow.Kpi,
-			Rumus:        kpiRow.Rumus,
-			Persfektif:   "",
-			TotalSubKpi:  len(rows),
-			KpiSubDetail: subDetails,
+			IdDetail:          kpiRow.IdDetail,
+			IdKpi:             kpiRow.IdKpi,
+			Kpi:               kpiRow.Kpi,
+			Rumus:             kpiRow.Rumus,
+			Persfektif:        "",
+			LinkDokumenSumber: kpiRow.LinkDokumenSumber,
+			TotalSubKpi:       len(rows),
+			KpiSubDetail:      subDetails,
 		})
 	}
 	return result

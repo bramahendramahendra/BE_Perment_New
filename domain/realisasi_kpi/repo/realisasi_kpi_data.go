@@ -19,14 +19,14 @@ const (
 	// =============================================================================
 
 	// Use func : ValidateRealisasiKpi
-	// yang mengizinkan input realisasi (2=approved penyusunan, 4=tolak realisasi, 80=draft realisasi, 81).
+	// yang mengizinkan input realisasi (2=penyusunan disetujui, 4=realisasi ditolak, 80=draft realisasi, 81=realisasi batal).
 	queryCheckExistRealisasi = `
 		SELECT COUNT(id_pengajuan)
 		FROM data_kpi
 		WHERE id_pengajuan = ? AND tahun = ? AND triwulan = ? AND kostl = ? AND status IN (2, 4, 80, 81)`
 
 	// queryCheckStatusRevisiRealisasi memvalidasi bahwa id_pengajuan ada dan berstatus
-	// yang mengizinkan revisi realisasi (4=tolak realisasi, 80=draft realisasi).
+	// yang mengizinkan revisi realisasi (4=realisasi ditolak, 80=draft realisasi).
 	queryCheckStatusRevisiRealisasi = `
 		SELECT COUNT(id_pengajuan)
 		FROM data_kpi
@@ -93,8 +93,15 @@ const (
 			s.id_sub_detail,
 			s.id_detail,
 			s.rumus,
-			IFNULL(s.target_kuantitatif_triwulan, 0) AS target_kuantitatif_triwulan,
-			IFNULL(s.id_qualifier, '') AS id_qualifier
+			s.otomatis,
+			IFNULL(s.deskripsi_glossary, '') glossary,
+			s.target_triwulan,
+			IFNULL(s.target_kuantitatif_triwulan, 0) target_kuantitatif_triwulan,
+			s.target_tahunan,
+			IFNULL(s.target_kuantitatif_tahunan, 0) target_kuantitatif_tahunan,
+			IFNULL(s.id_qualifier, '') AS id_qualifier,
+			IFNULL(s.item_qualifier, '')                  qualifier,
+			IFNULL(s.deskripsi_qualifier, '')             deskripsi_qualifier
 		FROM data_kpi_subdetail s
 		INNER JOIN data_kpi_detail d ON d.id_detail = s.id_detail
 		WHERE s.id_pengajuan = ?
@@ -477,7 +484,7 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 				row.RealisasiKuantitatif, // realisasi_kuantitatif_validated = sama
 				row.Pencapaian,
 				row.Skor,
-				row.RealisasiQualifierVal,
+				row.RealisasiQualifier,
 				row.RealisasiKuantitatifQualifier,
 				req.IdPengajuan,
 				row.IdSubDetail,
@@ -679,7 +686,7 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 				row.RealisasiKuantitatif,
 				row.Pencapaian,
 				row.Skor,
-				row.RealisasiQualifierVal,
+				row.RealisasiQualifier,
 				row.RealisasiKuantitatifQualifier,
 				req.IdPengajuan,
 				row.IdSubDetail,

@@ -167,6 +167,10 @@ func (h *RealisasiKpiHandler) RevisionRealisasiKpi(c *gin.Context) {
 	})
 }
 
+// =============================================================================
+// APPROVAL
+// =============================================================================
+
 // ApproveRealisasiKpi handles POST /realisasi-kpi/approve
 func (h *RealisasiKpiHandler) ApproveRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.ApproveRealisasiKpiRequest](c)
@@ -250,6 +254,10 @@ func (h *RealisasiKpiHandler) RejectRealisasiKpi(c *gin.Context) {
 		Data:    data,
 	})
 }
+
+// =============================================================================
+// GET ALL
+// =============================================================================
 
 // GetAllDaftarRealisasiKpi handles POST /realisasi-kpi/get-all
 func (h *RealisasiKpiHandler) GetAllRealisasiKpi(c *gin.Context) {
@@ -444,8 +452,11 @@ func (h *RealisasiKpiHandler) GetAllDaftarApprovalRealisasiKpi(c *gin.Context) {
 	})
 }
 
+// =============================================================================
+// GET DETAIL
+// =============================================================================
+
 // GetDetailRealisasiKpi handles POST /realisasi-kpi/get-detail
-// Mengembalikan detail lengkap satu pengajuan realisasi beserta nested KPI, context, process.
 func (h *RealisasiKpiHandler) GetDetailRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetDetailRealisasiKpiRequest](c)
 	if err != nil {
