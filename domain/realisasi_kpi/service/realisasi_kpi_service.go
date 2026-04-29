@@ -871,30 +871,33 @@ func (s *realisasiKpiService) enrichRowsFromDB(
 		for i := range subRows {
 			sub := &kpiSubDetails[kpiRow.KpiIndex][i]
 
-			idSubDetail, idDetail, rumus, idQualifier, targetKuantitatif, err :=
-				s.repo.LookupSubDetailByKpiSubKpi(idPengajuan, kpiRow.Kpi, sub.SubKPI)
+			lookup, err := s.repo.LookupSubDetailByKpiSubKpi(idPengajuan, kpiRow.Kpi, sub.SubKPI)
 			if err != nil {
 				return &customErrors.BadRequestError{Message: err.Error()}
 			}
 
-			sub.IdSubDetail = idSubDetail
-			sub.IdDetail = idDetail
-			// sub.Otomatis = idQualifier
-			sub.IdQualifier = idQualifier
-			sub.Rumus = rumus
-			sub.TargetKuantitatifTriwulan = targetKuantitatif
+			sub.IdSubDetail = lookup.IdSubDetail
+			sub.IdDetail = lookup.IdDetail
+			sub.Otomatis = lookup.Otomatis
+			sub.TerdapatQualifier = lookup.IdQualifier
+			sub.Rumus = lookup.Rumus
+			sub.Glossary = lookup.Glossary
+			sub.TargetKuantitatifTriwulan = lookup.TargetKuantitatifTriwulan
+			sub.TargetTahunan = lookup.TargetTahunan
+			sub.TargetKuantitatifTahunan = lookup.TargetKuantitatifTahunan
+			sub.DeskripsiQualifier = lookup.DeskripsiQualifier
 
 			// Kolom L dan M hanya disimpan jika id_qualifier = "ya"
-			if strings.ToLower(strings.TrimSpace(idQualifier)) != "ya" {
+			if strings.ToLower(strings.TrimSpace(lookup.IdQualifier)) != "ya" {
 				sub.RealisasiQualifier = ""
 				sub.RealisasiKuantitatifQualifier = ""
 			}
 
 			// Hitung Pencapaian dan Skor
 			pencapaian, skor := calculatePencapaianSkor(
-				rumus,
+				lookup.Rumus,
 				sub.RealisasiKuantitatif,
-				targetKuantitatif,
+				lookup.TargetKuantitatifTriwulan,
 				sub.Capping,
 				sub.Bobot,
 			)

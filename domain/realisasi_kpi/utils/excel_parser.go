@@ -304,7 +304,7 @@ func parseAndValidateExcelInternal(
 			TargetQualifier:               colI,
 			Realisasi:                     colJ,
 			RealisasiKuantitatif:          realisasiKuantitatif,
-			RealisasiQualifierVal:         colL,
+			RealisasiQualifier:            colL,
 			RealisasiKuantitatifQualifier: colM,
 			LinkDokumenSumber:             &colN,
 			IsTW24:                        isTW24,

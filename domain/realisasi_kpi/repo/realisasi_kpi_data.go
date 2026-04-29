@@ -434,18 +434,24 @@ func (r *realisasiKpiRepo) GetKpiHeader(idPengajuan string) (tahun, triwulan, ko
 
 func (r *realisasiKpiRepo) LookupSubDetailByKpiSubKpi(
 	idPengajuan, kpiName, subKpiName string,
-) (idSubDetail, idDetail, rumus, idQualifier string, targetKuantitatifTriwulan float64, err error) {
-	row := r.db.Raw(queryLookupSubDetail, idPengajuan, kpiName, subKpiName).Row()
-	if scanErr := row.Scan(&idSubDetail, &idDetail, &rumus, &targetKuantitatifTriwulan, &idQualifier); scanErr != nil {
-		if errors.Is(scanErr, sql.ErrNoRows) {
-			return "", "", "", "", 0, fmt.Errorf(
+) (*model.SubDetailLookup, error) {
+	var result model.SubDetailLookup
+	if err := r.db.Raw(queryLookupSubDetail, idPengajuan, kpiName, subKpiName).Scan(&result).Error; err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf(
 				"sub KPI '%s' pada KPI '%s' tidak ditemukan di id_pengajuan '%s'",
 				subKpiName, kpiName, idPengajuan,
 			)
 		}
-		return "", "", "", "", 0, fmt.Errorf("gagal lookup sub detail untuk sub KPI '%s': %w", subKpiName, scanErr)
+		return nil, fmt.Errorf("gagal lookup sub detail untuk sub KPI '%s': %w", subKpiName, err)
 	}
-	return idSubDetail, idDetail, rumus, idQualifier, targetKuantitatifTriwulan, nil
+	if result.IdSubDetail == "" {
+		return nil, fmt.Errorf(
+			"sub KPI '%s' pada KPI '%s' tidak ditemukan di id_pengajuan '%s'",
+			subKpiName, kpiName, idPengajuan,
+		)
+	}
+	return &result, nil
 }
 
 // =============================================================================
