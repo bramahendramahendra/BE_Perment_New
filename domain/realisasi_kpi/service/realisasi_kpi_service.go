@@ -382,10 +382,25 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 func (s *realisasiKpiService) ApproveRealisasiKpi(
 	req *dto.ApproveRealisasiKpiRequest,
 ) (data dto.ApproveRealisasiKpiResponse, err error) {
-	dbTahun, dbTriwulan, dbKostl, _, _, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
+
+	dbTahun := existData.Tahun
+	dbTriwulan := existData.Triwulan
+	dbKostl := existData.Kostl
+	dbStatus := existData.Status
+	dbStatusDesc := existData.StatusDesc
+
+	// Validasi: status harus 3 (pending approval realisasi)
+	if dbStatus != 3 {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat diapprove, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+		}
+	}
+
 	if req.Kostl != dbKostl {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
@@ -421,11 +436,12 @@ func (s *realisasiKpiService) ApproveRealisasiKpi(
 	}
 
 	now := time.Now().Format("2006-01-02 15:04:05")
+	keterangan := req.Catatan.EntryNote
 	currentIdx := -1
 	for i := range approvalList {
 		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUserRealisasi) && approvalList[i].Status == "" {
 			approvalList[i].Status = "approve"
-			approvalList[i].Keterangan = req.Catatan
+			approvalList[i].Keterangan = keterangan
 			approvalList[i].Waktu = now
 			currentIdx = i
 			break
@@ -469,10 +485,24 @@ func (s *realisasiKpiService) ApproveRealisasiKpi(
 func (s *realisasiKpiService) RejectRealisasiKpi(
 	req *dto.RejectRealisasiKpiRequest,
 ) (data dto.RejectRealisasiKpiResponse, err error) {
-	dbTahun, dbTriwulan, dbKostl, _, _, _, _, _, err := s.repo.GetKpiHeader(req.IdPengajuan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
+	dbTahun := existData.Tahun
+	dbTriwulan := existData.Triwulan
+	dbKostl := existData.Kostl
+	dbStatus := existData.Status
+	dbStatusDesc := existData.StatusDesc
+
+	// Validasi: status harus 3 (pending approval realisasi)
+	if dbStatus != 3 {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat ditolak, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+		}
+	}
+
 	if req.Kostl != dbKostl {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
@@ -508,11 +538,15 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 	}
 
 	now := time.Now().Format("2006-01-02 15:04:05")
+	nowDisplay := time.Now().Format("02-01-2006 15:04:05")
+	entryUserFull := req.ApprovalUserRealisasi + " - " + req.ApprovalNameRealisasi
+
+	keterangan := req.Catatan.EntryNote
 	found := false
 	for i := range approvalList {
 		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUserRealisasi) && approvalList[i].Status == "" {
 			approvalList[i].Status = "reject"
-			approvalList[i].Keterangan = req.Catatan
+			approvalList[i].Keterangan = keterangan
 			approvalList[i].Waktu = now
 			found = true
 			break
@@ -527,7 +561,31 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 		return data, fmt.Errorf("gagal serialize approval_list: %w", err)
 	}
 
-	if err = s.repo.RejectRealisasiKpi(req.IdPengajuan, string(updatedJSON), req.Catatan, req.ApprovalUserRealisasi); err != nil {
+	existingCatatanJSON, err := s.repo.GetCatatanTolakan(req.IdPengajuan)
+	if err != nil {
+		return data, fmt.Errorf("gagal membaca catatan_tolakan: %w", err)
+	}
+
+	var catatanTolakanEntries []dto.CatatanTolakanEntry
+	if existingCatatanJSON != "" && existingCatatanJSON != "null" {
+		if err = json.Unmarshal([]byte(existingCatatanJSON), &catatanTolakanEntries); err != nil {
+			return data, fmt.Errorf("gagal parse catatan_tolakan: %w", err)
+		}
+	}
+
+	catatanTolakanEntries = append(catatanTolakanEntries, dto.CatatanTolakanEntry{
+		Fungsi:    req.Catatan.Fungsi,
+		EntryUser: entryUserFull,
+		EntryTime: nowDisplay,
+		EntryNote: req.Catatan.EntryNote,
+	})
+
+	catatanTolakanJSON, err := json.Marshal(catatanTolakanEntries)
+	if err != nil {
+		return data, fmt.Errorf("gagal serialize catatan_tolakan: %w", err)
+	}
+
+	if err = s.repo.RejectRealisasiKpi(req.IdPengajuan, string(updatedJSON), string(catatanTolakanJSON), req.ApprovalUserRealisasi); err != nil {
 		return data, err
 	}
 

@@ -4,6 +4,12 @@ package dto
 // GENERAL DTO
 // =============================================================================
 
+// CatatanItem adalah item catatan pada request approve/reject.
+type CatatanItem struct {
+	Fungsi    string `json:"fungsi"     validate:"required"`
+	EntryNote string `json:"entry_note" validate:"required"`
+}
+
 type Divisi struct {
 	Kostl   string `json:"kostl"   validate:"required"`
 	KostlTx string `json:"kostl_tx" validate:"required"`
@@ -157,9 +163,9 @@ type ValidateRealisasiKpiRequest struct {
 // Submit realisasi ke approval (status → 3).
 type CreateRealisasiKpiRequest struct {
 	IdPengajuan           string                        `json:"id_pengajuan"            validate:"required"`
-	Kostl                 string                        `json:"kostl"         			validate:"required"`
-	Tahun                 string                        `json:"tahun"         			validate:"required"`
-	Triwulan              string                        `json:"triwulan"      			validate:"required"`
+	Kostl                 string                        `json:"kostl"                   validate:"required"`
+	Tahun                 string                        `json:"tahun"                   validate:"required"`
+	Triwulan              string                        `json:"triwulan"                validate:"required"`
 	ApprovalListRealisasi []ApprovalUserRealisasiDetail `json:"approval_list_realisasi" validate:"required,min=1,dive"`
 	// ApprovalPosisi        string `json:"approval_posisi"          validate:"required"`
 	// ApprovalListRealisasi string `json:"approval_list_realisasi"  validate:"required"`
@@ -188,11 +194,11 @@ type RevisionRealisasiKpiRequest struct {
 
 // ApproveRealisasiKpiRequest digunakan untuk endpoint POST /realisasi-kpi/approve.
 type ApproveRealisasiKpiRequest struct {
-	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Kostl       string `json:"kostl"        validate:"required"`
-	Tahun       string `json:"tahun"        validate:"required"`
-	Triwulan    string `json:"triwulan"     validate:"required"`
-	Catatan     string `json:"catatan"      validate:"required"`
+	IdPengajuan string      `json:"id_pengajuan" validate:"required"`
+	Kostl       string      `json:"kostl"        validate:"required"`
+	Tahun       string      `json:"tahun"        validate:"required"`
+	Triwulan    string      `json:"triwulan"     validate:"required"`
+	Catatan     CatatanItem `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	ApprovalUserRealisasi string `json:"approval_user_realisasi"`
@@ -201,11 +207,11 @@ type ApproveRealisasiKpiRequest struct {
 
 // RejectRealisasiKpiRequest digunakan untuk endpoint POST /realisasi-kpi/reject.
 type RejectRealisasiKpiRequest struct {
-	IdPengajuan string `json:"id_pengajuan" validate:"required"`
-	Kostl       string `json:"kostl"        validate:"required"`
-	Tahun       string `json:"tahun"        validate:"required"`
-	Triwulan    string `json:"triwulan"     validate:"required"`
-	Catatan     string `json:"catatan"      validate:"required"`
+	IdPengajuan string      `json:"id_pengajuan" validate:"required"`
+	Kostl       string      `json:"kostl"        validate:"required"`
+	Tahun       string      `json:"tahun"        validate:"required"`
+	Triwulan    string      `json:"triwulan"     validate:"required"`
+	Catatan     CatatanItem `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	ApprovalUserRealisasi string `json:"approval_user_realisasi"`
@@ -312,16 +318,16 @@ type RevisionRealisasiKpiResponse struct {
 
 // ApproveRealisasiKpiResponse adalah response untuk endpoint POST /realisasi-kpi/approve.
 type ApproveRealisasiKpiResponse struct {
-	IdPengajuan string `json:"id_pengajuan"`
-	Status      string `json:"status"`
-	Catatan     string `json:"catatan"`
+	IdPengajuan string      `json:"id_pengajuan"`
+	Status      string      `json:"status"`
+	Catatan     CatatanItem `json:"catatan"`
 }
 
 // RejectRealisasiKpiResponse adalah response untuk endpoint POST /realisasi-kpi/reject.
 type RejectRealisasiKpiResponse struct {
-	IdPengajuan string `json:"id_pengajuan"`
-	Status      string `json:"status"`
-	Catatan     string `json:"catatan"`
+	IdPengajuan string      `json:"id_pengajuan"`
+	Status      string      `json:"status"`
+	Catatan     CatatanItem `json:"catatan"`
 }
 
 // GetAllRealisasiKpiResponse adalah response satu record untuk /realisasi-kpi/get-all.

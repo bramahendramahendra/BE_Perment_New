@@ -68,6 +68,7 @@ type (
 
 		// Digunakan oleh endpoint POST /realisasi-kpi/approve dan /reject.
 		GetApprovalListJSON(idPengajuan, userID string) (string, error)
+		GetCatatanTolakan(idPengajuan string) (string, error)
 
 		// Digunakan oleh endpoint POST /realisasi-kpi/get-all.
 		GetAllRealisasiKpi(
