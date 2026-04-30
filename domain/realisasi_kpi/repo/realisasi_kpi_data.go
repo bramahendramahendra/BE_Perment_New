@@ -64,8 +64,8 @@ const (
 		LIMIT 1`
 
 	queryGetApprovalListJSON = `
-		SELECT approval_list FROM data_kpi
-		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
+		SELECT approval_list_realisasi FROM data_kpi
+		WHERE status = 3 AND approval_posisi = ? AND id_pengajuan = ?`
 
 	queryGetCatatanTolakan = `
 		SELECT IFNULL(catatan_tolakan, '') FROM data_kpi
@@ -866,7 +866,7 @@ func (r *realisasiKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (stri
 	var approvalListBytes []byte
 	row := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Row()
 	if err := row.Scan(&approvalListBytes); err != nil {
-		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
+		return "", &customErrors.BadRequestError{Message: "Data List Approval tidak ditemukan."}
 	}
 	approvalList := string(approvalListBytes)
 	if approvalList == "" {
