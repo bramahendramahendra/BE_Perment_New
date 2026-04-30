@@ -1001,11 +1001,11 @@ func (r *penyusunanKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (str
 	var approvalListBytes []byte
 	row := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Row()
 	if err := row.Scan(&approvalListBytes); err != nil {
-		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
+		return "", &customErrors.BadRequestError{Message: "Data List Approval tidak ditemukan."}
 	}
 	approvalList := string(approvalListBytes)
 	if approvalList == "" {
-		return "", &customErrors.BadRequestError{Message: "Data Not Found"}
+		return "", &customErrors.BadRequestError{Message: "Data KPI untuk Pengajuan ini tidak ditemukan."}
 	}
 	return approvalList, nil
 }

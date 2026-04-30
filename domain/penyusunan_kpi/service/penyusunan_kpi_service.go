@@ -384,7 +384,7 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 		return data, err
 	}
 	if !approvalExists {
-		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
+		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan.[Pastikan User Approval sesuai.]"}
 	}
 
 	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUser)
@@ -410,7 +410,7 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 		}
 	}
 	if currentIdx == -1 {
-		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
+		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan.[User Approval Kosong.]"}
 	}
 
 	// Cari approver berikutnya yang belum approve
@@ -486,7 +486,7 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		return data, err
 	}
 	if !rejectApprovalExists {
-		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
+		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan.[User Approval Kosong.]"}
 	}
 
 	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUser)
@@ -515,7 +515,7 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		}
 	}
 	if !found {
-		return data, &customErrors.BadRequestError{Message: "Data Not Found"}
+		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan.[Pastikan User Approval sesuai.]"}
 	}
 
 	updatedJSON, err := json.Marshal(approvalList)

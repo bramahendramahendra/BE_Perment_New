@@ -2,20 +2,6 @@ package dto
 
 import "permen_api/pkg/excel"
 
-// CatatanItem adalah item catatan pada request approve/reject.
-type CatatanItem struct {
-	Fungsi    string `json:"fungsi"     validate:"required"`
-	EntryNote string `json:"entry_note" validate:"required"`
-}
-
-// CatatanTolakanEntry adalah format JSON yang disimpan di kolom catatan_tolakan DB.
-type CatatanTolakanEntry struct {
-	Fungsi    string `json:"fungsi"`
-	EntryUser string `json:"entry_user"`
-	EntryTime string `json:"entry_time"`
-	EntryNote string `json:"entry_note"`
-}
-
 // =============================================================================
 // GENERAL DTO
 // =============================================================================
@@ -66,6 +52,20 @@ type ApprovalUserDetail struct {
 	Level      string `json:"level"`
 	Fungsi     string `json:"fungsi"`
 	Waktu      string `json:"waktu"`
+}
+
+// CatatanItem adalah item catatan pada request approve/reject.
+type CatatanItem struct {
+	Fungsi    string `json:"fungsi"     validate:"required"`
+	EntryNote string `json:"entry_note" validate:"required"`
+}
+
+// CatatanTolakanEntry adalah format JSON yang disimpan di kolom catatan_tolakan DB.
+type CatatanTolakanEntry struct {
+	Fungsi    string `json:"fungsi"`
+	EntryUser string `json:"entry_user"`
+	EntryTime string `json:"entry_time"`
+	EntryNote string `json:"entry_note"`
 }
 
 type DataKpiDetail struct {

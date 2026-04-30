@@ -4,12 +4,6 @@ package dto
 // GENERAL DTO
 // =============================================================================
 
-// CatatanItem adalah item catatan pada request approve/reject.
-type CatatanItem struct {
-	Fungsi    string `json:"fungsi"     validate:"required"`
-	EntryNote string `json:"entry_note" validate:"required"`
-}
-
 type Divisi struct {
 	Kostl   string `json:"kostl"   validate:"required"`
 	KostlTx string `json:"kostl_tx" validate:"required"`
@@ -55,6 +49,12 @@ type ApprovalUserRealisasiDetail struct {
 	Level      string `json:"level"`
 	Fungsi     string `json:"fungsi"`
 	Waktu      string `json:"waktu"`
+}
+
+// CatatanItem adalah item catatan pada request approve/reject.
+type CatatanItem struct {
+	Fungsi    string `json:"fungsi"     validate:"required"`
+	EntryNote string `json:"entry_note" validate:"required"`
 }
 
 type CatatanTolakanEntry struct {
