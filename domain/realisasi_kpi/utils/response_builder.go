@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"strconv"
+
 	dto "permen_api/domain/realisasi_kpi/dto"
 )
 
@@ -43,6 +45,8 @@ func BuildKpiResponse(
 				RealisasiKuantitatif:          subRow.RealisasiKuantitatif,
 				RealisasiQualifier:            subRow.RealisasiQualifier,
 				RealisasiKuantitatifQualifier: subRow.RealisasiKuantitatifQualifier,
+				RealisasiValidated:            subRow.Realisasi,
+				RealisasiKuantitatifValidated: strconv.FormatFloat(subRow.RealisasiKuantitatif, 'f', -1, 64),
 				Pencapaian:                    subRow.Pencapaian,
 				Skor:                          subRow.Skor,
 			})
