@@ -296,14 +296,12 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 	resultList := []dto.DataResult{}
 	processList := []dto.DataProcess{}
 	contextList := []dto.DataContext{}
-	// Hanya diisi untuk TW2 dan TW4
 	if utils.IsExtendedTriwulan(req.Triwulan) {
 		resultList = utils.BuildResultList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 		processList = utils.BuildProcessList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 		contextList = utils.BuildContextList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 	}
 
-	// Simpan ke DB: DELETE lama + INSERT baru + UPDATE header
 	if err := s.repo.RevisionPenyusunanKpi(
 		req,
 		kpiRows,

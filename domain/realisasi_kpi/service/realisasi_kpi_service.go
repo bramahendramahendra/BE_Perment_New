@@ -110,7 +110,6 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 		contextList = utils.BuildContextList(req.IdPengajuan, req.Tahun, req.Triwulan, kpiRows, kpiSubDetails)
 	}
 
-	// Simpan ke DB (status 80 = draft realisasi)
 	if err := s.repo.ValidateRealisasiKpi(
 		req,
 		kpiRows,
@@ -120,12 +119,6 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 		contextList,
 	); err != nil {
 		return data, err
-	}
-
-	// Build response
-	totalSubKpi := 0
-	for _, kpiRow := range kpiRows {
-		totalSubKpi += len(kpiSubDetails[kpiRow.KpiIndex])
 	}
 
 	data = dto.ValidateRealisasiKpiResponse{
@@ -345,12 +338,6 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 		contextList,
 	); err != nil {
 		return data, err
-	}
-
-	// Build response
-	totalSubKpi := 0
-	for _, kpiRow := range kpiRows {
-		totalSubKpi += len(kpiSubDetails[kpiRow.KpiIndex])
 	}
 
 	data = dto.RevisionRealisasiKpiResponse{
