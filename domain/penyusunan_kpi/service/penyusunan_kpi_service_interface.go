@@ -57,8 +57,6 @@ type (
 		) (data []*dto.GetAllDaftarApprovalPenyusunanKpiResponse, total int64, err error)
 
 		// GetDetailPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
-		// Mengembalikan GetDetailPenyusunanKpiResponse dengan struktur response baru
-		// (nested divisi, entry, approvalList sebagai array, totalKpi, totalResult, dst).
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
 		) (data *dto.GetDetailPenyusunanKpiResponse, err error)

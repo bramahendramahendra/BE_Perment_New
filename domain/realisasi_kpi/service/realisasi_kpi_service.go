@@ -18,6 +18,7 @@ import (
 // VALIDATE
 // =============================================================================
 
+// ValidateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/validate.
 func (s *realisasiKpiService) ValidateRealisasiKpi(
 	req *dto.ValidateRealisasiKpiRequest,
 	file *multipart.FileHeader,
@@ -43,14 +44,14 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
-	dbTahun := existData.Tahun
 	dbTriwulan := existData.Triwulan
+	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbKostlTx := existData.KostlTx
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 2
+	// Validasi: status harus 2 = Penyusunan Disetujui
 	if dbStatus != 2 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
@@ -151,7 +152,7 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 }
 
 // =============================================================================
-// CREATE — submit ke approval
+// CREATE
 // =============================================================================
 
 func (s *realisasiKpiService) CreateRealisasiKpi(
@@ -171,7 +172,7 @@ func (s *realisasiKpiService) CreateRealisasiKpi(
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 80
+	// Validasi: status harus 80 = Draft Realisasi
 	if dbStatus != 80 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
@@ -208,9 +209,9 @@ func (s *realisasiKpiService) CreateRealisasiKpi(
 		return data, err
 	}
 
-	ApprovalListRealisasi := make([]dto.ApprovalUserRealisasi, len(req.ApprovalListRealisasi))
+	ApprovalListRealisasi := make([]dto.ApprovalUser, len(req.ApprovalListRealisasi))
 	for i, a := range req.ApprovalListRealisasi {
-		ApprovalListRealisasi[i] = dto.ApprovalUserRealisasi{Userid: a.Userid, Nama: a.Nama}
+		ApprovalListRealisasi[i] = dto.ApprovalUser{Userid: a.Userid, Nama: a.Nama}
 	}
 
 	data = dto.CreateRealisasiKpiResponse{
@@ -256,15 +257,15 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
-	dbTahun := existData.Tahun
 	dbTriwulan := existData.Triwulan
+	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbKostlTx := existData.KostlTx
 	dbEntryUser := existData.EntryUserRealisasi
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 4
+	// Validasi: status harus 4 = Realisasi Ditolak
 	if dbStatus != 4 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
@@ -430,7 +431,7 @@ func (s *realisasiKpiService) ApproveRealisasiKpi(
 		return data, err
 	}
 
-	var approvalList []dto.ApprovalUserRealisasiDetail
+	var approvalList []dto.ApprovalUserDetail
 	if err = json.Unmarshal([]byte(approvalListJSON), &approvalList); err != nil {
 		return data, fmt.Errorf("gagal parse approval_list: %w", err)
 	}
@@ -532,7 +533,7 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 		return data, err
 	}
 
-	var approvalList []dto.ApprovalUserRealisasiDetail
+	var approvalList []dto.ApprovalUserDetail
 	if err = json.Unmarshal([]byte(approvalListJSON), &approvalList); err != nil {
 		return data, fmt.Errorf("gagal parse approval_list: %w", err)
 	}
@@ -566,14 +567,14 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 		return data, fmt.Errorf("gagal membaca catatan_tolakan: %w", err)
 	}
 
-	var catatanTolakanEntries []dto.CatatanTolakanEntry
+	var catatanTolakanEntries []dto.CatatanDetail
 	if existingCatatanJSON != "" && existingCatatanJSON != "null" {
 		if err = json.Unmarshal([]byte(existingCatatanJSON), &catatanTolakanEntries); err != nil {
 			return data, fmt.Errorf("gagal parse catatan_tolakan: %w", err)
 		}
 	}
 
-	catatanTolakanEntries = append(catatanTolakanEntries, dto.CatatanTolakanEntry{
+	catatanTolakanEntries = append(catatanTolakanEntries, dto.CatatanDetail{
 		Fungsi:    req.Catatan.Fungsi,
 		EntryUser: entryUserFull,
 		EntryTime: nowDisplay,
@@ -747,34 +748,34 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 		}
 	}
 
-	var approvalList []dto.ApprovalUserRealisasiDetail
+	var approvalList []dto.ApprovalUserDetail
 	if dataDB.ApprovalList != "" {
 		if err = json.Unmarshal([]byte(dataDB.ApprovalList), &approvalList); err != nil {
 			return nil, fmt.Errorf("gagal parse approval_list: %w", err)
 		}
 	}
 	if approvalList == nil {
-		approvalList = []dto.ApprovalUserRealisasiDetail{}
+		approvalList = []dto.ApprovalUserDetail{}
 	}
 
-	var approvalListRealisasi []dto.ApprovalUserRealisasiDetail
+	var approvalListRealisasi []dto.ApprovalUserDetail
 	if dataDB.ApprovalListRealisasi != "" {
 		if err = json.Unmarshal([]byte(dataDB.ApprovalListRealisasi), &approvalListRealisasi); err != nil {
 			return nil, fmt.Errorf("gagal parse approval_list_realisasi: %w", err)
 		}
 	}
 	if approvalListRealisasi == nil {
-		approvalListRealisasi = []dto.ApprovalUserRealisasiDetail{}
+		approvalListRealisasi = []dto.ApprovalUserDetail{}
 	}
 
-	var catatanList []dto.CatatanTolakanEntry
+	var catatanList []dto.CatatanDetail
 	if dataDB.CatatanTolakan != "" && dataDB.CatatanTolakan != "null" {
 		if err = json.Unmarshal([]byte(dataDB.CatatanTolakan), &catatanList); err != nil {
 			return nil, fmt.Errorf("gagal parse catatan_tolakan: %w", err)
 		}
 	}
 	if catatanList == nil {
-		catatanList = []dto.CatatanTolakanEntry{}
+		catatanList = []dto.CatatanDetail{}
 	}
 
 	kpiList := make([]dto.DataKpiDetail, len(dataDB.Kpi))
@@ -921,8 +922,8 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 //	Skor = (Pencapaian * Bobot) / 100
 func (s *realisasiKpiService) enrichRowsFromDB(
 	idPengajuan string,
-	kpiRows []dto.KpiRow,
-	kpiSubDetails map[int][]dto.KpiSubDetailRow,
+	kpiRows []dto.RealisasiKpiRow,
+	kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
 ) error {
 	for ki := range kpiRows {
 		for i := range kpiSubDetails[kpiRows[ki].KpiIndex] {
@@ -938,7 +939,7 @@ func (s *realisasiKpiService) enrichRowsFromDB(
 			sub.IdSubKpi = lookup.IdSubKpi
 			sub.Otomatis = lookup.Otomatis
 			sub.TerdapatQualifier = lookup.IdQualifier
-			sub.Rumus = lookup.Rumus
+			sub.IdPolarisasi = lookup.Rumus
 			sub.Glossary = lookup.Glossary
 			sub.TargetKuantitatifTriwulan = lookup.TargetKuantitatifTriwulan
 			sub.TargetTahunan = lookup.TargetTahunan
@@ -1038,8 +1039,8 @@ func calculatePencapaianSkor(
 // validateLinkDokumenSumber memvalidasi kolom N (Link Dokumen Sumber) setiap baris Excel
 // terhadap daftar prefix URL yang diizinkan dari DB (mst_link_format).
 func validateLinkDokumenSumber(
-	kpiRows []dto.KpiRow,
-	kpiSubDetails map[int][]dto.KpiSubDetailRow,
+	kpiRows []dto.RealisasiKpiRow,
+	kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
 	allowedPrefixes []string,
 ) error {
 	for _, kpiRow := range kpiRows {

@@ -49,11 +49,9 @@ func (h *PenyusunanKpiHandler) ValidatePenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	req.Kostl = req.Divisi.Kostl
-	req.KostlTx = req.Divisi.KostlTx
-	req.EntryUser = strings.TrimSpace(parts[0])
-	req.EntryName = strings.TrimSpace(parts[1])
-	req.EntryTime = time.Now().Format("2006-01-02 15:04:05")
+	req.EntryUserPenyusunan = strings.TrimSpace(parts[0])
+	req.EntryNamePenyusunan = strings.TrimSpace(parts[1])
+	req.EntryTimePenyusunan = time.Now().Format("2006-01-02 15:04:05")
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -79,7 +77,7 @@ func (h *PenyusunanKpiHandler) ValidatePenyusunanKpi(c *gin.Context) {
 // =============================================================================
 
 // CreatePenyusunanKpi handles POST /penyusunan-kpi/create
-// Menerima JSON biasa (bukan multipart) dengan idPengajuan dan ApprovalList.
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreatePenyusunanKpiRequest](c)
 	if err != nil {
@@ -99,9 +97,9 @@ func (h *PenyusunanKpiHandler) CreatePenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	req.EntryUser = strings.TrimSpace(parts[0])
-	req.EntryName = strings.TrimSpace(parts[1])
-	req.EntryTime = time.Now().Format("2006-01-02 15:04:05")
+	req.EntryUserPenyusunan = strings.TrimSpace(parts[0])
+	req.EntryNamePenyusunan = strings.TrimSpace(parts[1])
+	req.EntryTimePenyusunan = time.Now().Format("2006-01-02 15:04:05")
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -147,9 +145,9 @@ func (h *PenyusunanKpiHandler) RevisionPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	req.EntryUser = strings.TrimSpace(parts[0])
-	req.EntryName = strings.TrimSpace(parts[1])
-	req.EntryTime = time.Now().Format("2006-01-02 15:04:05")
+	req.EntryUserPenyusunan = strings.TrimSpace(parts[0])
+	req.EntryNamePenyusunan = strings.TrimSpace(parts[1])
+	req.EntryTimePenyusunan = time.Now().Format("2006-01-02 15:04:05")
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -175,6 +173,7 @@ func (h *PenyusunanKpiHandler) RevisionPenyusunanKpi(c *gin.Context) {
 // =============================================================================
 
 // ApprovePenyusunanKpi handles POST /penyusunan-kpi/approve
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) ApprovePenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.ApprovePenyusunanKpiRequest](c)
 	if err != nil {
@@ -194,8 +193,8 @@ func (h *PenyusunanKpiHandler) ApprovePenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	req.ApprovalUser = strings.TrimSpace(parts[0])
-	req.ApprovalName = strings.TrimSpace(parts[1])
+	req.ApprovalUserPenyusunan = strings.TrimSpace(parts[0])
+	req.ApprovalNamePenyusunan = strings.TrimSpace(parts[1])
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -217,6 +216,7 @@ func (h *PenyusunanKpiHandler) ApprovePenyusunanKpi(c *gin.Context) {
 }
 
 // RejectPenyusunanKpi handles POST /penyusunan-kpi/reject
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) RejectPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.RejectPenyusunanKpiRequest](c)
 	if err != nil {
@@ -236,8 +236,8 @@ func (h *PenyusunanKpiHandler) RejectPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	req.ApprovalUser = strings.TrimSpace(parts[0])
-	req.ApprovalName = strings.TrimSpace(parts[1])
+	req.ApprovalUserPenyusunan = strings.TrimSpace(parts[0])
+	req.ApprovalNamePenyusunan = strings.TrimSpace(parts[1])
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -263,6 +263,7 @@ func (h *PenyusunanKpiHandler) RejectPenyusunanKpi(c *gin.Context) {
 // =============================================================================
 
 // GetAllApprovalPenyusunanKpi handles POST /penyusunan-kpi/get-all-approval
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) GetAllApprovalPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllApprovalPenyusunanKpiRequest](c)
 	if err != nil {
@@ -282,7 +283,7 @@ func (h *PenyusunanKpiHandler) GetAllApprovalPenyusunanKpi(c *gin.Context) {
 		return
 	}
 
-	req.ApprovalUser = strings.TrimSpace(parts[0])
+	req.ApprovalUserPenyusunan = strings.TrimSpace(parts[0])
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -309,7 +310,8 @@ func (h *PenyusunanKpiHandler) GetAllApprovalPenyusunanKpi(c *gin.Context) {
 	})
 }
 
-// GetAllTolakanPenyusunanKpi handles POST /penyusunan-kpi/get-all-tolakan
+// GetAllTolakanPenyusunanKpi handles POST /penyusunan-kpi/get-all-tolakan.
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) GetAllTolakanPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllTolakanPenyusunanKpiRequest](c)
 	if err != nil {
@@ -342,7 +344,8 @@ func (h *PenyusunanKpiHandler) GetAllTolakanPenyusunanKpi(c *gin.Context) {
 	})
 }
 
-// GetAllDaftarPenyusunanKpi handles POST /penyusunan-kpi/get-all-daftar-penyusunan
+// GetAllDaftarPenyusunanKpi handles POST /penyusunan-kpi/get-all-daftar-penyusunan.
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) GetAllDaftarPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllDaftarPenyusunanKpiRequest](c)
 	if err != nil {
@@ -375,7 +378,8 @@ func (h *PenyusunanKpiHandler) GetAllDaftarPenyusunanKpi(c *gin.Context) {
 	})
 }
 
-// GetAllApprovalPenyusunanKpi handles POST /penyusunan-kpi/get-all-daftar-approval
+// GetAllApprovalPenyusunanKpi handles POST /penyusunan-kpi/get-all-daftar-approval.
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) GetAllDaftarApprovalPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllDaftarApprovalPenyusunanKpiRequest](c)
 	if err != nil {
@@ -426,7 +430,8 @@ func (h *PenyusunanKpiHandler) GetAllDaftarApprovalPenyusunanKpi(c *gin.Context)
 // GET DETAIL
 // =============================================================================
 
-// GetDetailPenyusunanKpi handles POST /penyusunan-kpi/get-detail
+// GetDetailPenyusunanKpi handles POST /penyusunan-kpi/get-detail.
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) GetDetailPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetDetailPenyusunanKpiRequest](c)
 	if err != nil {
@@ -457,7 +462,8 @@ func (h *PenyusunanKpiHandler) GetDetailPenyusunanKpi(c *gin.Context) {
 // EXPORT DATA
 // =============================================================================
 
-// GetExcelPenyusunanKpi handles POST /penyusunan-kpi/get-excel
+// GetExcelPenyusunanKpi handles POST /penyusunan-kpi/get-excel.
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) GetExcelPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetExcelPenyusunanKpiRequest](c)
 	if err != nil {
@@ -479,7 +485,8 @@ func (h *PenyusunanKpiHandler) GetExcelPenyusunanKpi(c *gin.Context) {
 	file_export.SendExcel(c, fileBytes, filename)
 }
 
-// GetPdfPenyusunanKpi handles POST /penyusunan-kpi/get-pdf
+// GetPdfPenyusunanKpi handles POST /penyusunan-kpi/get-pdf.
+// Menerima application/json dengan JSON biasa.
 func (h *PenyusunanKpiHandler) GetPdfPenyusunanKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetPdfPenyusunanKpiRequest](c)
 	if err != nil {

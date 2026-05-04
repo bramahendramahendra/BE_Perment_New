@@ -1,9 +1,7 @@
 package dto
 
-import "permen_api/pkg/excel"
-
 // =============================================================================
-// GENERAL DTO
+// DIVISI DTO
 // =============================================================================
 
 type Divisi struct {
@@ -11,7 +9,6 @@ type Divisi struct {
 	KostlTx string `json:"kostl_tx" validate:"required"`
 }
 
-// Berbeda dari Divisi karena menyertakan Orgeh/OrgehTx.
 type DivisiOrgeh struct {
 	Kostl   string `json:"kostl"`
 	KostlTx string `json:"kostl_tx"`
@@ -19,10 +16,14 @@ type DivisiOrgeh struct {
 	OrgehTx string `json:"orgeh_tx"`
 }
 
-type EntryUser struct {
-	EntryUser string `json:"entry_user"`
-	EntryName string `json:"entry_name"`
-	EntryTime string `json:"entry_time"`
+// =============================================================================
+// ENTRY DTO
+// =============================================================================
+
+type EntryUserPenyusunan struct {
+	EntryUserPenyusunan string `json:"entry_user"`
+	EntryNamePenyusunan string `json:"entry_name"`
+	EntryTimePenyusunan string `json:"entry_time"`
 }
 
 type EntryUserRealisasi struct {
@@ -36,6 +37,10 @@ type EntryUserValidasi struct {
 	EntryNameValidasi string `json:"entry_name_validasi"`
 	EntryTimeValidasi string `json:"entry_time_validasi"`
 }
+
+// =============================================================================
+// APPROVAL USER DTO
+// =============================================================================
 
 type ApprovalUser struct {
 	Userid string `json:"userid"`
@@ -54,19 +59,25 @@ type ApprovalUserDetail struct {
 	Waktu      string `json:"waktu"`
 }
 
-// CatatanItem adalah item catatan pada request approve/reject.
-type CatatanItem struct {
+// =============================================================================
+// CATATAN DTO
+// =============================================================================
+
+type Catatan struct {
 	Fungsi    string `json:"fungsi"     validate:"required"`
 	EntryNote string `json:"entry_note" validate:"required"`
 }
 
-// CatatanTolakanEntry adalah format JSON yang disimpan di kolom catatan_tolakan DB.
-type CatatanTolakanEntry struct {
+type CatatanDetail struct {
 	Fungsi    string `json:"fungsi"`
 	EntryUser string `json:"entry_user"`
 	EntryTime string `json:"entry_time"`
 	EntryNote string `json:"entry_note"`
 }
+
+// =============================================================================
+// KPI DTO
+// =============================================================================
 
 type DataKpiDetail struct {
 	IdDetail            string             `json:"id_detail"`
@@ -134,89 +145,85 @@ type DataContext struct {
 // ValidatePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/validate.
 type ValidatePenyusunanKpiRequest struct {
 	Divisi   Divisi `json:"divisi"    validate:"required"`
-	Tahun    string `json:"tahun"     validate:"required"`
 	Triwulan string `json:"triwulan"  validate:"required"`
-	Kostl    string `json:"kostl"`
-	KostlTx  string `json:"kostl_tx"`
+	Tahun    string `json:"tahun"     validate:"required"`
 
-	EntryUser string `json:"entry_user"`
-	EntryName string `json:"entry_name"`
-	EntryTime string `json:"entry_time"`
+	// Diisi handler dari header 'userq', tidak boleh dari body.
+	EntryUserPenyusunan string `json:"entry_user"`
+	EntryNamePenyusunan string `json:"entry_name"`
+	EntryTimePenyusunan string `json:"entry_time"`
 }
 
 // CreatePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/create.
 type CreatePenyusunanKpiRequest struct {
 	IdPengajuan  string               `json:"id_pengajuan"  validate:"required"`
 	Kostl        string               `json:"kostl"         validate:"required"`
-	Tahun        string               `json:"tahun"         validate:"required"`
 	Triwulan     string               `json:"triwulan"      validate:"required"`
+	Tahun        string               `json:"tahun"         validate:"required"`
 	ApprovalList []ApprovalUserDetail `json:"approval_list" validate:"required,min=1,dive"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
-	EntryUser string `json:"entry_user"`
-	EntryName string `json:"entry_name"`
-	EntryTime string `json:"entry_time"`
+	EntryUserPenyusunan string `json:"entry_user"`
+	EntryNamePenyusunan string `json:"entry_name"`
+	EntryTimePenyusunan string `json:"entry_time"`
 }
 
 // RevisionPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/revision.
 type RevisionPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
 	Kostl       string `json:"kostl" validate:"required"`
-	Tahun       string `json:"tahun" validate:"required"`
 	Triwulan    string `json:"triwulan" validate:"required"`
-
-	// Diisi service dari DB berdasarkan id_pengajuan, tidak boleh dari body.
-	// Divisi Divisi `json:"-" validate:"-"`
+	Tahun       string `json:"tahun" validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
-	EntryUser string `json:"entry_user"`
-	EntryName string `json:"entry_name"`
-	EntryTime string `json:"entry_time"`
+	EntryUserPenyusunan string `json:"entry_user"`
+	EntryNamePenyusunan string `json:"entry_name"`
+	EntryTimePenyusunan string `json:"entry_time"`
 }
 
 // ApprovePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/approve.
 type ApprovePenyusunanKpiRequest struct {
-	IdPengajuan string      `json:"id_pengajuan" validate:"required"`
-	Kostl       string      `json:"kostl"        validate:"required"`
-	Tahun       string      `json:"tahun"        validate:"required"`
-	Triwulan    string      `json:"triwulan"     validate:"required"`
-	Catatan     CatatanItem `json:"catatan"      validate:"required"`
+	IdPengajuan string  `json:"id_pengajuan" validate:"required"`
+	Kostl       string  `json:"kostl"        validate:"required"`
+	Triwulan    string  `json:"triwulan"     validate:"required"`
+	Tahun       string  `json:"tahun"        validate:"required"`
+	Catatan     Catatan `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
-	ApprovalUser string `json:"approval_user"`
-	ApprovalName string `json:"approval_name"`
+	ApprovalUserPenyusunan string `json:"approval_user"`
+	ApprovalNamePenyusunan string `json:"approval_name"`
 }
 
 // RejectPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiRequest struct {
-	IdPengajuan string      `json:"id_pengajuan" validate:"required"`
-	Kostl       string      `json:"kostl"        validate:"required"`
-	Tahun       string      `json:"tahun"        validate:"required"`
-	Triwulan    string      `json:"triwulan"     validate:"required"`
-	Catatan     CatatanItem `json:"catatan"      validate:"required"`
+	IdPengajuan string  `json:"id_pengajuan" validate:"required"`
+	Kostl       string  `json:"kostl"        validate:"required"`
+	Triwulan    string  `json:"triwulan"     validate:"required"`
+	Tahun       string  `json:"tahun"        validate:"required"`
+	Catatan     Catatan `json:"catatan"      validate:"required"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
-	ApprovalUser string `json:"approval_user"`
-	ApprovalName string `json:"approval_name"`
+	ApprovalUserPenyusunan string `json:"approval_user"`
+	ApprovalNamePenyusunan string `json:"approval_name"`
 }
 
 // GetAllApprovalPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-approval.
 type GetAllApprovalPenyusunanKpiRequest struct {
 	Divisi   string `json:"divisi"`
-	Tahun    string `json:"tahun"`
 	Triwulan string `json:"triwulan"`
+	Tahun    string `json:"tahun"`
 	Page     int    `json:"page"`
 	Limit    int    `json:"limit"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
-	ApprovalUser string `json:"approval_user"`
+	ApprovalUserPenyusunan string `json:"approval_user"`
 }
 
 // GetAllTolakanPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-tolakan.
 type GetAllTolakanPenyusunanKpiRequest struct {
 	Divisi   string `json:"divisi"`
-	Tahun    string `json:"tahun"`
 	Triwulan string `json:"triwulan"`
+	Tahun    string `json:"tahun"`
 	Page     int    `json:"page"`
 	Limit    int    `json:"limit"`
 }
@@ -224,8 +231,8 @@ type GetAllTolakanPenyusunanKpiRequest struct {
 // GetAllDaftarPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-daftar-penyusunan.
 type GetAllDaftarPenyusunanKpiRequest struct {
 	Divisi   string `json:"divisi"`
-	Tahun    string `json:"tahun"`
 	Triwulan string `json:"triwulan"`
+	Tahun    string `json:"tahun"`
 	Status   string `json:"status"`
 	Page     int    `json:"page"`
 	Limit    int    `json:"limit"`
@@ -234,8 +241,8 @@ type GetAllDaftarPenyusunanKpiRequest struct {
 // GetAllDaftarApprovalPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-all-daftar-approval.
 type GetAllDaftarApprovalPenyusunanKpiRequest struct {
 	Divisi   string `json:"divisi"`
-	Tahun    string `json:"tahun"`
 	Triwulan string `json:"triwulan"`
+	Tahun    string `json:"tahun"`
 	Page     int    `json:"page"`
 	Limit    int    `json:"limit"`
 
@@ -252,16 +259,16 @@ type GetDetailPenyusunanKpiRequest struct {
 type GetExcelPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
 	Kostl       string `json:"kostl"        validate:"required"`
-	Tahun       string `json:"tahun"        validate:"required"`
 	Triwulan    string `json:"triwulan"     validate:"required"`
+	Tahun       string `json:"tahun"        validate:"required"`
 }
 
 // GetPdfPenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/get-pdf.
 type GetPdfPenyusunanKpiRequest struct {
 	IdPengajuan string `json:"id_pengajuan" validate:"required"`
 	Kostl       string `json:"kostl"        validate:"required"`
-	Tahun       string `json:"tahun"        validate:"required"`
 	Triwulan    string `json:"triwulan"     validate:"required"`
+	Tahun       string `json:"tahun"        validate:"required"`
 }
 
 // =============================================================================
@@ -270,60 +277,60 @@ type GetPdfPenyusunanKpiRequest struct {
 
 // ValidatePenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/validate.
 type ValidatePenyusunanKpiResponse struct {
-	IDPengajuan string          `json:"id_pengajuan"`
-	Tahun       string          `json:"tahun"`
-	Triwulan    string          `json:"triwulan"`
-	Divisi      Divisi          `json:"divisi"`
-	Entry       EntryUser       `json:"entry"`
-	TotalKpi    int             `json:"total_kpi"`
-	Kpi         []DataKpiDetail `json:"kpi"`
-	ResultList  []DataResult    `json:"result_list"`
-	ProcessList []DataProcess   `json:"process_list"`
-	ContextList []DataContext   `json:"context_list"`
+	IDPengajuan     string              `json:"id_pengajuan"`
+	Divisi          Divisi              `json:"divisi"`
+	Triwulan        string              `json:"triwulan"`
+	Tahun           string              `json:"tahun"`
+	EntryPenyusunan EntryUserPenyusunan `json:"entry"`
+	TotalKpi        int                 `json:"total_kpi"`
+	KpiList         []DataKpiDetail     `json:"kpi"`
+	ResultList      []DataResult        `json:"result_list"`
+	ProcessList     []DataProcess       `json:"process_list"`
+	ContextList     []DataContext       `json:"context_list"`
 }
 
 // CreatePenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/create.
 type CreatePenyusunanKpiResponse struct {
-	IdPengajuan  string         `json:"id_pengajuan"`
-	Divisi       Divisi         `json:"divisi"`
-	Tahun        string         `json:"tahun"`
-	Triwulan     string         `json:"triwulan"`
-	ApprovalList []ApprovalUser `json:"approval_list"`
+	IdPengajuan            string         `json:"id_pengajuan"`
+	Divisi                 Divisi         `json:"divisi"`
+	Triwulan               string         `json:"triwulan"`
+	Tahun                  string         `json:"tahun"`
+	ApprovalListPenyusunan []ApprovalUser `json:"approval_list"`
 }
 
 // RevisionPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/revision.
 type RevisionPenyusunanKpiResponse struct {
-	IDPengajuan string          `json:"id_pengajuan"`
-	Tahun       string          `json:"tahun"`
-	Triwulan    string          `json:"triwulan"`
-	Divisi      Divisi          `json:"divisi"`
-	Entry       EntryUser       `json:"entry"`
-	TotalKpi    int             `json:"total_kpi"`
-	Kpi         []DataKpiDetail `json:"kpi"`
-	ResultList  []DataResult    `json:"result_list"`
-	ProcessList []DataProcess   `json:"process_list"`
-	ContextList []DataContext   `json:"context_list"`
+	IDPengajuan     string              `json:"id_pengajuan"`
+	Divisi          Divisi              `json:"divisi"`
+	Triwulan        string              `json:"triwulan"`
+	Tahun           string              `json:"tahun"`
+	EntryPenyusunan EntryUserPenyusunan `json:"entry"`
+	TotalKpi        int                 `json:"total_kpi"`
+	KpiList         []DataKpiDetail     `json:"kpi"`
+	ResultList      []DataResult        `json:"result_list"`
+	ProcessList     []DataProcess       `json:"process_list"`
+	ContextList     []DataContext       `json:"context_list"`
 }
 
 // ApprovePenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/approve.
 type ApprovePenyusunanKpiResponse struct {
-	IdPengajuan string      `json:"id_pengajuan"`
-	Status      string      `json:"status"`
-	Catatan     CatatanItem `json:"catatan"`
+	IdPengajuan string  `json:"id_pengajuan"`
+	Status      string  `json:"status"`
+	Catatan     Catatan `json:"catatan"`
 }
 
 // RejectPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/reject.
 type RejectPenyusunanKpiResponse struct {
-	IdPengajuan string      `json:"id_pengajuan"`
-	Status      string      `json:"status"`
-	Catatan     CatatanItem `json:"catatan"`
+	IdPengajuan string  `json:"id_pengajuan"`
+	Status      string  `json:"status"`
+	Catatan     Catatan `json:"catatan"`
 }
 
 // GetAllApprovalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-all-approval.
 type GetAllApprovalPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
-	Tahun       string `json:"tahun"`
 	Triwulan    string `json:"triwulan"`
+	Tahun       string `json:"tahun"`
 	KostlTx     string `json:"kostl_tx"`
 	OrgehTx     string `json:"orgeh_tx"`
 	StatusDesc  string `json:"status_desc"`
@@ -332,8 +339,8 @@ type GetAllApprovalPenyusunanKpiResponse struct {
 // GetAllTolakanPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-all-tolakan.
 type GetAllTolakanPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
-	Tahun       string `json:"tahun"`
 	Triwulan    string `json:"triwulan"`
+	Tahun       string `json:"tahun"`
 	KostlTx     string `json:"kostl_tx"`
 	OrgehTx     string `json:"orgeh_tx"`
 	StatusDesc  string `json:"status_desc"`
@@ -342,8 +349,8 @@ type GetAllTolakanPenyusunanKpiResponse struct {
 // GetAllDaftarPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-all-tolakan.
 type GetAllDaftarPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
-	Tahun       string `json:"tahun"`
 	Triwulan    string `json:"triwulan"`
+	Tahun       string `json:"tahun"`
 	KostlTx     string `json:"kostl_tx"`
 	OrgehTx     string `json:"orgeh_tx"`
 	StatusDesc  string `json:"status_desc"`
@@ -352,8 +359,8 @@ type GetAllDaftarPenyusunanKpiResponse struct {
 // GetAllDaftarApprovalPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-all-tolakan.
 type GetAllDaftarApprovalPenyusunanKpiResponse struct {
 	IdPengajuan string `json:"id_pengajuan"`
-	Tahun       string `json:"tahun"`
 	Triwulan    string `json:"triwulan"`
+	Tahun       string `json:"tahun"`
 	KostlTx     string `json:"kostl_tx"`
 	OrgehTx     string `json:"orgeh_tx"`
 	StatusDesc  string `json:"status_desc"`
@@ -361,45 +368,70 @@ type GetAllDaftarApprovalPenyusunanKpiResponse struct {
 
 // GetDetailPenyusunanKpiResponse adalah response untuk endpoint POST /penyusunan-kpi/get-detail.
 type GetDetailPenyusunanKpiResponse struct {
-	IdPengajuan    string                `json:"id_pengajuan"`
-	Tahun          string                `json:"tahun"`
-	Triwulan       string                `json:"triwulan"`
-	Status         string                `json:"status"`
-	StatusDesc     string                `json:"status_desc"`
-	Divisi         DivisiOrgeh           `json:"divisi"`
-	Entry          EntryUser             `json:"entry"`
-	EntryRealisasi EntryUserRealisasi    `json:"entry_realisasi"`
-	EntryValidasi  EntryUserValidasi     `json:"entry_validasi"`
-	ApprovalPosisi string                `json:"approval_posisi"`
-	ApprovalList   []ApprovalUserDetail  `json:"approval_list"`
-	Catatan        []CatatanTolakanEntry `json:"catatan"`
-	TotalKpi       int                   `json:"total_kpi"`
-	Kpi            []DataKpiDetail       `json:"kpi"`
-	TotalResult    int                   `json:"total_result"`
-	ResultList     []DataResult          `json:"result_list"`
-	TotalProcess   int                   `json:"total_process"`
-	ProcessList    []DataProcess         `json:"process_list"`
-	TotalContext   int                   `json:"total_context"`
-	ContextList    []DataContext         `json:"context_list"`
+	IdPengajuan     string               `json:"id_pengajuan"`
+	Triwulan        string               `json:"triwulan"`
+	Tahun           string               `json:"tahun"`
+	Status          string               `json:"status"`
+	StatusDesc      string               `json:"status_desc"`
+	Divisi          DivisiOrgeh          `json:"divisi"`
+	EntryPenyusunan EntryUserPenyusunan  `json:"entry"`
+	EntryRealisasi  EntryUserRealisasi   `json:"entry_realisasi"`
+	EntryValidasi   EntryUserValidasi    `json:"entry_validasi"`
+	ApprovalPosisi  string               `json:"approval_posisi"`
+	ApprovalList    []ApprovalUserDetail `json:"approval_list"`
+	Catatan         []CatatanDetail      `json:"catatan"`
+	TotalKpi        int                  `json:"total_kpi"`
+	KpiList         []DataKpiDetail      `json:"kpi"`
+	TotalResult     int                  `json:"total_result"`
+	ResultList      []DataResult         `json:"result_list"`
+	TotalProcess    int                  `json:"total_process"`
+	ProcessList     []DataProcess        `json:"process_list"`
+	TotalContext    int                  `json:"total_context"`
+	ContextList     []DataContext        `json:"context_list"`
 }
 
 // =============================================================================
 // EXCEL ROW DTO
 // =============================================================================
 
-// PenyusunanKpiRow merepresentasikan 1 KPI unik yang ditemukan dari kolom B Excel,
-// beserta hasil lookup ke tabel mst_kpi.
-type PenyusunanKpiRow = excel.KpiRow
+type PenyusunanKpiRow struct {
+	KpiIndex int
+	IdKpi    string
+	Kpi      string
+	Rumus    string
+}
 
-// PenyusunanKpiSubDetailRow merepresentasikan 1 baris data dari file Excel
-// yang sudah diparse dan divalidasi.
-type PenyusunanKpiSubDetailRow = excel.KpiSubDetailRow
+type PenyusunanKpiSubDetailRow struct {
+	No                        int
+	KPI                       string
+	SubKPI                    string
+	IdSubKpi                  string
+	Otomatis                  string
+	Polarisasi                string
+	IdPolarisasi              string
+	Capping                   string
+	Bobot                     float64
+	Glossary                  string
+	TargetTriwulan            string
+	TargetKuantitatifTriwulan float64
+	TargetTahunan             string
+	TargetKuantitatifTahunan  float64
+	TerdapatQualifier         string
+	Qualifier                 string
+	DeskripsiQualifier        string
+	TargetQualifier           string
+	IsTW24                    bool
+	Result                    *string
+	DeskripsiResult           *string
+	Process                   *string
+	DeskripsiProcess          *string
+	Context                   *string
+	DeskripsiContext          *string
+}
 
 // =============================================================================
 // EXPORT DTO (digunakan oleh get-excel dan get-pdf)
 // =============================================================================
-
-// KpiSubDetailExportRow merepresentasikan 1 baris data sub KPI untuk keperluan ekspor.
 type KpiSubDetailExportRow struct {
 	No            int
 	KpiNama       string
@@ -408,10 +440,9 @@ type KpiSubDetailExportRow struct {
 	Capping       string
 }
 
-// KpiExportData berisi header dokumen + daftar baris sub KPI untuk ekspor.
 type KpiExportData struct {
 	NamaDivisi string
-	Tahun      string
 	Triwulan   string
+	Tahun      string
 	Rows       []KpiSubDetailExportRow
 }

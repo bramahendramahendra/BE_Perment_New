@@ -33,8 +33,8 @@ const (
 	// Check Data
 	// =============================================================================
 
-	// Use func : GetExistPenyusunanStatus
-	queryGetExistPenyusunanStatus = `
+	// Use func : GetExistDataKpiStatus
+	queryGetExistDataKpiStatus = `
 		SELECT id_pengajuan, status
 		FROM data_kpi
 		WHERE tahun = ? AND triwulan = ? AND kostl = ?
@@ -277,8 +277,8 @@ const (
 // =============================================================================
 // CHECK
 // =============================================================================
-func (r *penyusunanKpiRepo) GetExistPenyusunanStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error) {
-	row := r.db.Raw(queryGetExistPenyusunanStatus, tahun, triwulan, kostl).Row()
+func (r *penyusunanKpiRepo) GetExistDataKpiStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error) {
+	row := r.db.Raw(queryGetExistDataKpiStatus, tahun, triwulan, kostl).Row()
 	if scanErr := row.Scan(&idPengajuan, &status); scanErr != nil {
 		if errors.Is(scanErr, sql.ErrNoRows) {
 			return "", 0, false, nil
@@ -356,10 +356,10 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	idLama string,
 ) (string, error) {
 
-	idPengajuan := idgen.GenerateIDPengajuan(req.Kostl, req.Tahun, req.Triwulan)
+	idPengajuan := idgen.GenerateIDPengajuan(req.Divisi.Kostl, req.Tahun, req.Triwulan)
 
 	var orgeh, orgehTx string
-	r.db.Raw(queryGetOrgeh, req.Kostl).Row().Scan(&orgeh, &orgehTx)
+	r.db.Raw(queryGetOrgeh, req.Divisi.Kostl).Row().Scan(&orgeh, &orgehTx)
 
 	// status 70 = draft
 	var statusKpi interface{} = 70
@@ -517,8 +517,8 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 
 	// approval_posisi dan approval_list dikosongkan — diisi saat CreatePenyusunanKpi
 	if err := tx.Exec(queryInsertKpi,
-		idPengajuan, req.Tahun, req.Triwulan, req.Kostl, req.KostlTx,
-		orgeh, orgehTx, req.EntryUser, req.EntryName, req.EntryTime,
+		idPengajuan, req.Tahun, req.Triwulan, req.Divisi.Kostl, req.Divisi.KostlTx,
+		orgeh, orgehTx, req.EntryUserPenyusunan, req.EntryNamePenyusunan, req.EntryTimePenyusunan,
 		"", "[]", statusKpi,
 	).Error; err != nil {
 		tx.Rollback()
@@ -619,7 +619,7 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 		tx,
 		req.IdPengajuan,
 		kostlTx,
-		req.EntryUser,
+		req.EntryUserPenyusunan,
 		approvalPosisi,
 		"approval_penyusunan",
 	); err != nil {
@@ -892,7 +892,7 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	// status = 0 → langsung ke approval
 	// -------------------------------------------------------------------------
 	if err := tx.Exec(queryUpdateKpiRevision,
-		req.EntryTime, updatedApprovalList, firstApprovalPosisi, req.IdPengajuan,
+		req.EntryTimePenyusunan, updatedApprovalList, firstApprovalPosisi, req.IdPengajuan,
 	).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("gagal update data_kpi saat revision: %w", err)
@@ -1037,7 +1037,7 @@ func (r *penyusunanKpiRepo) GetAllApprovalPenyusunanKpi(
 		"a.status = 0",
 		"a.approval_posisi = ?",
 	}
-	args := []interface{}{req.ApprovalUser}
+	args := []interface{}{req.ApprovalUserPenyusunan}
 
 	// =========================================================================
 	// Kondisi opsional dari request body

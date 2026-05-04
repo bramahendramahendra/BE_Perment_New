@@ -29,7 +29,7 @@ func BuildKpiResponse(
 				SubKpi:                        subRow.SubKPI,
 				Otomatis:                      subRow.Otomatis,
 				Polarisasi:                    subRow.Polarisasi,
-				IdPolarisasi:                  subRow.Rumus,
+				IdPolarisasi:                  subRow.IdPolarisasi,
 				Capping:                       subRow.Capping,
 				Bobot:                         subRow.Bobot,
 				Glossary:                      subRow.Glossary,

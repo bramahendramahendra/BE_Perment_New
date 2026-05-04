@@ -76,7 +76,7 @@ func (h *RealisasiKpiHandler) ValidateRealisasiKpi(c *gin.Context) {
 // =============================================================================
 
 // CreateRealisasiKpi handles POST /realisasi-kpi/create
-// Menerima application/json. Mengubah status draft (80) → pending approval (3).
+// Menerima application/json dengan JSON biasa.
 func (h *RealisasiKpiHandler) CreateRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreateRealisasiKpiRequest](c)
 	if err != nil {
@@ -172,6 +172,7 @@ func (h *RealisasiKpiHandler) RevisionRealisasiKpi(c *gin.Context) {
 // =============================================================================
 
 // ApproveRealisasiKpi handles POST /realisasi-kpi/approve
+// Menerima application/json dengan JSON biasa.
 func (h *RealisasiKpiHandler) ApproveRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.ApproveRealisasiKpiRequest](c)
 	if err != nil {
@@ -214,6 +215,7 @@ func (h *RealisasiKpiHandler) ApproveRealisasiKpi(c *gin.Context) {
 }
 
 // RejectRealisasiKpi handles POST /realisasi-kpi/reject
+// Menerima application/json dengan JSON biasa.
 func (h *RealisasiKpiHandler) RejectRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.RejectRealisasiKpiRequest](c)
 	if err != nil {
@@ -260,6 +262,7 @@ func (h *RealisasiKpiHandler) RejectRealisasiKpi(c *gin.Context) {
 // =============================================================================
 
 // GetAllDaftarRealisasiKpi handles POST /realisasi-kpi/get-all
+// Menerima application/json dengan JSON biasa.
 func (h *RealisasiKpiHandler) GetAllRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllRealisasiKpiRequest](c)
 	if err != nil {
@@ -293,6 +296,7 @@ func (h *RealisasiKpiHandler) GetAllRealisasiKpi(c *gin.Context) {
 }
 
 // GetAllApprovalRealisasiKpi handles POST /realisasi-kpi/get-all-approval
+// Menerima application/json dengan JSON biasa.
 func (h *RealisasiKpiHandler) GetAllApprovalRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllApprovalRealisasiKpiRequest](c)
 	if err != nil {
@@ -339,7 +343,8 @@ func (h *RealisasiKpiHandler) GetAllApprovalRealisasiKpi(c *gin.Context) {
 	})
 }
 
-// GetAllTolakanRealisasiKpi handles POST /realisasi-kpi/get-all-tolakan
+// GetAllTolakanRealisasiKpi handles POST /realisasi-kpi/get-all-tolakan.
+// Menerima application/json dengan JSON biasa.
 func (h *RealisasiKpiHandler) GetAllTolakanRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllTolakanRealisasiKpiRequest](c)
 	if err != nil {
@@ -372,7 +377,8 @@ func (h *RealisasiKpiHandler) GetAllTolakanRealisasiKpi(c *gin.Context) {
 	})
 }
 
-// GetAllDaftarRealisasiKpi handles POST /realisasi-kpi/get-all-daftar-realisasi
+// GetAllDaftarRealisasiKpi handles POST /realisasi-kpi/get-all-daftar-realisasi.
+// Menerima application/json dengan JSON biasa.
 func (h *RealisasiKpiHandler) GetAllDaftarRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllDaftarRealisasiKpiRequest](c)
 	if err != nil {
@@ -405,7 +411,8 @@ func (h *RealisasiKpiHandler) GetAllDaftarRealisasiKpi(c *gin.Context) {
 	})
 }
 
-// GetAllDaftarApprovalRealisasiKpi handles POST /realisasi-kpi/get-all-daftar-approval
+// GetAllDaftarApprovalRealisasiKpi handles POST /realisasi-kpi/get-all-daftar-approval.
+// Menerima application/json dengan JSON biasa.
 func (h *RealisasiKpiHandler) GetAllDaftarApprovalRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllDaftarApprovalRealisasiKpiRequest](c)
 	if err != nil {
@@ -456,7 +463,8 @@ func (h *RealisasiKpiHandler) GetAllDaftarApprovalRealisasiKpi(c *gin.Context) {
 // GET DETAIL
 // =============================================================================
 
-// GetDetailRealisasiKpi handles POST /realisasi-kpi/get-detail
+// GetDetailRealisasiKpi handles POST /realisasi-kpi/get-detail.
+// Menerima application/json dengan JSON biasa.
 func (h *RealisasiKpiHandler) GetDetailRealisasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetDetailRealisasiKpiRequest](c)
 	if err != nil {

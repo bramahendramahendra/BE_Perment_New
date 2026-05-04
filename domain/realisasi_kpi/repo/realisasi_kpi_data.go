@@ -654,7 +654,7 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 		return fmt.Errorf("gagal membaca approval data: %w", err)
 	}
 
-	var approvalList []dto.ApprovalUserRealisasiDetail
+	var approvalList []dto.ApprovalUserDetail
 	if err := json.Unmarshal(approvalListRaw, &approvalList); err != nil {
 		return fmt.Errorf("gagal parse approval_list: %w", err)
 	}

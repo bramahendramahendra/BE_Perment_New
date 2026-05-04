@@ -16,7 +16,6 @@ type (
 		) (data dto.ValidateRealisasiKpiResponse, err error)
 
 		// CreateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/create.
-		// Mengubah status dari draft (80) ke pending approval (3) dan menyimpan approval chain.
 		CreateRealisasiKpi(
 			req *dto.CreateRealisasiKpiRequest,
 		) (data dto.CreateRealisasiKpiResponse, err error)
@@ -63,7 +62,6 @@ type (
 		) (data []*dto.GetAllDaftarApprovalRealisasiKpiResponse, total int64, err error)
 
 		// GetDetailRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-detail.
-		// Mengembalikan detail lengkap satu pengajuan beserta sub KPI, context, dan process list.
 		GetDetailRealisasiKpi(
 			req *dto.GetDetailRealisasiKpiRequest,
 		) (data *dto.GetDetailRealisasiKpiResponse, err error)

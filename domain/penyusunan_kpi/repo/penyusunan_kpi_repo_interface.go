@@ -9,18 +9,6 @@ import (
 
 type (
 	PenyusunanKpiRepoInterface interface {
-		// LookupKpiMaster mencari id_kpi, kpi, dan rumus dari mst_kpi.
-		LookupKpiMaster(kpiText string) (idKpi, kpiFromDB, rumus string, err error)
-
-		// LookupPolarisasi mencari id_polarisasi dari mst_polarisasi.
-		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
-
-		// GetExistPenyusunanStatus mengecek keberadaan data KPI dan mengembalikan id_pengajuan + status.
-		// Mengembalikan found=false jika tidak ada data.
-		GetExistPenyusunanStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error)
-
-		// CheckApprovalExists mengecek apakah user adalah approval_posisi aktif (status=0) untuk id_pengajuan.
-		CheckApprovalExists(user, idPengajuan string) (bool, error)
 
 		// Digunakan oleh endpoint POST /penyusunan-kpi/validate.
 		// idLama diisi jika ada draft (status=70) yang harus di-replace; kosong string jika insert baru.
@@ -88,8 +76,24 @@ type (
 		// Digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /get-pdf.
 		GetKpiExportData(idPengajuan, kostl, tahun, triwulan string) (*dto.KpiExportData, error)
 
+		// =============================================================================
+		// GET EXIST
+		// =============================================================================
+
 		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
 		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
+
+		// GetExistDataKpiStatus mengecek keberadaan data KPI dan mengembalikan id_pengajuan + status.
+		GetExistDataKpiStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error)
+
+		// LookupKpiMaster mencari id_kpi, kpi, dan rumus dari mst_kpi.
+		LookupKpiMaster(kpiText string) (idKpi, kpiFromDB, rumus string, err error)
+
+		// LookupPolarisasi mencari id_polarisasi dari mst_polarisasi.
+		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
+
+		// CheckApprovalExists mengecek apakah user adalah approval_posisi aktif (status=0) untuk id_pengajuan.
+		CheckApprovalExists(user, idPengajuan string) (bool, error)
 
 		GetDB() *gorm.DB
 	}
