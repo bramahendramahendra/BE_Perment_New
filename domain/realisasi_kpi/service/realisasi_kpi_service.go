@@ -85,18 +85,7 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 		}
 	}
 
-	// Validasi kolom N (Link Dokumen Sumber) terhadap format yang diizinkan di DB
-	linkFormats, err := s.repo.GetLinkFormats()
-	if err != nil {
-		return data, err
-	}
-	if err := validateLinkDokumenSumber(kpiRows, kpiSubDetails, linkFormats); err != nil {
-		return data, &customErrors.BadRequestError{Message: err.Error()}
-	}
-
-	// Lookup DB per baris: isi IdSubDetail, IdDetail, TargetKuantitatifTriwulan, Rumus,
-	// lalu hitung Pencapaian dan Skor
-	if err := s.enrichRowsFromDB(req.IdPengajuan, kpiRows, kpiSubDetails); err != nil {
+	if err := s.resolveRealisasiLookups(req.IdPengajuan, kpiRows, kpiSubDetails); err != nil {
 		return data, err
 	}
 
@@ -298,24 +287,7 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 		}
 	}
 
-	// Validasi kolom N (Link Dokumen Sumber) terhadap format yang diizinkan di DB
-	linkFormats, err := s.repo.GetLinkFormats()
-	if err != nil {
-		return data, err
-	}
-	if err := validateLinkDokumenSumber(kpiRows, kpiSubDetails, linkFormats); err != nil {
-		return data, &customErrors.BadRequestError{Message: err.Error()}
-	}
-
-	// Lookup DB per baris: isi IdSubDetail, IdDetail, TargetKuantitatifTriwulan, Rumus,
-	// lalu hitung Pencapaian dan Skor
-	if err := s.enrichRowsFromDB(req.IdPengajuan, kpiRows, kpiSubDetails); err != nil {
-		return data, err
-	}
-
-	// Ambil header (tahun) untuk response
-	tahun, _, _, _, err := s.repo.GetKpiHeaderByIdPengajuan(req.IdPengajuan)
-	if err != nil {
+	if err := s.resolveRealisasiLookups(req.IdPengajuan, kpiRows, kpiSubDetails); err != nil {
 		return data, err
 	}
 
@@ -342,7 +314,7 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 
 	data = dto.RevisionRealisasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
-		Tahun:       tahun,
+		Tahun:       req.Tahun,
 		Triwulan:    req.Triwulan,
 		Divisi: dto.Divisi{
 			Kostl:   divisi.Kostl,
@@ -809,6 +781,7 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 			Persfektif:          v.Perspektif,
 			IdKeteranganProject: v.IdKeteranganProject,
 			KeteranganProject:   v.KeteranganProject,
+			LinkDokumenSumber:   v.LampiranFile,
 			TotalSubKpi:         v.TotalSubKpi,
 			KpiSubDetail:        subDetails,
 		}
@@ -895,6 +868,21 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 // =============================================================================
 // PRIVATE HELPERS
 // =============================================================================
+
+func (s *realisasiKpiService) resolveRealisasiLookups(
+	idPengajuan string,
+	kpiRows []dto.RealisasiKpiRow,
+	kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
+) error {
+	linkFormats, err := s.repo.GetLinkFormats()
+	if err != nil {
+		return err
+	}
+	if err := validateLinkDokumenSumber(kpiRows, kpiSubDetails, linkFormats); err != nil {
+		return &customErrors.BadRequestError{Message: err.Error()}
+	}
+	return s.enrichRowsFromDB(idPengajuan, kpiRows, kpiSubDetails)
+}
 
 // enrichRowsFromDB melakukan lookup ke DB untuk setiap baris sub KPI Excel:
 //   - Mencari id_sub_detail, id_detail, target_kuantitatif_triwulan, rumus

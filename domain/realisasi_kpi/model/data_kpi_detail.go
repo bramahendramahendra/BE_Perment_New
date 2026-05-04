@@ -12,7 +12,8 @@ type DataKpiDetail struct {
 	Perspektif          string `gorm:"column:perspektif"`
 	IdKeteranganProject string `gorm:"column:id_keterangan_project"`
 	KeteranganProject   string `gorm:"column:keterangan_project"`
+	LampiranFile        string `gorm:"column:lampiran_file"`
 
-	TotalSubKpi  int              `gorm:"-"`
+	TotalSubKpi  int                `gorm:"-"`
 	KpiSubDetail []DataKpiSubDetail `gorm:"-"`
 }

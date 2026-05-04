@@ -66,15 +66,7 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 		}
 	}
 
-	// Lookup mst_kpi untuk setiap KPI unik dari kolom B Excel.
-	// Jika tidak ditemukan: idKpi = "0", rumus = "0".
-	if err := s.resolveKpiMasterLookup(kpiRows); err != nil {
-		return data, err
-	}
-
-	// Lookup mst_kpi dan mst_polarisasi untuk setiap baris sub KPI (kolom C).
-	// Validasi polarisasi vs rumus mst_kpi juga dilakukan di sini.
-	if err := s.resolveMasterLookup(kpiSubDetails); err != nil {
+	if err := s.resolvePenyusunanLookups(kpiRows, kpiSubDetails); err != nil {
 		return data, err
 	}
 
@@ -282,13 +274,7 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 		}
 	}
 
-	// Lookup mst_kpi untuk setiap KPI unik dari kolom B Excel
-	if err := s.resolveKpiMasterLookup(kpiRows); err != nil {
-		return data, err
-	}
-
-	// Lookup mst_kpi dan mst_polarisasi untuk setiap baris sub KPI (kolom C)
-	if err := s.resolveMasterLookup(kpiSubDetails); err != nil {
+	if err := s.resolvePenyusunanLookups(kpiRows, kpiSubDetails); err != nil {
 		return data, err
 	}
 
@@ -557,6 +543,20 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	}
 
 	return data, nil
+}
+
+// =============================================================================
+// HELPER — resolvePenyusunanLookups
+// =============================================================================
+
+func (s *penyusunanKpiService) resolvePenyusunanLookups(
+	kpiRows []dto.PenyusunanKpiRow,
+	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
+) error {
+	if err := s.resolveKpiMasterLookup(kpiRows); err != nil {
+		return err
+	}
+	return s.resolveMasterLookup(kpiSubDetails)
 }
 
 // =============================================================================

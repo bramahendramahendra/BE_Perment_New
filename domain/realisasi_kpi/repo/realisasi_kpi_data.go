@@ -260,7 +260,8 @@ const (
 			IFNULL(a.id_perspektif, '')         id_perspektif,
 			IFNULL(b.perspektif, '')            perspektif,
 			IFNULL(a.id_keterangan_project, '') id_keterangan_project,
-			IFNULL(c.keterangan_project, '')    keterangan_project
+			IFNULL(c.keterangan_project, '')    keterangan_project,
+			IFNULL(a.lampiran_file, '') 		lampiran_file
 		FROM data_kpi_detail a
 		LEFT JOIN mst_perspektif b ON a.id_perspektif = b.id_perspektif
 		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
