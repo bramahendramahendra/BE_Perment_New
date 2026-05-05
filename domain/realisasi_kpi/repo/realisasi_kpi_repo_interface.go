@@ -75,44 +75,35 @@ type (
 		) (*model.DataKpi, error)
 
 		// =============================================================================
-		// Service
+		// Approval Helper
 		// =============================================================================
 
 		// Digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi
+
+		// GetApprovalListJSON digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi untuk mengambil daftar approval dalam format JSON.
 		GetApprovalListJSON(idPengajuan, userID string) (string, error)
+
+		// GetCatatanTolakan digunakan oleh service RejectRealisasiKpi untuk mengambil catatan tolakan berdasarkan id_pengajuan.
 		GetCatatanTolakan(idPengajuan string) (string, error)
 
-		// CheckApprovalRealisasiExists memeriksa apakah user adalah approval_posisi aktif untuk id_pengajuan (status 3).
+		// CheckApprovalRealisasiExists digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi untuk memvalidasi keberadaan approval.
 		CheckApprovalRealisasiExists(user, idPengajuan string) (bool, error)
 
 		// =============================================================================
 		// GET EXIST
 		// =============================================================================
-		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
-		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error)
 
-		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
+		// GetExistDataKpi digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
 		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
 
-		// GetLinkFormats mengambil semua url_prefix yang aktif dari mst_link_format.
-		// Digunakan untuk memvalidasi kolom "Link Dokumen Sumber" pada Excel upload.
+		// =============================================================================
+		// Service Helpers
+		// =============================================================================
+
 		GetLinkFormats() ([]string, error)
 
 		// CheckExistRealisasi memeriksa apakah id_pengajuan ada dengan status yang mengizinkan input realisasi (2, 4, 80, 81).
 		CheckExistRealisasi(idPengajuan string) (bool, error)
-
-		// CheckStatusCreateRealisasi memeriksa apakah id_pengajuan ada dengan status draft realisasi (80).
-		CheckStatusCreateRealisasi(idPengajuan string) (bool, error)
-
-		// CheckStatusRevisiRealisasi memeriksa apakah id_pengajuan ada dengan status yang mengizinkan revisi (4 atau 80).
-		CheckStatusRevisiRealisasi(idPengajuan string) (bool, error)
-
-		// GetTriwulanByIdPengajuan mengambil nilai triwulan dari data_kpi berdasarkan id_pengajuan.
-		GetTriwulanByIdPengajuan(idPengajuan string) (string, error)
-
-		// GetKpiHeaderByIdPengajuan mengambil field header (tahun, triwulan, kostl, kostl_tx)
-		// dari data_kpi berdasarkan id_pengajuan. Digunakan untuk membangun response validate/revision.
-		GetKpiHeaderByIdPengajuan(idPengajuan string) (tahun, triwulan, kostl, kostlTx string, err error)
 
 		// LookupSubDetailByKpiSubKpi mencari data sub detail berdasarkan id_pengajuan + kpi_name + sub_kpi_name dari Excel.
 		LookupSubDetailByKpiSubKpi(

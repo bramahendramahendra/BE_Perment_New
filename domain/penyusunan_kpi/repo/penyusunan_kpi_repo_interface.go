@@ -9,7 +9,6 @@ import (
 
 type (
 	PenyusunanKpiRepoInterface interface {
-
 		// ValidatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/validate.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,
@@ -72,10 +71,12 @@ type (
 		) (*model.DataKpi, error)
 
 		// GetKpiExportData digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /penyusunan-kpi/get-pdf.
-		GetKpiExportData(idPengajuan, kostl, tahun, triwulan string) (*dto.KpiExportData, error)
+		GetKpiExportData(
+			idPengajuan, kostl, tahun, triwulan string,
+		) (*dto.KpiExportData, error)
 
 		// =============================================================================
-		// Digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi
+		// Approval Helper
 		// =============================================================================
 
 		// GetApprovalListJSON digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi untuk mengambil daftar approval dalam format JSON.
@@ -98,13 +99,13 @@ type (
 		GetExistDataKpiStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error)
 
 		// =============================================================================
-		// Helpers Service
+		// Service Helpers
 		// =============================================================================
 
-		// LookupKpiMaster digunakan oleh service ValidatePenyusunanKpi untuk mencari id_kpi, kpi, dan rumus dari mst_kpi.
+		// LookupKpiMaster digunakan oleh service ValidatePenyusunanKpi dan RevisionPenyusunanKpi untuk mencari id_kpi, kpi, dan rumus dari mst_kpi.
 		LookupKpiMaster(kpiText string) (idKpi, kpiFromDB, rumus string, err error)
 
-		// LookupPolarisasi digunakan oleh service ValidatePenyusunanKpi untuk mencari id_polarisasi dari mst_polarisasi.
+		// LookupPolarisasi digunakan oleh service ValidatePenyusunanKpi dan RevisionPenyusunanKpi untuk mencari id_polarisasi dari mst_polarisasi.
 		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
 
 		GetDB() *gorm.DB
