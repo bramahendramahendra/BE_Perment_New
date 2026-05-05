@@ -9,6 +9,95 @@ import (
 
 type (
 	RealisasiKpiRepoInterface interface {
+		// ValidateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/validate.
+		ValidateRealisasiKpi(
+			req *dto.ValidateRealisasiKpiRequest,
+			kpiRows []dto.RealisasiKpiRow,
+			kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
+			resultList []dto.DataResult,
+			processList []dto.DataProcess,
+			contextList []dto.DataContext,
+		) error
+
+		// CreateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/create.
+		CreateRealisasiKpi(
+			req *dto.CreateRealisasiKpiRequest,
+		) error
+
+		// RevisionRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/revision.
+		RevisionRealisasiKpi(
+			req *dto.RevisionRealisasiKpiRequest,
+			kpiRows []dto.RealisasiKpiRow,
+			kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
+			resultList []dto.DataResult,
+			processList []dto.DataProcess,
+			contextList []dto.DataContext,
+		) error
+
+		// ApprovePenyusunanKpi digunakan oleh endpoint POST /realisasi-kpi/approve.
+		ApproveRealisasiKpi(
+			idPengajuan, approvalList, approvalPosisi, user string,
+		) error
+
+		// RejectPenyusunanKpi digunakan oleh endpoint POST /realisasi-kpi/reject.
+		RejectRealisasiKpi(
+			idPengajuan, approvalList, catatan, user string,
+		) error
+
+		// GetAllRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all.
+		GetAllRealisasiKpi(
+			req *dto.GetAllRealisasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
+
+		// GetAllApprovalRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-approval.
+		GetAllApprovalRealisasiKpi(
+			req *dto.GetAllApprovalRealisasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
+
+		// GetAllTolakanRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-tolakan.
+		GetAllTolakanRealisasiKpi(
+			req *dto.GetAllTolakanRealisasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
+
+		// GetAllDaftarRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-realisasi.
+		GetAllDaftarRealisasiKpi(
+			req *dto.GetAllDaftarRealisasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
+
+		// GetAllDaftarApprovalRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-approval.
+		GetAllDaftarApprovalRealisasiKpi(
+			req *dto.GetAllDaftarApprovalRealisasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
+
+		// GetDetailRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-detail.
+		GetDetailRealisasiKpi(
+			req *dto.GetDetailRealisasiKpiRequest,
+		) (*model.DataKpi, error)
+
+		// =============================================================================
+		// Service
+		// =============================================================================
+
+		// Digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi
+		GetApprovalListJSON(idPengajuan, userID string) (string, error)
+		GetCatatanTolakan(idPengajuan string) (string, error)
+
+		// CheckApprovalRealisasiExists memeriksa apakah user adalah approval_posisi aktif untuk id_pengajuan (status 3).
+		CheckApprovalRealisasiExists(user, idPengajuan string) (bool, error)
+
+		// =============================================================================
+		// GET EXIST
+		// =============================================================================
+		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
+		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error)
+
+		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
+		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
+
+		// GetLinkFormats mengambil semua url_prefix yang aktif dari mst_link_format.
+		// Digunakan untuk memvalidasi kolom "Link Dokumen Sumber" pada Excel upload.
+		GetLinkFormats() ([]string, error)
+
 		// CheckExistRealisasi memeriksa apakah id_pengajuan ada dengan status yang mengizinkan input realisasi (2, 4, 80, 81).
 		CheckExistRealisasi(idPengajuan string) (bool, error)
 
@@ -17,9 +106,6 @@ type (
 
 		// CheckStatusRevisiRealisasi memeriksa apakah id_pengajuan ada dengan status yang mengizinkan revisi (4 atau 80).
 		CheckStatusRevisiRealisasi(idPengajuan string) (bool, error)
-
-		// CheckApprovalRealisasiExists memeriksa apakah user adalah approval_posisi aktif untuk id_pengajuan (status 3).
-		CheckApprovalRealisasiExists(user, idPengajuan string) (bool, error)
 
 		// GetTriwulanByIdPengajuan mengambil nilai triwulan dari data_kpi berdasarkan id_pengajuan.
 		GetTriwulanByIdPengajuan(idPengajuan string) (string, error)
@@ -32,87 +118,6 @@ type (
 		LookupSubDetailByKpiSubKpi(
 			idPengajuan, kpiName, subKpiName string,
 		) (*model.SubDetailLookup, error)
-
-		// ValidateRealisasiKpi menyimpan data realisasi ke data_kpi_subdetail (status 80 = draft realisasi).
-		// Juga meng-update data_challenge_detail dan data_method_detail jika ada extended data (TW2/TW4).
-		ValidateRealisasiKpi(
-			req *dto.ValidateRealisasiKpiRequest,
-			kpiRows []dto.RealisasiKpiRow,
-			kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
-			resultList []dto.DataResult,
-			processList []dto.DataProcess,
-			contextList []dto.DataContext,
-		) error
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/create.
-		// CreateRealisasiKpi mengubah status dari 80 → 3 (pending approval realisasi) dan menyimpan approval chain.
-		CreateRealisasiKpi(
-			req *dto.CreateRealisasiKpiRequest,
-		) error
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/revision.
-		RevisionRealisasiKpi(
-			req *dto.RevisionRealisasiKpiRequest,
-			kpiRows []dto.RealisasiKpiRow,
-			kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
-			resultList []dto.DataResult,
-			processList []dto.DataProcess,
-			contextList []dto.DataContext,
-		) error
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/approve.
-		ApproveRealisasiKpi(idPengajuan, approvalList, approvalPosisi, user string) error
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/reject.
-		RejectRealisasiKpi(idPengajuan, approvalList, catatan, user string) error
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/approve dan /reject.
-		GetApprovalListJSON(idPengajuan, userID string) (string, error)
-		GetCatatanTolakan(idPengajuan string) (string, error)
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/get-all.
-		GetAllRealisasiKpi(
-			req *dto.GetAllRealisasiKpiRequest,
-		) ([]*model.DataKpi, int64, error)
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/get-all-approval.
-		// GetAllApprovalRealisasiKpi mengembalikan list pengajuan berstatus 3 (pending approval realisasi) yang approval_posisi-nya adalah user yang sedang login.
-		GetAllApprovalRealisasiKpi(
-			req *dto.GetAllApprovalRealisasiKpiRequest,
-		) ([]*model.DataKpi, int64, error)
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/get-all-tolakan.
-		// GetAllTolakanRealisasiKpi mengembalikan list pengajuan berstatus 4 (realisasi ditolak) milik entry_user_realisasi tertentu.
-		GetAllTolakanRealisasiKpi(
-			req *dto.GetAllTolakanRealisasiKpiRequest,
-		) ([]*model.DataKpi, int64, error)
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-penyusunan.
-		// GetAllDaftarRealisasiKpi mengembalikan semua pengajuan dalam konteks realisasi (status 2, 3, 4, 5, 80) dengan filter opsional.
-		GetAllDaftarRealisasiKpi(
-			req *dto.GetAllDaftarRealisasiKpiRequest,
-		) ([]*model.DataKpi, int64, error)
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-approval.
-		// GetAllDaftarApprovalRealisasiKpi mengembalikan semua pengajuan realisasi yang pernah melewati approval (status 3 atau 5) dengan filter opsional.
-		GetAllDaftarApprovalRealisasiKpi(
-			req *dto.GetAllDaftarApprovalRealisasiKpiRequest,
-		) ([]*model.DataKpi, int64, error)
-
-		// Digunakan oleh endpoint POST /realisasi-kpi/get-detail.
-		GetDetailRealisasiKpi(
-			req *dto.GetDetailRealisasiKpiRequest,
-		) (*model.DataKpi, error)
-
-		// Digunakan oleh service RevisionPenyusunanKpi untuk mengambil header dari DB.
-		GetKpiHeader(idPengajuan string) (tahun, triwulan, kostl, kostlTx, entryUser, entryName string, status int, statusDesc string, err error)
-
-		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
-		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
-
-		// GetLinkFormats mengambil semua url_prefix yang aktif dari mst_link_format.
-		// Digunakan untuk memvalidasi kolom "Link Dokumen Sumber" pada Excel upload.
-		GetLinkFormats() ([]string, error)
 
 		GetDB() *gorm.DB
 	}

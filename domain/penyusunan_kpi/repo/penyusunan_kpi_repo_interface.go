@@ -10,8 +10,7 @@ import (
 type (
 	PenyusunanKpiRepoInterface interface {
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/validate.
-		// idLama diisi jika ada draft (status=70) yang harus di-replace; kosong string jika insert baru.
+		// ValidatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/validate.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,
 			kpiRows []dto.PenyusunanKpiRow,
@@ -22,12 +21,12 @@ type (
 			idLama string,
 		) (string, error)
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/create.
+		// CreatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/create.
 		CreatePenyusunanKpi(
 			req *dto.CreatePenyusunanKpiRequest,
 		) error
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/revision.
+		// RevisionPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/revision.
 		RevisionPenyusunanKpi(
 			req *dto.RevisionPenyusunanKpiRequest,
 			kpiRows []dto.PenyusunanKpiRow,
@@ -37,63 +36,68 @@ type (
 			contextList []dto.DataContext,
 		) error
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/approve.
-		ApprovePenyusunanKpi(idPengajuan, approvalList, approvalPosisi, user string) error
+		// ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
+		ApprovePenyusunanKpi(
+			idPengajuan, approvalList, approvalPosisi, user string,
+		) error
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/reject.
-		RejectPenyusunanKpi(idPengajuan, approvalList, catatan, user string) error
+		// RejectPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/reject.
+		RejectPenyusunanKpi(
+			idPengajuan, approvalList, catatan, user string,
+		) error
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/approve dan /reject.
-		// Mengambil approval_list JSON untuk id_pengajuan jika user adalah approval_posisi aktif.
-		GetApprovalListJSON(idPengajuan, userID string) (string, error)
-		GetCatatanTolakan(idPengajuan string) (string, error)
-
-		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
+		// GetAllApprovalPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
 		GetAllApprovalPenyusunanKpi(
 			req *dto.GetAllApprovalPenyusunanKpiRequest,
 		) ([]*model.DataKpi, int64, error)
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-tolakan.
+		// GetAllTolakanPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-tolakan.
 		GetAllTolakanPenyusunanKpi(
 			req *dto.GetAllTolakanPenyusunanKpiRequest,
 		) ([]*model.DataKpi, int64, error)
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-penyusunan.
+		// GetAllDaftarPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-penyusunan.
 		GetAllDaftarPenyusunanKpi(
 			req *dto.GetAllDaftarPenyusunanKpiRequest,
 		) ([]*model.DataKpi, int64, error)
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-approval.
+		// GetAllDaftarApprovalPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-approval.
 		GetAllDaftarApprovalPenyusunanKpi(
 			req *dto.GetAllDaftarApprovalPenyusunanKpiRequest,
 		) ([]*model.DataKpi, int64, error)
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
+		// GetDetailPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
 		) (*model.DataKpi, error)
 
-		// Digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /get-pdf.
+		// GetKpiExportData digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /penyusunan-kpi/get-pdf.
 		GetKpiExportData(idPengajuan, kostl, tahun, triwulan string) (*dto.KpiExportData, error)
+
+		// =============================================================================
+		// Digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi
+		// =============================================================================
+		GetApprovalListJSON(idPengajuan, userID string) (string, error)
+		GetCatatanTolakan(idPengajuan string) (string, error)
+		CheckApprovalPenyusunanExists(user, idPengajuan string) (bool, error)
 
 		// =============================================================================
 		// GET EXIST
 		// =============================================================================
-
 		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
 		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
 
 		// GetExistDataKpiStatus mengecek keberadaan data KPI dan mengembalikan id_pengajuan + status.
 		GetExistDataKpiStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error)
 
+		// =============================================================================
+		// Helpers
+		// =============================================================================
 		// LookupKpiMaster mencari id_kpi, kpi, dan rumus dari mst_kpi.
 		LookupKpiMaster(kpiText string) (idKpi, kpiFromDB, rumus string, err error)
 
 		// LookupPolarisasi mencari id_polarisasi dari mst_polarisasi.
 		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
-
-		// CheckApprovalExists mengecek apakah user adalah approval_posisi aktif (status=0) untuk id_pengajuan.
-		CheckApprovalExists(user, idPengajuan string) (bool, error)
 
 		GetDB() *gorm.DB
 	}

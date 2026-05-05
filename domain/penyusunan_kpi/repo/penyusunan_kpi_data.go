@@ -288,7 +288,7 @@ func (r *penyusunanKpiRepo) GetExistDataKpiStatus(tahun, triwulan, kostl string)
 	return idPengajuan, status, true, nil
 }
 
-func (r *penyusunanKpiRepo) CheckApprovalExists(user, idPengajuan string) (bool, error) {
+func (r *penyusunanKpiRepo) CheckApprovalPenyusunanExists(user, idPengajuan string) (bool, error) {
 	var count int64
 	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
 		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
@@ -582,11 +582,11 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 
 	// Ambil userid pertama dari ApprovalList sebagai approval_posisi
 	approvalPosisi := ""
-	if len(req.ApprovalList) > 0 {
-		approvalPosisi = req.ApprovalList[0].Userid
+	if len(req.ApprovalListPenyusunan) > 0 {
+		approvalPosisi = req.ApprovalListPenyusunan[0].Userid
 	}
 
-	approvalListBytes, err := json.Marshal(req.ApprovalList)
+	approvalListBytes, err := json.Marshal(req.ApprovalListPenyusunan)
 	if err != nil {
 		return fmt.Errorf("gagal serialize approval_list: %w", err)
 	}

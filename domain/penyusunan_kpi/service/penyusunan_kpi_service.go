@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
-	"strings"
 	"time"
 
 	dto "permen_api/domain/penyusunan_kpi/dto"
@@ -24,18 +23,8 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 	file *multipart.FileHeader,
 ) (data dto.ValidatePenyusunanKpiResponse, err error) {
 
-	// User error: tidak mengirim file
-	if file == nil {
-		return data, &customErrors.BadRequestError{
-			Message: "file Excel tidak ditemukan, pastikan mengirim file via field 'files'",
-		}
-	}
-
-	// User error: format file salah
-	if !strings.HasSuffix(strings.ToLower(file.Filename), ".xlsx") {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("file '%s' bukan format Excel (.xlsx)", file.Filename),
-		}
+	if err := utils.ValidateExcelFile(file); err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	// Cek data KPI untuk tahun/triwulan/kostl sudah ada
@@ -137,7 +126,7 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbKostlTx := existData.KostlTx
-	dbEntryUser := existData.EntryUser
+	dbEntryUserPenyusunan := existData.EntryUser
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
@@ -149,7 +138,7 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 	}
 
 	// Validasi: hanya pembuat pengajuan yang boleh merevisi
-	if req.EntryUserPenyusunan != dbEntryUser {
+	if req.EntryUserPenyusunan != dbEntryUserPenyusunan {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("user '%s' tidak berhak merevisi pengajuan ini", req.EntryUserPenyusunan),
 		}
@@ -178,9 +167,9 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 		return data, err
 	}
 
-	approvalList := make([]dto.ApprovalUser, len(req.ApprovalList))
-	for i, a := range req.ApprovalList {
-		approvalList[i] = dto.ApprovalUser{Userid: a.Userid, Nama: a.Nama, Posisi: a.Posisi}
+	approvalListPenyusunan := make([]dto.ApprovalUser, len(req.ApprovalListPenyusunan))
+	for i, a := range req.ApprovalListPenyusunan {
+		approvalListPenyusunan[i] = dto.ApprovalUser{Userid: a.Userid, Nama: a.Nama, Posisi: a.Posisi}
 	}
 	data = dto.CreatePenyusunanKpiResponse{
 		IdPengajuan: req.IdPengajuan,
@@ -190,7 +179,7 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 		},
 		Tahun:                  req.Tahun,
 		Triwulan:               req.Triwulan,
-		ApprovalListPenyusunan: approvalList,
+		ApprovalListPenyusunan: approvalListPenyusunan,
 	}
 
 	return data, nil
@@ -205,18 +194,8 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 	file *multipart.FileHeader,
 ) (data dto.RevisionPenyusunanKpiResponse, err error) {
 
-	// User error: tidak mengirim file
-	if file == nil {
-		return data, &customErrors.BadRequestError{
-			Message: "file Excel tidak ditemukan, pastikan mengirim file via field 'files'",
-		}
-	}
-
-	// User error: format file salah
-	if !strings.HasSuffix(strings.ToLower(file.Filename), ".xlsx") {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("file '%s' bukan format Excel (.xlsx)", file.Filename),
-		}
+	if err := utils.ValidateExcelFile(file); err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	// Ambil header dari DB berdasarkan id_pengajuan
@@ -229,7 +208,7 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbKostlTx := existData.KostlTx
-	dbEntryUser := existData.EntryUser
+	dbEntryUserPenyusunan := existData.EntryUser
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
@@ -241,7 +220,7 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 	}
 
 	// Validasi: hanya pembuat pengajuan yang boleh merevisi
-	if req.EntryUserPenyusunan != dbEntryUser {
+	if req.EntryUserPenyusunan != dbEntryUserPenyusunan {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("user '%s' tidak berhak merevisi pengajuan ini", req.EntryUserPenyusunan),
 		}
@@ -301,8 +280,8 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 
 	data = dto.RevisionPenyusunanKpiResponse{
 		IDPengajuan: req.IdPengajuan,
-		Tahun:       req.Tahun,
 		Triwulan:    req.Triwulan,
+		Tahun:       req.Tahun,
 		Divisi: dto.Divisi{
 			Kostl:   divisi.Kostl,
 			KostlTx: divisi.KostlTx,
@@ -335,27 +314,23 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
 
-	dbTahun := existData.Tahun
 	dbTriwulan := existData.Triwulan
+	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 0
+	// Validasi: status harus 0 = Approval Penyusunan
 	if dbStatus != 0 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
 		}
 	}
 
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
 	if req.Kostl != dbKostl {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
-		}
-	}
-	if req.Tahun != dbTahun {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
 		}
 	}
 	if req.Triwulan != dbTriwulan {
@@ -363,8 +338,13 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
 		}
 	}
+	if req.Tahun != dbTahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+		}
+	}
 
-	approvalExists, err := s.repo.CheckApprovalExists(req.ApprovalUserPenyusunan, req.IdPengajuan)
+	approvalExists, err := s.repo.CheckApprovalPenyusunanExists(req.ApprovalUserPenyusunan, req.IdPengajuan)
 	if err != nil {
 		return data, err
 	}
@@ -382,29 +362,9 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 		return data, fmt.Errorf("gagal parse approval_list: %w", err)
 	}
 
-	now := time.Now().Format("2006-01-02 15:04:05")
-	keterangan := req.Catatan.EntryNote
-	currentIdx := -1
-	for i := range approvalList {
-		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUserPenyusunan) && approvalList[i].Status == "" {
-			approvalList[i].Status = "approve"
-			approvalList[i].Keterangan = keterangan
-			approvalList[i].Waktu = now
-			currentIdx = i
-			break
-		}
-	}
-	if currentIdx == -1 {
-		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan.[User Approval Kosong.]"}
-	}
-
-	// Cari approver berikutnya yang belum approve
-	nextApprover := ""
-	for i := currentIdx + 1; i < len(approvalList); i++ {
-		if approvalList[i].Status == "" {
-			nextApprover = approvalList[i].Userid
-			break
-		}
+	approvalList, nextApprover, err := utils.ProcessApproveApprovalList(approvalList, req.ApprovalUserPenyusunan, req.Catatan.EntryNote)
+	if err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	updatedJSON, err := json.Marshal(approvalList)
@@ -418,7 +378,7 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 
 	data = dto.ApprovePenyusunanKpiResponse{
 		IdPengajuan: req.IdPengajuan,
-		Status:      "approve",
+		Status:      "Approve Penyusunan",
 		Catatan:     req.Catatan,
 	}
 
@@ -437,19 +397,21 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
-	dbTahun := existData.Tahun
+
 	dbTriwulan := existData.Triwulan
+	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 0
+	// Validasi: status harus 0 = Approval Penyusunan
 	if dbStatus != 0 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
 		}
 	}
 
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
 	if req.Kostl != dbKostl {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
@@ -466,7 +428,7 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		}
 	}
 
-	rejectApprovalExists, err := s.repo.CheckApprovalExists(req.ApprovalUserPenyusunan, req.IdPengajuan)
+	rejectApprovalExists, err := s.repo.CheckApprovalPenyusunanExists(req.ApprovalUserPenyusunan, req.IdPengajuan)
 	if err != nil {
 		return data, err
 	}
@@ -484,23 +446,9 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		return data, fmt.Errorf("gagal parse approval_list: %w", err)
 	}
 
-	now := time.Now().Format("2006-01-02 15:04:05")
-	nowDisplay := time.Now().Format("02-01-2006 15:04:05")
-	entryUserFull := req.ApprovalUserPenyusunan + " - " + req.ApprovalNamePenyusunan
-
-	keterangan := req.Catatan.EntryNote
-	found := false
-	for i := range approvalList {
-		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUserPenyusunan) && approvalList[i].Status == "" {
-			approvalList[i].Status = "reject"
-			approvalList[i].Keterangan = keterangan
-			approvalList[i].Waktu = now
-			found = true
-			break
-		}
-	}
-	if !found {
-		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan.[Pastikan User Approval sesuai.]"}
+	approvalList, err = utils.ProcessRejectApprovalList(approvalList, req.ApprovalUserPenyusunan, req.Catatan.EntryNote)
+	if err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	updatedJSON, err := json.Marshal(approvalList)
@@ -513,147 +461,30 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 		return data, fmt.Errorf("gagal membaca catatan_tolakan: %w", err)
 	}
 
-	var catatanTolakanEntries []dto.CatatanDetail
-	if existingCatatanJSON != "" && existingCatatanJSON != "null" {
-		if err = json.Unmarshal([]byte(existingCatatanJSON), &catatanTolakanEntries); err != nil {
-			return data, fmt.Errorf("gagal parse catatan_tolakan: %w", err)
-		}
-	}
+	nowDisplay := time.Now().Format("02-01-2006 15:04:05")
+	entryUserFull := req.ApprovalUserPenyusunan + " - " + req.ApprovalNamePenyusunan
 
-	catatanTolakanEntries = append(catatanTolakanEntries, dto.CatatanDetail{
+	catatanTolakanJSON, err := utils.AppendCatatanTolakan(existingCatatanJSON, dto.CatatanDetail{
 		Fungsi:    req.Catatan.Fungsi,
 		EntryUser: entryUserFull,
 		EntryTime: nowDisplay,
 		EntryNote: req.Catatan.EntryNote,
 	})
-
-	catatanTolakanJSON, err := json.Marshal(catatanTolakanEntries)
 	if err != nil {
-		return data, fmt.Errorf("gagal serialize catatan_tolakan: %w", err)
+		return data, err
 	}
 
-	if err = s.repo.RejectPenyusunanKpi(req.IdPengajuan, string(updatedJSON), string(catatanTolakanJSON), req.ApprovalUserPenyusunan); err != nil {
+	if err = s.repo.RejectPenyusunanKpi(req.IdPengajuan, string(updatedJSON), catatanTolakanJSON, req.ApprovalUserPenyusunan); err != nil {
 		return data, err
 	}
 
 	data = dto.RejectPenyusunanKpiResponse{
 		IdPengajuan: req.IdPengajuan,
-		Status:      "reject",
+		Status:      "Reject Penyusunan",
 		Catatan:     req.Catatan,
 	}
 
 	return data, nil
-}
-
-// =============================================================================
-// HELPER — resolvePenyusunanLookups
-// =============================================================================
-
-func (s *penyusunanKpiService) resolvePenyusunanLookups(
-	kpiRows []dto.PenyusunanKpiRow,
-	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) error {
-	if err := s.resolveKpiMasterLookup(kpiRows); err != nil {
-		return err
-	}
-	return s.resolveMasterLookup(kpiSubDetails)
-}
-
-// =============================================================================
-// HELPER — resolveKpiMasterLookup
-// =============================================================================
-
-// resolveKpiMasterLookup melakukan lookup mst_kpi untuk setiap KPI unik dari kolom B Excel.
-// Aturan:
-//   - Jika ditemukan → idKpi dan rumus dari DB
-//   - Jika tidak ditemukan → idKpi = "0", rumus = "0"
-func (s *penyusunanKpiService) resolveKpiMasterLookup(
-	kpiRows []dto.PenyusunanKpiRow,
-) error {
-	for i := range kpiRows {
-		idKpi, _, rumus, err := s.repo.LookupKpiMaster(kpiRows[i].Kpi)
-		if err != nil {
-			return fmt.Errorf(
-				"KPI '%s': gagal lookup master KPI: %w",
-				kpiRows[i].Kpi, err,
-			)
-		}
-
-		if idKpi == "0" {
-			// Tidak ditemukan di mst_kpi → idKpi = "0", rumus = "0"
-			kpiRows[i].IdKpi = "0"
-			kpiRows[i].Rumus = "0"
-		} else {
-			kpiRows[i].IdKpi = idKpi
-			kpiRows[i].Rumus = rumus
-		}
-	}
-	return nil
-}
-
-// =============================================================================
-// HELPER — resolveMasterLookup
-// =============================================================================
-
-// resolveMasterLookup melakukan lookup mst_kpi dan mst_polarisasi untuk setiap
-// baris sub KPI, lalu memvalidasi kesesuaian polarisasi dengan rumus di mst_kpi.
-func (s *penyusunanKpiService) resolveMasterLookup(
-	kpiSubDetails map[int][]dto.PenyusunanKpiSubDetailRow,
-) error {
-	for i, rows := range kpiSubDetails {
-		for j := range rows {
-			subRow := &kpiSubDetails[i][j]
-
-			idKpi, kpiFromDB, rumusMstKpi, err := s.repo.LookupKpiMaster(subRow.SubKPI)
-			if err != nil {
-				// System error: query DB gagal
-				return fmt.Errorf(
-					"KPI ke-%d, Sub KPI ke-%d ('%s'): gagal lookup master KPI: %w",
-					i+1, j+1, subRow.SubKPI, err,
-				)
-			}
-			subRow.IdSubKpi = idKpi
-			subRow.SubKPI = kpiFromDB
-			if idKpi != "0" {
-				subRow.Otomatis = "1"
-			} else {
-				subRow.Otomatis = "0"
-			}
-
-			idPolarisasi, err := s.repo.LookupPolarisasi(subRow.Polarisasi)
-			if err != nil {
-				// User error: polarisasi yang diisi di Excel tidak valid
-				return &customErrors.BadRequestError{
-					Message: fmt.Sprintf(
-						"KPI ke-%d, Sub KPI ke-%d ('%s'): polarisasi '%s' tidak valid: %s",
-						i+1, j+1, subRow.SubKPI, subRow.Polarisasi, err.Error(),
-					),
-				}
-			}
-			subRow.IdPolarisasi = idPolarisasi
-
-			if subRow.IdSubKpi != "0" {
-				polarisasiMaster := "Maximize"
-				if rumusMstKpi == "0" {
-					polarisasiMaster = "Minimize"
-				}
-				if idPolarisasi != rumusMstKpi {
-					// User error: polarisasi tidak cocok dengan master KPI
-					return &customErrors.BadRequestError{
-						Message: fmt.Sprintf(
-							"KPI ke-%d, Sub KPI ke-%d ('%s'): polarisasi tidak sesuai master. "+
-								"Excel: '%s' (id=%s), master KPI: '%s' (id=%s). "+
-								"Periksa kembali kolom D pada file Excel",
-							i+1, j+1, subRow.SubKPI,
-							subRow.Polarisasi, idPolarisasi,
-							polarisasiMaster, rumusMstKpi,
-						),
-					}
-				}
-			}
-		}
-	}
-	return nil
 }
 
 // =============================================================================
@@ -671,8 +502,8 @@ func (s *penyusunanKpiService) GetAllApprovalPenyusunanKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllApprovalPenyusunanKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -697,8 +528,8 @@ func (s *penyusunanKpiService) GetAllTolakanPenyusunanKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllTolakanPenyusunanKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -723,8 +554,8 @@ func (s *penyusunanKpiService) GetAllDaftarPenyusunanKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllDaftarPenyusunanKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -749,8 +580,8 @@ func (s *penyusunanKpiService) GetAllDaftarApprovalPenyusunanKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllDaftarApprovalPenyusunanKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -797,11 +628,11 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 		catatanList = []dto.CatatanDetail{}
 	}
 
-	kpiDetails := make([]dto.DataKpiDetail, len(dataDB.Kpi))
+	listKpiDetails := make([]dto.DataKpiDetail, len(dataDB.Kpi))
 	for i, v := range dataDB.Kpi {
-		subDetails := make([]dto.DataKpiSubdetail, len(v.KpiSubDetail))
+		listKpiSubDetails := make([]dto.DataKpiSubdetail, len(v.KpiSubDetail))
 		for j, s := range v.KpiSubDetail {
-			subDetails[j] = dto.DataKpiSubdetail{
+			listKpiSubDetails[j] = dto.DataKpiSubdetail{
 				IdSubDetail:               s.IdSubDetail,
 				IdSubKpi:                  s.IdKpi,
 				SubKpi:                    s.Kpi,
@@ -823,7 +654,7 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 				KeteranganProject:         s.KeteranganProject,
 			}
 		}
-		kpiDetails[i] = dto.DataKpiDetail{
+		listKpiDetails[i] = dto.DataKpiDetail{
 			IdDetail:            v.IdDetail,
 			IdKpi:               v.IdKpi,
 			Kpi:                 v.Kpi,
@@ -833,7 +664,7 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 			IdKeteranganProject: v.IdKeteranganProject,
 			KeteranganProject:   v.KeteranganProject,
 			TotalSubKpi:         v.TotalSubKpi,
-			KpiSubDetail:        subDetails,
+			KpiSubDetail:        listKpiSubDetails,
 		}
 	}
 
@@ -866,8 +697,8 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 
 	data = &dto.GetDetailPenyusunanKpiResponse{
 		IdPengajuan: dataDB.IdPengajuan,
-		Tahun:       dataDB.Tahun,
 		Triwulan:    dataDB.Triwulan,
+		Tahun:       dataDB.Tahun,
 		Status:      dataDB.Status,
 		StatusDesc:  dataDB.StatusDesc,
 		Divisi: dto.DivisiOrgeh{
@@ -895,7 +726,7 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 			EntryTimeValidasi: dataDB.EntryTimeValidasi,
 		},
 		TotalKpi:     dataDB.TotalKpi,
-		KpiList:      kpiDetails,
+		KpiList:      listKpiDetails,
 		TotalResult:  dataDB.TotalResult,
 		ResultList:   resultList,
 		TotalProcess: dataDB.TotalProcess,

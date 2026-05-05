@@ -3,11 +3,8 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"math"
-	"strings"
-	"time"
-
 	"mime/multipart"
+	"time"
 
 	dto "permen_api/domain/realisasi_kpi/dto"
 	"permen_api/domain/realisasi_kpi/utils"
@@ -24,18 +21,8 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 	file *multipart.FileHeader,
 ) (data dto.ValidateRealisasiKpiResponse, err error) {
 
-	// User error: tidak mengirim file
-	if file == nil {
-		return data, &customErrors.BadRequestError{
-			Message: "file Excel tidak ditemukan, pastikan mengirim file via field 'files'",
-		}
-	}
-
-	// User error: format file salah
-	if !strings.HasSuffix(strings.ToLower(file.Filename), ".xlsx") {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("file '%s' bukan format Excel (.xlsx)", file.Filename),
-		}
+	if err := utils.ValidateExcelFile(file); err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	// Ambil header dari DB berdasarkan id_pengajuan
@@ -112,8 +99,8 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 
 	data = dto.ValidateRealisasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
-		Tahun:       req.Tahun,
 		Triwulan:    req.Triwulan,
+		Tahun:       req.Tahun,
 		Divisi: dto.Divisi{
 			Kostl:   divisi.Kostl,
 			KostlTx: divisi.KostlTx,
@@ -219,18 +206,8 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 	file *multipart.FileHeader,
 ) (data dto.RevisionRealisasiKpiResponse, err error) {
 
-	// User error: tidak mengirim file
-	if file == nil {
-		return data, &customErrors.BadRequestError{
-			Message: "file Excel tidak ditemukan, pastikan mengirim file via field 'files'",
-		}
-	}
-
-	// User error: format file salah
-	if !strings.HasSuffix(strings.ToLower(file.Filename), ".xlsx") {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("file '%s' bukan format Excel (.xlsx)", file.Filename),
-		}
+	if err := utils.ValidateExcelFile(file); err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	// Ambil header dari DB berdasarkan id_pengajuan
@@ -243,7 +220,7 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbKostlTx := existData.KostlTx
-	dbEntryUser := existData.EntryUserRealisasi
+	dbEntryUserRealisasi := existData.EntryUserRealisasi
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
@@ -255,7 +232,7 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 	}
 
 	// Validasi: hanya pembuat pengajuan yang boleh merevisi
-	if req.EntryUserRealisasi != dbEntryUser {
+	if req.EntryUserRealisasi != dbEntryUserRealisasi {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("user '%s' tidak berhak merevisi pengajuan ini", req.EntryUserRealisasi),
 		}
@@ -280,6 +257,7 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 
 	divisi := dto.Divisi{Kostl: req.Kostl, KostlTx: dbKostlTx}
 
+	// Parse dan validasi file Excel
 	kpiRows, kpiSubDetails, err := utils.ParseAndValidateRealisasiExcel(file, req.Triwulan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{
@@ -348,32 +326,33 @@ func (s *realisasiKpiService) ApproveRealisasiKpi(
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
 
-	dbTahun := existData.Tahun
 	dbTriwulan := existData.Triwulan
+	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 3 (pending approval realisasi)
+	// Validasi: status harus 3 = Approval Realisasi
 	if dbStatus != 3 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat diapprove, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
 		}
 	}
 
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
 	if req.Kostl != dbKostl {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
 		}
 	}
-	if req.Tahun != dbTahun {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
-		}
-	}
 	if req.Triwulan != dbTriwulan {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+		}
+	}
+	if req.Tahun != dbTahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
 		}
 	}
 
@@ -395,29 +374,9 @@ func (s *realisasiKpiService) ApproveRealisasiKpi(
 		return data, fmt.Errorf("gagal parse approval_list: %w", err)
 	}
 
-	now := time.Now().Format("2006-01-02 15:04:05")
-	keterangan := req.Catatan.EntryNote
-	currentIdx := -1
-	for i := range approvalList {
-		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUserRealisasi) && approvalList[i].Status == "" {
-			approvalList[i].Status = "approve"
-			approvalList[i].Keterangan = keterangan
-			approvalList[i].Waktu = now
-			currentIdx = i
-			break
-		}
-	}
-	if currentIdx == -1 {
-		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan.[User Approval Kosong.]"}
-	}
-
-	// Cari approver berikutnya yang belum approve
-	nextApprover := ""
-	for i := currentIdx + 1; i < len(approvalList); i++ {
-		if approvalList[i].Status == "" {
-			nextApprover = approvalList[i].Userid
-			break
-		}
+	approvalList, nextApprover, err := utils.ProcessApproveApprovalList(approvalList, req.ApprovalUserRealisasi, req.Catatan.EntryNote)
+	if err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	updatedJSON, err := json.Marshal(approvalList)
@@ -431,7 +390,7 @@ func (s *realisasiKpiService) ApproveRealisasiKpi(
 
 	data = dto.ApproveRealisasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
-		Status:      "approve",
+		Status:      "Approve Realisasi",
 		Catatan:     req.Catatan,
 	}
 
@@ -450,19 +409,21 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
-	dbTahun := existData.Tahun
+
 	dbTriwulan := existData.Triwulan
+	dbTahun := existData.Tahun
 	dbKostl := existData.Kostl
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 3 (pending approval realisasi)
+	// Validasi: status harus 3 = Approval Realisasi
 	if dbStatus != 3 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat ditolak, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
 		}
 	}
 
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
 	if req.Kostl != dbKostl {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
@@ -497,23 +458,9 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 		return data, fmt.Errorf("gagal parse approval_list: %w", err)
 	}
 
-	now := time.Now().Format("2006-01-02 15:04:05")
-	nowDisplay := time.Now().Format("02-01-2006 15:04:05")
-	entryUserFull := req.ApprovalUserRealisasi + " - " + req.ApprovalNameRealisasi
-
-	keterangan := req.Catatan.EntryNote
-	found := false
-	for i := range approvalList {
-		if strings.EqualFold(approvalList[i].Userid, req.ApprovalUserRealisasi) && approvalList[i].Status == "" {
-			approvalList[i].Status = "reject"
-			approvalList[i].Keterangan = keterangan
-			approvalList[i].Waktu = now
-			found = true
-			break
-		}
-	}
-	if !found {
-		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan.[User Approval Kosong.]"}
+	approvalList, err = utils.ProcessRejectApprovalList(approvalList, req.ApprovalUserRealisasi, req.Catatan.EntryNote)
+	if err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	updatedJSON, err := json.Marshal(approvalList)
@@ -526,32 +473,26 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 		return data, fmt.Errorf("gagal membaca catatan_tolakan: %w", err)
 	}
 
-	var catatanTolakanEntries []dto.CatatanDetail
-	if existingCatatanJSON != "" && existingCatatanJSON != "null" {
-		if err = json.Unmarshal([]byte(existingCatatanJSON), &catatanTolakanEntries); err != nil {
-			return data, fmt.Errorf("gagal parse catatan_tolakan: %w", err)
-		}
-	}
+	nowDisplay := time.Now().Format("02-01-2006 15:04:05")
+	entryUserFull := req.ApprovalUserRealisasi + " - " + req.ApprovalNameRealisasi
 
-	catatanTolakanEntries = append(catatanTolakanEntries, dto.CatatanDetail{
+	catatanTolakanJSON, err := utils.AppendCatatanTolakan(existingCatatanJSON, dto.CatatanDetail{
 		Fungsi:    req.Catatan.Fungsi,
 		EntryUser: entryUserFull,
 		EntryTime: nowDisplay,
 		EntryNote: req.Catatan.EntryNote,
 	})
-
-	catatanTolakanJSON, err := json.Marshal(catatanTolakanEntries)
 	if err != nil {
-		return data, fmt.Errorf("gagal serialize catatan_tolakan: %w", err)
+		return data, err
 	}
 
-	if err = s.repo.RejectRealisasiKpi(req.IdPengajuan, string(updatedJSON), string(catatanTolakanJSON), req.ApprovalUserRealisasi); err != nil {
+	if err = s.repo.RejectRealisasiKpi(req.IdPengajuan, string(updatedJSON), catatanTolakanJSON, req.ApprovalUserRealisasi); err != nil {
 		return data, err
 	}
 
 	data = dto.RejectRealisasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
-		Status:      "reject",
+		Status:      "Reject Realisasi",
 		Catatan:     req.Catatan,
 	}
 
@@ -565,7 +506,6 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 func (s *realisasiKpiService) GetAllRealisasiKpi(
 	req *dto.GetAllRealisasiKpiRequest,
 ) (data []*dto.GetAllRealisasiKpiResponse, total int64, err error) {
-
 	dataDB, total, err := s.repo.GetAllRealisasiKpi(req)
 	if err != nil {
 		return data, 0, err
@@ -574,8 +514,8 @@ func (s *realisasiKpiService) GetAllRealisasiKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllRealisasiKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -600,8 +540,8 @@ func (s *realisasiKpiService) GetAllApprovalRealisasiKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllApprovalRealisasiKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -626,8 +566,8 @@ func (s *realisasiKpiService) GetAllTolakanRealisasiKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllTolakanRealisasiKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -653,8 +593,8 @@ func (s *realisasiKpiService) GetAllDaftarRealisasiKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllDaftarRealisasiKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -679,8 +619,8 @@ func (s *realisasiKpiService) GetAllDaftarApprovalRealisasiKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllDaftarApprovalRealisasiKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -737,11 +677,11 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 		catatanList = []dto.CatatanDetail{}
 	}
 
-	kpiList := make([]dto.DataKpiDetail, len(dataDB.Kpi))
+	listKpiDetails := make([]dto.DataKpiDetail, len(dataDB.Kpi))
 	for i, v := range dataDB.Kpi {
-		subDetails := make([]dto.DataKpiSubdetail, len(v.KpiSubDetail))
+		listKpiSubDetails := make([]dto.DataKpiSubdetail, len(v.KpiSubDetail))
 		for j, s := range v.KpiSubDetail {
-			subDetails[j] = dto.DataKpiSubdetail{
+			listKpiSubDetails[j] = dto.DataKpiSubdetail{
 				IdSubDetail:                   s.IdSubDetail,
 				IdSubKpi:                      s.IdKpi,
 				SubKpi:                        s.Kpi,
@@ -763,16 +703,16 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 				KeteranganProject:             s.KeteranganProject,
 				Realisasi:                     s.Realisasi,
 				RealisasiKuantitatif:          s.RealisasiKuantitatif,
+				RealisasiQualifier:            s.RealisasiQualifier,
+				RealisasiKuantitatifQualifier: s.RealisasiKuantitatifQualifier,
 				RealisasiKeterangan:           s.RealisasiKeterangan,
 				RealisasiValidated:            s.RealisasiValidated,
 				RealisasiKuantitatifValidated: s.RealisasiKuantitatifValidated,
 				Pencapaian:                    s.Pencapaian,
 				Skor:                          s.Skor,
-				RealisasiQualifier:            s.RealisasiQualifier,
-				RealisasiKuantitatifQualifier: s.RealisasiKuantitatifQualifier,
 			}
 		}
-		kpiList[i] = dto.DataKpiDetail{
+		listKpiDetails[i] = dto.DataKpiDetail{
 			IdDetail:            v.IdDetail,
 			IdKpi:               v.IdKpi,
 			Kpi:                 v.Kpi,
@@ -783,7 +723,7 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 			KeteranganProject:   v.KeteranganProject,
 			LinkDokumenSumber:   v.LampiranFile,
 			TotalSubKpi:         v.TotalSubKpi,
-			KpiSubDetail:        subDetails,
+			KpiSubDetail:        listKpiSubDetails,
 		}
 	}
 
@@ -822,8 +762,8 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 
 	data = &dto.GetDetailRealisasiKpiResponse{
 		IdPengajuan: dataDB.IdPengajuan,
-		Tahun:       dataDB.Tahun,
 		Triwulan:    dataDB.Triwulan,
+		Tahun:       dataDB.Tahun,
 		Status:      dataDB.Status,
 		StatusDesc:  dataDB.StatusDesc,
 		Divisi: dto.DivisiOrgeh{
@@ -853,7 +793,7 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 		TotalBobot:            dataDB.TotalBobot,
 		TotalPencapaian:       dataDB.TotalPencapaian,
 		TotalKpi:              dataDB.TotalKpi,
-		KpiList:               kpiList,
+		KpiList:               listKpiDetails,
 		TotalResult:           dataDB.TotalResult,
 		ResultList:            resultList,
 		TotalProcess:          dataDB.TotalProcess,
@@ -863,197 +803,4 @@ func (s *realisasiKpiService) GetDetailRealisasiKpi(
 	}
 
 	return data, nil
-}
-
-// =============================================================================
-// PRIVATE HELPERS
-// =============================================================================
-
-func (s *realisasiKpiService) resolveRealisasiLookups(
-	idPengajuan string,
-	kpiRows []dto.RealisasiKpiRow,
-	kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
-) error {
-	linkFormats, err := s.repo.GetLinkFormats()
-	if err != nil {
-		return err
-	}
-	if err := validateLinkDokumenSumber(kpiRows, kpiSubDetails, linkFormats); err != nil {
-		return &customErrors.BadRequestError{Message: err.Error()}
-	}
-	return s.enrichRowsFromDB(idPengajuan, kpiRows, kpiSubDetails)
-}
-
-// enrichRowsFromDB melakukan lookup ke DB untuk setiap baris sub KPI Excel:
-//   - Mencari id_sub_detail, id_detail, target_kuantitatif_triwulan, rumus
-//     berdasarkan id_pengajuan + kpi_name + sub_kpi_name
-//   - Menghitung Pencapaian dan Skor mengikuti logika bisnis BE_Perment_Old
-//
-// Logika kalkulasi (dari models/M_realisasi.go):
-//
-//	Rumus "1" (Maximize): Pencapaian = (RealisasiKuantitatif / TargetKuantitatif) * 100
-//	Rumus "0" (Minimize): Pencapaian = (TargetKuantitatif / RealisasiKuantitatif) * 100
-//	Capping diterapkan jika Pencapaian > nilai Capping
-//	Skor = (Pencapaian * Bobot) / 100
-func (s *realisasiKpiService) enrichRowsFromDB(
-	idPengajuan string,
-	kpiRows []dto.RealisasiKpiRow,
-	kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
-) error {
-	for ki := range kpiRows {
-		for i := range kpiSubDetails[kpiRows[ki].KpiIndex] {
-			sub := &kpiSubDetails[kpiRows[ki].KpiIndex][i]
-
-			lookup, err := s.repo.LookupSubDetailByKpiSubKpi(idPengajuan, kpiRows[ki].Kpi, sub.SubKPI)
-			if err != nil {
-				return &customErrors.BadRequestError{Message: err.Error()}
-			}
-
-			sub.IdSubDetail = lookup.IdSubDetail
-			sub.IdDetail = lookup.IdDetail
-			sub.IdSubKpi = lookup.IdSubKpi
-			sub.Otomatis = lookup.Otomatis
-			sub.TerdapatQualifier = lookup.IdQualifier
-			sub.IdPolarisasi = lookup.Rumus
-			sub.Glossary = lookup.Glossary
-			sub.TargetKuantitatifTriwulan = lookup.TargetKuantitatifTriwulan
-			sub.TargetTahunan = lookup.TargetTahunan
-			sub.TargetKuantitatifTahunan = lookup.TargetKuantitatifTahunan
-			sub.DeskripsiQualifier = lookup.DeskripsiQualifier
-
-			// Isi field KPI-level dari sub pertama dalam grup ini
-			if kpiRows[ki].IdDetail == "" {
-				kpiRows[ki].IdDetail = lookup.IdDetail
-				kpiRows[ki].IdKpi = lookup.IdKpi
-				kpiRows[ki].Rumus = lookup.DetailRumus
-			}
-
-			// Kolom L dan M hanya disimpan jika id_qualifier = "ya"
-			if strings.ToLower(strings.TrimSpace(lookup.IdQualifier)) != "ya" {
-				sub.RealisasiQualifier = ""
-				sub.RealisasiKuantitatifQualifier = ""
-			}
-
-			// Hitung Pencapaian dan Skor
-			pencapaian, skor := calculatePencapaianSkor(
-				lookup.Rumus,
-				sub.RealisasiKuantitatif,
-				lookup.TargetKuantitatifTriwulan,
-				sub.Capping,
-				sub.Bobot,
-			)
-
-			sub.Pencapaian = pencapaian
-			sub.Skor = skor
-		}
-
-		// Isi LinkDokumenSumber KPI-level dari sub pertama yang tidak kosong
-		for _, sub := range kpiSubDetails[kpiRows[ki].KpiIndex] {
-			if sub.LinkDokumenSumber != nil && *sub.LinkDokumenSumber != "" {
-				kpiRows[ki].LinkDokumenSumber = *sub.LinkDokumenSumber
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-// calculatePencapaianSkor menghitung Pencapaian (%) dan Skor dari nilai realisasi.
-//
-// Mengikuti logika bisnis models/M_realisasi.go dari BE_Perment_Old secara persis:
-//
-//	rumus == "1" → Maximize : Pencapaian = (realisasi / target) * 100
-//	rumus == "0" → Minimize : Pencapaian = (target / realisasi) * 100
-//	Capping diterapkan jika Pencapaian melebihi batas ("100%" = 100, "110%" = 110)
-//	Skor = (Pencapaian * bobot) / 100
-//	Jika target = 0 atau rumus tidak dikenal → Pencapaian = 0, Skor = 0
-func calculatePencapaianSkor(
-	rumus string,
-	realisasiKuantitatif float64,
-	targetKuantitatif float64,
-	cappingStr string,
-	bobot float64,
-) (pencapaian, skor float64) {
-
-	// Parse nilai capping numerik dari string "100%" atau "110%"
-	cappingValue := parseCapping(cappingStr)
-
-	switch rumus {
-	case "1": // Maximize
-		if targetKuantitatif == 0 {
-			return 0, 0
-		}
-		pencapaian = (realisasiKuantitatif / targetKuantitatif) * 100
-
-	case "0": // Minimize
-		if realisasiKuantitatif == 0 {
-			return 0, 0
-		}
-		pencapaian = (targetKuantitatif / realisasiKuantitatif) * 100
-
-	default:
-		// Rumus tidak dikenal (misal "0" untuk sub KPI lain/non-standar)
-		return 0, 0
-	}
-
-	// Terapkan capping
-	if cappingValue > 0 && pencapaian > cappingValue {
-		pencapaian = cappingValue
-	}
-
-	skor = (pencapaian * bobot) / 100
-
-	// Bulatkan 2 desimal agar konsisten
-	pencapaian = math.Round(pencapaian*100) / 100
-	skor = math.Round(skor*100) / 100
-
-	return pencapaian, skor
-}
-
-// validateLinkDokumenSumber memvalidasi kolom N (Link Dokumen Sumber) setiap baris Excel
-// terhadap daftar prefix URL yang diizinkan dari DB (mst_link_format).
-func validateLinkDokumenSumber(
-	kpiRows []dto.RealisasiKpiRow,
-	kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
-	allowedPrefixes []string,
-) error {
-	for _, kpiRow := range kpiRows {
-		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
-			if row.LinkDokumenSumber == nil || *row.LinkDokumenSumber == "" {
-				return fmt.Errorf(
-					"baris No %d, Sub KPI '%s': Kolom N (Link Dokumen Sumber) tidak boleh kosong",
-					row.No, row.SubKPI,
-				)
-			}
-			link := strings.TrimSpace(*row.LinkDokumenSumber)
-			valid := false
-			for _, prefix := range allowedPrefixes {
-				if strings.HasPrefix(link, prefix) {
-					valid = true
-					break
-				}
-			}
-			if !valid {
-				return fmt.Errorf(
-					"baris No %d, Sub KPI '%s': Link Dokumen Sumber '%s' tidak sesuai format yang diizinkan",
-					row.No, row.SubKPI, link,
-				)
-			}
-		}
-	}
-	return nil
-}
-
-// parseCapping mengubah string capping ("100%" atau "110%") menjadi nilai float64.
-// Mengembalikan 0 jika format tidak dikenal (tidak ada capping yang diterapkan).
-func parseCapping(cappingStr string) float64 {
-	switch strings.TrimSpace(cappingStr) {
-	case "100%":
-		return 100.0
-	case "110%":
-		return 110.0
-	default:
-		return 0
-	}
 }

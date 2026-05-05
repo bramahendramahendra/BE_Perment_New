@@ -156,11 +156,11 @@ type ValidatePenyusunanKpiRequest struct {
 
 // CreatePenyusunanKpiRequest digunakan untuk endpoint POST /penyusunan-kpi/create.
 type CreatePenyusunanKpiRequest struct {
-	IdPengajuan  string               `json:"id_pengajuan"  validate:"required"`
-	Kostl        string               `json:"kostl"         validate:"required"`
-	Triwulan     string               `json:"triwulan"      validate:"required"`
-	Tahun        string               `json:"tahun"         validate:"required"`
-	ApprovalList []ApprovalUserDetail `json:"approval_list" validate:"required,min=1,dive"`
+	IdPengajuan            string               `json:"id_pengajuan"  validate:"required"`
+	Kostl                  string               `json:"kostl"         validate:"required"`
+	Triwulan               string               `json:"triwulan"      validate:"required"`
+	Tahun                  string               `json:"tahun"         validate:"required"`
+	ApprovalListPenyusunan []ApprovalUserDetail `json:"approval_list" validate:"required,min=1,dive"`
 
 	// Diisi handler dari header 'userq', tidak boleh dari body.
 	EntryUserPenyusunan string `json:"entry_user"`
