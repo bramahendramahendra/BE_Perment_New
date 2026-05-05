@@ -15,36 +15,6 @@ import (
 
 const (
 	// =============================================================================
-	// Check
-	// =============================================================================
-
-	// Use func : ValidateRealisasiKpi
-	// yang mengizinkan input realisasi (2=penyusunan disetujui, 4=realisasi ditolak, 80=draft realisasi, 81=realisasi batal).
-	queryCheckExistRealisasi = `
-		SELECT COUNT(id_pengajuan)
-		FROM data_kpi
-		WHERE id_pengajuan = ? AND tahun = ? AND triwulan = ? AND kostl = ? AND status IN (2, 4, 80, 81)`
-
-	// queryCheckStatusRevisiRealisasi memvalidasi bahwa id_pengajuan ada dan berstatus
-	// yang mengizinkan revisi realisasi (4=realisasi ditolak, 80=draft realisasi).
-	queryCheckStatusRevisiRealisasi = `
-		SELECT COUNT(id_pengajuan)
-		FROM data_kpi
-		WHERE id_pengajuan = ? AND status IN (4, 80)`
-
-	// queryCheckStatusCreateRealisasi memvalidasi status 80 (draft) sebelum create/submit.
-	queryCheckStatusCreateRealisasi = `
-		SELECT COUNT(id_pengajuan)
-		FROM data_kpi
-		WHERE id_pengajuan = ? AND status = 80`
-
-	// queryCheckStatusApprovalRealisasi memvalidasi status 3 (pending approval) sebelum approval.
-	queryCheckStatusApprovalRealisasi = `
-		SELECT COUNT(id_pengajuan)
-		FROM data_kpi
-		WHERE id_pengajuan = ? AND status = 3`
-
-	// =============================================================================
 	// Get Data
 	// =============================================================================
 
