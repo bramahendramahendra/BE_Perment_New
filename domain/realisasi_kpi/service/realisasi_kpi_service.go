@@ -124,6 +124,7 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 // CREATE
 // =============================================================================
 
+// CreateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/create.
 func (s *realisasiKpiService) CreateRealisasiKpi(
 	req *dto.CreateRealisasiKpiRequest,
 ) (data dto.CreateRealisasiKpiResponse, err error) {
@@ -201,6 +202,7 @@ func (s *realisasiKpiService) CreateRealisasiKpi(
 // REVISION
 // =============================================================================
 
+// RevisionRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/revision.
 func (s *realisasiKpiService) RevisionRealisasiKpi(
 	req *dto.RevisionRealisasiKpiRequest,
 	file *multipart.FileHeader,
@@ -314,9 +316,10 @@ func (s *realisasiKpiService) RevisionRealisasiKpi(
 }
 
 // =============================================================================
-// APPROVE
+// APPROVAL
 // =============================================================================
 
+// ApprovePenyusunanKpi digunakan oleh endpoint POST /realisasi-kpi/approve.
 func (s *realisasiKpiService) ApproveRealisasiKpi(
 	req *dto.ApproveRealisasiKpiRequest,
 ) (data dto.ApproveRealisasiKpiResponse, err error) {
@@ -397,10 +400,7 @@ func (s *realisasiKpiService) ApproveRealisasiKpi(
 	return data, nil
 }
 
-// =============================================================================
-// REJECT
-// =============================================================================
-
+// RejectPenyusunanKpi digunakan oleh endpoint POST /realisasi-kpi/reject.
 func (s *realisasiKpiService) RejectRealisasiKpi(
 	req *dto.RejectRealisasiKpiRequest,
 ) (data dto.RejectRealisasiKpiResponse, err error) {
@@ -503,6 +503,7 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 // GET ALL
 // =============================================================================
 
+// GetAllRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all.
 func (s *realisasiKpiService) GetAllRealisasiKpi(
 	req *dto.GetAllRealisasiKpiRequest,
 ) (data []*dto.GetAllRealisasiKpiResponse, total int64, err error) {
@@ -525,10 +526,7 @@ func (s *realisasiKpiService) GetAllRealisasiKpi(
 	return data, total, nil
 }
 
-// =============================================================================
-// GET ALL APPROVAL
-// =============================================================================
-
+// GetAllApprovalRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-approval.
 func (s *realisasiKpiService) GetAllApprovalRealisasiKpi(
 	req *dto.GetAllApprovalRealisasiKpiRequest,
 ) (data []*dto.GetAllApprovalRealisasiKpiResponse, total int64, err error) {
@@ -551,10 +549,7 @@ func (s *realisasiKpiService) GetAllApprovalRealisasiKpi(
 	return data, total, nil
 }
 
-// =============================================================================
-// GET ALL TOLAKAN
-// =============================================================================
-
+// GetAllTolakanRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-tolakan.
 func (s *realisasiKpiService) GetAllTolakanRealisasiKpi(
 	req *dto.GetAllTolakanRealisasiKpiRequest,
 ) (data []*dto.GetAllTolakanRealisasiKpiResponse, total int64, err error) {
@@ -577,10 +572,7 @@ func (s *realisasiKpiService) GetAllTolakanRealisasiKpi(
 	return data, total, nil
 }
 
-// =============================================================================
-// GET ALL DAFTAR REALISASI
-// =============================================================================
-
+// GetAllDaftarRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-realisasi.
 func (s *realisasiKpiService) GetAllDaftarRealisasiKpi(
 	req *dto.GetAllDaftarRealisasiKpiRequest,
 ) (data []*dto.GetAllDaftarRealisasiKpiResponse, total int64, err error) {
@@ -604,10 +596,7 @@ func (s *realisasiKpiService) GetAllDaftarRealisasiKpi(
 	return data, total, nil
 }
 
-// =============================================================================
-// GET ALL DAFTAR APPROVAL
-// =============================================================================
-
+// GetAllDaftarApprovalRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all-daftar-approval.
 func (s *realisasiKpiService) GetAllDaftarApprovalRealisasiKpi(
 	req *dto.GetAllDaftarApprovalRealisasiKpiRequest,
 ) (data []*dto.GetAllDaftarApprovalRealisasiKpiResponse, total int64, err error) {
@@ -634,6 +623,7 @@ func (s *realisasiKpiService) GetAllDaftarApprovalRealisasiKpi(
 // GET DETAIL
 // =============================================================================
 
+// GetDetailRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-detail.
 func (s *realisasiKpiService) GetDetailRealisasiKpi(
 	req *dto.GetDetailRealisasiKpiRequest,
 ) (data *dto.GetDetailRealisasiKpiResponse, err error) {

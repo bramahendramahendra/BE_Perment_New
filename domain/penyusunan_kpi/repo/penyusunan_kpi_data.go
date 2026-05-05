@@ -275,77 +275,10 @@ const (
 )
 
 // =============================================================================
-// CHECK
-// =============================================================================
-func (r *penyusunanKpiRepo) GetExistDataKpiStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error) {
-	row := r.db.Raw(queryGetExistDataKpiStatus, tahun, triwulan, kostl).Row()
-	if scanErr := row.Scan(&idPengajuan, &status); scanErr != nil {
-		if errors.Is(scanErr, sql.ErrNoRows) {
-			return "", 0, false, nil
-		}
-		return "", 0, false, fmt.Errorf("gagal mengecek data Penyusunan KPI: %w", scanErr)
-	}
-	return idPengajuan, status, true, nil
-}
-
-func (r *penyusunanKpiRepo) CheckApprovalPenyusunanExists(user, idPengajuan string) (bool, error) {
-	var count int64
-	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
-		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
-	}
-	return count > 0, nil
-}
-
-func (r *penyusunanKpiRepo) GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error) {
-	var result model.DataKpiExist
-	db := r.db.Raw(queryGetExistDataKpi, idPengajuan).Scan(&result)
-	if db.Error != nil {
-		return nil, fmt.Errorf("gagal mengambil header KPI: %w", db.Error)
-	}
-	if db.RowsAffected == 0 {
-		return nil, fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
-	}
-	return &result, nil
-}
-
-// =============================================================================
-// LOOKUP
+// VALIDATE
 // =============================================================================
 
-func (r *penyusunanKpiRepo) LookupKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error) {
-	row := r.db.Raw(queryLookupSubKpi, subKpiText).Row()
-	if scanErr := row.Scan(&idKpi, &kpiFromDB, &rumus); scanErr != nil {
-		if errors.Is(scanErr, sql.ErrNoRows) {
-			// KPI/Sub KPI tidak ditemukan di master → dianggap KPI lain (id = "0"), teks asli dikembalikan
-			return "0", subKpiText, "", nil
-		}
-		return "0", subKpiText, "", fmt.Errorf("gagal lookup mst_kpi untuk '%s': %w", subKpiText, scanErr)
-	}
-	return idKpi, kpiFromDB, rumus, nil
-}
-
-func (r *penyusunanKpiRepo) LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error) {
-	row := r.db.Raw(queryLookupPolarisasi, polarisasiText).Row()
-	if scanErr := row.Scan(&idPolarisasi); scanErr != nil {
-		if errors.Is(scanErr, sql.ErrNoRows) {
-			// User error: nilai polarisasi dari Excel tidak ada di master
-			return "", &customErrors.BadRequestError{
-				Message: fmt.Sprintf(
-					"polarisasi '%s' tidak ditemukan di master polarisasi. Nilai yang valid: 'Maximize' atau 'Minimize'",
-					polarisasiText,
-				),
-			}
-		}
-		// System error: query DB gagal
-		return "", fmt.Errorf("gagal lookup master polarisasi untuk polarisasi '%s': %w", polarisasiText, scanErr)
-	}
-	return idPolarisasi, nil
-}
-
-// =============================================================================
-// VALIDATE — simpan data KPI tanpa approval
-// =============================================================================
-
+// ValidatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/validate.
 func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 	req *dto.ValidatePenyusunanKpiRequest,
 	kpiRows []dto.PenyusunanKpiRow,
@@ -366,7 +299,6 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 
 	// =========================================================================
 	// Build INSERT data_kpi_detail
-	// Perubahan: id_perspektif diisi NULL (sudah tidak digunakan)
 	// =========================================================================
 	kpiDetailPlaceholders := []string{}
 	kpiDetailArgs := []interface{}{}
@@ -432,7 +364,6 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 
 	// =========================================================================
 	// Build INSERT data_result_detail
-	// resultList sudah dibangun oleh service dari kolom P/Q Excel.
 	// Hanya berisi data jika triwulan TW2 atau TW4.
 	// =========================================================================
 	resultPlaceholders := []string{}
@@ -451,7 +382,6 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 
 	// =========================================================================
 	// Build INSERT data_method_detail
-	// processList sudah dibangun oleh service dari kolom R/S Excel.
 	// Hanya berisi data jika triwulan TW2 atau TW4.
 	// =========================================================================
 	processPlaceholders := []string{}
@@ -470,7 +400,6 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 
 	// =========================================================================
 	// Build INSERT data_challenge_detail
-	// contextList sudah dibangun oleh service dari kolom T/U Excel.
 	// Hanya berisi data jika triwulan TW2 atau TW4.
 	// =========================================================================
 	contextPlaceholders := []string{}
@@ -573,9 +502,10 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 }
 
 // =============================================================================
-// CREATE — update approval pada data KPI yang sudah ada
+// CREATE
 // =============================================================================
 
+// CreatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/create.
 func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 	req *dto.CreatePenyusunanKpiRequest,
 ) error {
@@ -635,9 +565,10 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 }
 
 // =============================================================================
-// Revision — update data kpi
+// REVISION
 // =============================================================================
 
+// RevisionPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/revision.
 func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 	req *dto.RevisionPenyusunanKpiRequest,
 	kpiRows []dto.PenyusunanKpiRow,
@@ -906,11 +837,10 @@ func (r *penyusunanKpiRepo) RevisionPenyusunanKpi(
 }
 
 // =============================================================================
-// APPROVE PENYUSUNAN KPI
+// APPROVAL
 // =============================================================================
 
 // ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
-// Menerima approval_list (JSON string sudah diupdate) dan approval_posisi (next approver, kosong jika final).
 func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, approvalPosisi, user string) error {
 	tx := r.db.Begin()
 	if tx.Error != nil {
@@ -952,9 +882,6 @@ func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, appr
 	return nil
 }
 
-// =============================================================================
-// REJECT PENYUSUNAN KPI
-// =============================================================================
 // RejectPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/reject.
 func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catatan, user string) error {
 	// Ambil entry_user untuk dikirim notifikasi penolakan
@@ -994,38 +921,10 @@ func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catat
 }
 
 // =============================================================================
-// GET APPROVAL LIST JSON
+// GET ALL
 // =============================================================================
 
-func (r *penyusunanKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (string, error) {
-	var approvalListBytes []byte
-	row := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Row()
-	if err := row.Scan(&approvalListBytes); err != nil {
-		return "", &customErrors.BadRequestError{Message: "Data List Approval tidak ditemukan."}
-	}
-	approvalList := string(approvalListBytes)
-	if approvalList == "" {
-		return "", &customErrors.BadRequestError{Message: "Data KPI untuk Pengajuan ini tidak ditemukan."}
-	}
-	return approvalList, nil
-}
-
-// =============================================================================
-// GET CATATAn
-// =============================================================================
-func (r *penyusunanKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error) {
-	var val []byte
-	row := r.db.Raw(queryGetCatatanTolakan, idPengajuan).Row()
-	if err := row.Scan(&val); err != nil {
-		return "", err
-	}
-	return string(val), nil
-}
-
-// =============================================================================
-// GET ALL APPROVAL — list dengan filter, pagination, dan nested detail
-// =============================================================================
-
+// GetAllApprovalPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
 func (r *penyusunanKpiRepo) GetAllApprovalPenyusunanKpi(
 	req *dto.GetAllApprovalPenyusunanKpiRequest,
 ) ([]*model.DataKpi, int64, error) {
@@ -1119,10 +1018,7 @@ func (r *penyusunanKpiRepo) GetAllApprovalPenyusunanKpi(
 	return results, total, nil
 }
 
-// =============================================================================
-// GET ALL TOLAKAN — list dengan filter, pagination, dan nested detail
-// =============================================================================
-
+// GetAllTolakanPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-tolakan.
 func (r *penyusunanKpiRepo) GetAllTolakanPenyusunanKpi(
 	req *dto.GetAllTolakanPenyusunanKpiRequest,
 ) ([]*model.DataKpi, int64, error) {
@@ -1218,10 +1114,7 @@ func (r *penyusunanKpiRepo) GetAllTolakanPenyusunanKpi(
 	return results, total, nil
 }
 
-// =============================================================================
-// GET ALL DAFTAR PENYUSUNAN — list dengan filter, pagination, dan nested detail
-// =============================================================================
-
+// GetAllDaftarPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-penyusunan.
 func (r *penyusunanKpiRepo) GetAllDaftarPenyusunanKpi(
 	req *dto.GetAllDaftarPenyusunanKpiRequest,
 ) ([]*model.DataKpi, int64, error) {
@@ -1319,10 +1212,7 @@ func (r *penyusunanKpiRepo) GetAllDaftarPenyusunanKpi(
 	return results, total, nil
 }
 
-// =============================================================================
-// GET ALL DAFTAR APPROVAL — list dengan filter, pagination, dan nested detail
-// =============================================================================
-
+// GetAllDaftarApprovalPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-approval.
 func (r *penyusunanKpiRepo) GetAllDaftarApprovalPenyusunanKpi(
 	req *dto.GetAllDaftarApprovalPenyusunanKpiRequest,
 ) ([]*model.DataKpi, int64, error) {
@@ -1423,6 +1313,7 @@ func (r *penyusunanKpiRepo) GetAllDaftarApprovalPenyusunanKpi(
 // GET DETAIL
 // =============================================================================
 
+// GetDetailPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
 func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
 ) (*model.DataKpi, error) {
@@ -1513,9 +1404,10 @@ func (r *penyusunanKpiRepo) GetDetailPenyusunanKpi(
 }
 
 // =============================================================================
-// GET EXPORT DATA — digunakan bersama oleh get-csv dan get-pdf
+// EXPORT DATA
 // =============================================================================
 
+// GetKpiExportData digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /penyusunan-kpi/get-pdf.
 func (r *penyusunanKpiRepo) GetKpiExportData(
 	idPengajuan, kostl, tahun, triwulan string,
 ) (*dto.KpiExportData, error) {
@@ -1558,4 +1450,106 @@ func (r *penyusunanKpiRepo) GetKpiExportData(
 		Triwulan:   header.Triwulan,
 		Rows:       rows,
 	}, nil
+}
+
+// =============================================================================
+// APPROVAL HELPER
+// =============================================================================
+
+// GetApprovalListJSON digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi untuk mengambil daftar approval dalam format JSON.
+func (r *penyusunanKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (string, error) {
+	var approvalListBytes []byte
+	row := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Row()
+	if err := row.Scan(&approvalListBytes); err != nil {
+		return "", &customErrors.BadRequestError{Message: "Data List Approval tidak ditemukan."}
+	}
+	approvalList := string(approvalListBytes)
+	if approvalList == "" {
+		return "", &customErrors.BadRequestError{Message: "Data KPI untuk Pengajuan ini tidak ditemukan."}
+	}
+	return approvalList, nil
+}
+
+// GetCatatanTolakan digunakan oleh service RejectPenyusunanKpi untuk mengambil catatan tolakan berdasarkan id_pengajuan.
+func (r *penyusunanKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error) {
+	var val []byte
+	row := r.db.Raw(queryGetCatatanTolakan, idPengajuan).Row()
+	if err := row.Scan(&val); err != nil {
+		return "", err
+	}
+	return string(val), nil
+}
+
+// CheckApprovalPenyusunanExists digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi untuk memvalidasi keberadaan approval.
+func (r *penyusunanKpiRepo) CheckApprovalPenyusunanExists(user, idPengajuan string) (bool, error) {
+	var count int64
+	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
+		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
+	}
+	return count > 0, nil
+}
+
+// =============================================================================
+// GET EXIST
+// =============================================================================
+
+// GetExistDataKpi digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
+func (r *penyusunanKpiRepo) GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error) {
+	var result model.DataKpiExist
+	db := r.db.Raw(queryGetExistDataKpi, idPengajuan).Scan(&result)
+	if db.Error != nil {
+		return nil, fmt.Errorf("gagal mengambil header KPI: %w", db.Error)
+	}
+	if db.RowsAffected == 0 {
+		return nil, fmt.Errorf("id_pengajuan '%s' tidak ditemukan", idPengajuan)
+	}
+	return &result, nil
+}
+
+// GetExistDataKpiStatus digunakan oleh service untuk mengecek keberadaan data KPI dan mengembalikan id_pengajuan beserta statusnya.
+func (r *penyusunanKpiRepo) GetExistDataKpiStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error) {
+	row := r.db.Raw(queryGetExistDataKpiStatus, tahun, triwulan, kostl).Row()
+	if scanErr := row.Scan(&idPengajuan, &status); scanErr != nil {
+		if errors.Is(scanErr, sql.ErrNoRows) {
+			return "", 0, false, nil
+		}
+		return "", 0, false, fmt.Errorf("gagal mengecek data Penyusunan KPI: %w", scanErr)
+	}
+	return idPengajuan, status, true, nil
+}
+
+// =============================================================================
+// SERVICE HELPERS
+// =============================================================================
+
+// LookupKpiMaster digunakan oleh service ValidatePenyusunanKpi dan RevisionPenyusunanKpi untuk mencari id_kpi, kpi, dan rumus dari mst_kpi.
+func (r *penyusunanKpiRepo) LookupKpiMaster(subKpiText string) (idKpi, kpiFromDB, rumus string, err error) {
+	row := r.db.Raw(queryLookupSubKpi, subKpiText).Row()
+	if scanErr := row.Scan(&idKpi, &kpiFromDB, &rumus); scanErr != nil {
+		if errors.Is(scanErr, sql.ErrNoRows) {
+			// KPI/Sub KPI tidak ditemukan di master → dianggap KPI lain (id = "0"), teks asli dikembalikan
+			return "0", subKpiText, "", nil
+		}
+		return "0", subKpiText, "", fmt.Errorf("gagal lookup mst_kpi untuk '%s': %w", subKpiText, scanErr)
+	}
+	return idKpi, kpiFromDB, rumus, nil
+}
+
+// LookupPolarisasi digunakan oleh service ValidatePenyusunanKpi dan RevisionPenyusunanKpi untuk mencari id_polarisasi dari mst_polarisasi.
+func (r *penyusunanKpiRepo) LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error) {
+	row := r.db.Raw(queryLookupPolarisasi, polarisasiText).Row()
+	if scanErr := row.Scan(&idPolarisasi); scanErr != nil {
+		if errors.Is(scanErr, sql.ErrNoRows) {
+			// User error: nilai polarisasi dari Excel tidak ada di master
+			return "", &customErrors.BadRequestError{
+				Message: fmt.Sprintf(
+					"polarisasi '%s' tidak ditemukan di master polarisasi. Nilai yang valid: 'Maximize' atau 'Minimize'",
+					polarisasiText,
+				),
+			}
+		}
+		// System error: query DB gagal
+		return "", fmt.Errorf("gagal lookup master polarisasi untuk polarisasi '%s': %w", polarisasiText, scanErr)
+	}
+	return idPolarisasi, nil
 }

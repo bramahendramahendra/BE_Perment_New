@@ -9,22 +9,38 @@ import (
 
 type (
 	RealisasiKpiServiceInterface interface {
+		// =============================================================================
+		// VALIDATE
+		// =============================================================================
+
 		// ValidateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/validate.
 		ValidateRealisasiKpi(
 			req *dto.ValidateRealisasiKpiRequest,
 			file *multipart.FileHeader,
 		) (data dto.ValidateRealisasiKpiResponse, err error)
 
+		// =============================================================================
+		// CREATE
+		// =============================================================================
+
 		// CreateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/create.
 		CreateRealisasiKpi(
 			req *dto.CreateRealisasiKpiRequest,
 		) (data dto.CreateRealisasiKpiResponse, err error)
+
+		// =============================================================================
+		// REVISION
+		// =============================================================================
 
 		// RevisionRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/revision.
 		RevisionRealisasiKpi(
 			req *dto.RevisionRealisasiKpiRequest,
 			file *multipart.FileHeader,
 		) (data dto.RevisionRealisasiKpiResponse, err error)
+
+		// =============================================================================
+		// APPROVAL
+		// =============================================================================
 
 		// ApprovePenyusunanKpi digunakan oleh endpoint POST /realisasi-kpi/approve.
 		ApproveRealisasiKpi(
@@ -35,6 +51,10 @@ type (
 		RejectRealisasiKpi(
 			req *dto.RejectRealisasiKpiRequest,
 		) (data dto.RejectRealisasiKpiResponse, err error)
+
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
 
 		// GetAllRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all.
 		GetAllRealisasiKpi(
@@ -60,6 +80,10 @@ type (
 		GetAllDaftarApprovalRealisasiKpi(
 			req *dto.GetAllDaftarApprovalRealisasiKpiRequest,
 		) (data []*dto.GetAllDaftarApprovalRealisasiKpiResponse, total int64, err error)
+
+		// =============================================================================
+		// GET DETAIL
+		// =============================================================================
 
 		// GetDetailRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-detail.
 		GetDetailRealisasiKpi(

@@ -9,6 +9,10 @@ import (
 
 type (
 	RealisasiKpiRepoInterface interface {
+		// =============================================================================
+		// VALIDATE
+		// =============================================================================
+
 		// ValidateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/validate.
 		ValidateRealisasiKpi(
 			req *dto.ValidateRealisasiKpiRequest,
@@ -19,10 +23,18 @@ type (
 			contextList []dto.DataContext,
 		) error
 
+		// =============================================================================
+		// CREATE
+		// =============================================================================
+
 		// CreateRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/create.
 		CreateRealisasiKpi(
 			req *dto.CreateRealisasiKpiRequest,
 		) error
+
+		// =============================================================================
+		// REVISION
+		// =============================================================================
 
 		// RevisionRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/revision.
 		RevisionRealisasiKpi(
@@ -34,15 +46,23 @@ type (
 			contextList []dto.DataContext,
 		) error
 
-		// ApprovePenyusunanKpi digunakan oleh endpoint POST /realisasi-kpi/approve.
+		// =============================================================================
+		// APPROVAL
+		// =============================================================================
+
+		// ApproveRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/approve.
 		ApproveRealisasiKpi(
 			idPengajuan, approvalList, approvalPosisi, user string,
 		) error
 
-		// RejectPenyusunanKpi digunakan oleh endpoint POST /realisasi-kpi/reject.
+		// RejectRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/reject.
 		RejectRealisasiKpi(
 			idPengajuan, approvalList, catatan, user string,
 		) error
+
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
 
 		// GetAllRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-all.
 		GetAllRealisasiKpi(
@@ -69,16 +89,18 @@ type (
 			req *dto.GetAllDaftarApprovalRealisasiKpiRequest,
 		) ([]*model.DataKpi, int64, error)
 
+		// =============================================================================
+		// GET DETAIL
+		// =============================================================================
+
 		// GetDetailRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/get-detail.
 		GetDetailRealisasiKpi(
 			req *dto.GetDetailRealisasiKpiRequest,
 		) (*model.DataKpi, error)
 
 		// =============================================================================
-		// Approval Helper
+		// APPROVAL HELPER
 		// =============================================================================
-
-		// Digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi
 
 		// GetApprovalListJSON digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi untuk mengambil daftar approval dalam format JSON.
 		GetApprovalListJSON(idPengajuan, userID string) (string, error)
@@ -97,18 +119,14 @@ type (
 		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
 
 		// =============================================================================
-		// Service Helpers
+		// SERVICE HELPERS
 		// =============================================================================
 
+		// GetLinkFormats digunakan oleh service ValidateRealisasiKpi dan RevisionPenyusunanKpi untuk mengambil daftar format link yang valid dari master data.
 		GetLinkFormats() ([]string, error)
 
-		// CheckExistRealisasi memeriksa apakah id_pengajuan ada dengan status yang mengizinkan input realisasi (2, 4, 80, 81).
-		CheckExistRealisasi(idPengajuan string) (bool, error)
-
-		// LookupSubDetailByKpiSubKpi mencari data sub detail berdasarkan id_pengajuan + kpi_name + sub_kpi_name dari Excel.
-		LookupSubDetailByKpiSubKpi(
-			idPengajuan, kpiName, subKpiName string,
-		) (*model.SubDetailLookup, error)
+		// LookupSubDetailByKpiSubKpi digunakan oleh service ValidateRealisasiKpi dan RevisionPenyusunanKpi untuk mencari data sub detail berdasarkan id_pengajuan, kpi_name, dan sub_kpi_name dari Excel.
+		LookupSubDetailByKpiSubKpi(idPengajuan, kpiName, subKpiName string) (*model.SubDetailLookup, error)
 
 		GetDB() *gorm.DB
 	}

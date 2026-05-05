@@ -113,6 +113,7 @@ func (s *penyusunanKpiService) ValidatePenyusunanKpi(
 // CREATE
 // =============================================================================
 
+// CreatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/create.
 func (s *penyusunanKpiService) CreatePenyusunanKpi(
 	req *dto.CreatePenyusunanKpiRequest,
 ) (data dto.CreatePenyusunanKpiResponse, err error) {
@@ -189,6 +190,7 @@ func (s *penyusunanKpiService) CreatePenyusunanKpi(
 // REVISION
 // =============================================================================
 
+// RevisionPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/revision.
 func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 	req *dto.RevisionPenyusunanKpiRequest,
 	file *multipart.FileHeader,
@@ -302,9 +304,10 @@ func (s *penyusunanKpiService) RevisionPenyusunanKpi(
 }
 
 // =============================================================================
-// APPROVE
+// APPROVAL
 // =============================================================================
 
+// ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
 func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	req *dto.ApprovePenyusunanKpiRequest,
 ) (data dto.ApprovePenyusunanKpiResponse, err error) {
@@ -385,10 +388,7 @@ func (s *penyusunanKpiService) ApprovePenyusunanKpi(
 	return data, nil
 }
 
-// =============================================================================
-// REJECT
-// =============================================================================
-
+// RejectPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/reject.
 func (s *penyusunanKpiService) RejectPenyusunanKpi(
 	req *dto.RejectPenyusunanKpiRequest,
 ) (data dto.RejectPenyusunanKpiResponse, err error) {
@@ -488,9 +488,10 @@ func (s *penyusunanKpiService) RejectPenyusunanKpi(
 }
 
 // =============================================================================
-// GET ALL APPROVAL
+// GET ALL
 // =============================================================================
 
+// GetAllApprovalPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
 func (s *penyusunanKpiService) GetAllApprovalPenyusunanKpi(
 	req *dto.GetAllApprovalPenyusunanKpiRequest,
 ) (data []*dto.GetAllApprovalPenyusunanKpiResponse, total int64, err error) {
@@ -513,10 +514,7 @@ func (s *penyusunanKpiService) GetAllApprovalPenyusunanKpi(
 	return data, total, nil
 }
 
-// =============================================================================
-// GET ALL TOLAKAN
-// =============================================================================
-
+// GetAllTolakanPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-tolakan.
 func (s *penyusunanKpiService) GetAllTolakanPenyusunanKpi(
 	req *dto.GetAllTolakanPenyusunanKpiRequest,
 ) (data []*dto.GetAllTolakanPenyusunanKpiResponse, total int64, err error) {
@@ -539,10 +537,7 @@ func (s *penyusunanKpiService) GetAllTolakanPenyusunanKpi(
 	return data, total, nil
 }
 
-// =============================================================================
-// GET ALL DAFTAR PENYUSUNAN
-// =============================================================================
-
+// GetAllDaftarPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-penyusunan.
 func (s *penyusunanKpiService) GetAllDaftarPenyusunanKpi(
 	req *dto.GetAllDaftarPenyusunanKpiRequest,
 ) (data []*dto.GetAllDaftarPenyusunanKpiResponse, total int64, err error) {
@@ -565,10 +560,7 @@ func (s *penyusunanKpiService) GetAllDaftarPenyusunanKpi(
 	return data, total, nil
 }
 
-// =============================================================================
-// GET ALL DAFTAR APPROVAL
-// =============================================================================
-
+// GetAllDaftarApprovalPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-daftar-approval.
 func (s *penyusunanKpiService) GetAllDaftarApprovalPenyusunanKpi(
 	req *dto.GetAllDaftarApprovalPenyusunanKpiRequest,
 ) (data []*dto.GetAllDaftarApprovalPenyusunanKpiResponse, total int64, err error) {
@@ -595,6 +587,7 @@ func (s *penyusunanKpiService) GetAllDaftarApprovalPenyusunanKpi(
 // GET DETAIL
 // =============================================================================
 
+// GetDetailPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
 func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 	req *dto.GetDetailPenyusunanKpiRequest,
 ) (data *dto.GetDetailPenyusunanKpiResponse, err error) {
@@ -739,9 +732,10 @@ func (s *penyusunanKpiService) GetDetailPenyusunanKpi(
 }
 
 // =============================================================================
-// GET EXCEL
+// GET EXPORT DATA
 // =============================================================================
 
+// GetExcelPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-excel.
 func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 	req *dto.GetExcelPenyusunanKpiRequest,
 ) ([]byte, string, error) {
@@ -772,10 +766,7 @@ func (s *penyusunanKpiService) GetExcelPenyusunanKpi(
 	return file_export.GenerateKpiExcel(exportData)
 }
 
-// =============================================================================
-// GET PDF
-// =============================================================================
-
+// GetPdfPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-pdf.
 func (s *penyusunanKpiService) GetPdfPenyusunanKpi(
 	req *dto.GetPdfPenyusunanKpiRequest,
 ) ([]byte, string, error) {

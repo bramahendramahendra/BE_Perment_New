@@ -9,22 +9,38 @@ import (
 
 type (
 	PenyusunanKpiServiceInterface interface {
+		// =============================================================================
+		// VALIDATE
+		// =============================================================================
+
 		// ValidatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/validate.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,
 			file *multipart.FileHeader,
 		) (data dto.ValidatePenyusunanKpiResponse, err error)
 
+		// =============================================================================
+		// CREATE
+		// =============================================================================
+
 		// CreatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/create.
 		CreatePenyusunanKpi(
 			req *dto.CreatePenyusunanKpiRequest,
 		) (data dto.CreatePenyusunanKpiResponse, err error)
+
+		// =============================================================================
+		// REVISION
+		// =============================================================================
 
 		// RevisionPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/revision.
 		RevisionPenyusunanKpi(
 			req *dto.RevisionPenyusunanKpiRequest,
 			file *multipart.FileHeader,
 		) (data dto.RevisionPenyusunanKpiResponse, err error)
+
+		// =============================================================================
+		// APPROVAL
+		// =============================================================================
 
 		// ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
 		ApprovePenyusunanKpi(
@@ -35,6 +51,10 @@ type (
 		RejectPenyusunanKpi(
 			req *dto.RejectPenyusunanKpiRequest,
 		) (data dto.RejectPenyusunanKpiResponse, err error)
+
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
 
 		// GetAllApprovalPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
 		GetAllApprovalPenyusunanKpi(
@@ -56,10 +76,18 @@ type (
 			req *dto.GetAllDaftarApprovalPenyusunanKpiRequest,
 		) (data []*dto.GetAllDaftarApprovalPenyusunanKpiResponse, total int64, err error)
 
+		// =============================================================================
+		// GET DETAIL
+		// =============================================================================
+
 		// GetDetailPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
 		) (data *dto.GetDetailPenyusunanKpiResponse, err error)
+
+		// =============================================================================
+		// GET EXPORT DATA
+		// =============================================================================
 
 		// GetExcelPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-excel.
 		GetExcelPenyusunanKpi(

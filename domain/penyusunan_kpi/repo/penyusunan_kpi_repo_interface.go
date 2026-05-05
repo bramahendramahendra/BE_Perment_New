@@ -9,6 +9,10 @@ import (
 
 type (
 	PenyusunanKpiRepoInterface interface {
+		// =============================================================================
+		// VALIDATE
+		// =============================================================================
+
 		// ValidatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/validate.
 		ValidatePenyusunanKpi(
 			req *dto.ValidatePenyusunanKpiRequest,
@@ -20,10 +24,18 @@ type (
 			idLama string,
 		) (string, error)
 
+		// =============================================================================
+		// CREATE
+		// =============================================================================
+
 		// CreatePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/create.
 		CreatePenyusunanKpi(
 			req *dto.CreatePenyusunanKpiRequest,
 		) error
+
+		// =============================================================================
+		// REVISION
+		// =============================================================================
 
 		// RevisionPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/revision.
 		RevisionPenyusunanKpi(
@@ -35,6 +47,10 @@ type (
 			contextList []dto.DataContext,
 		) error
 
+		// =============================================================================
+		// APPROVAL
+		// =============================================================================
+
 		// ApprovePenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/approve.
 		ApprovePenyusunanKpi(
 			idPengajuan, approvalList, approvalPosisi, user string,
@@ -44,6 +60,10 @@ type (
 		RejectPenyusunanKpi(
 			idPengajuan, approvalList, catatan, user string,
 		) error
+
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
 
 		// GetAllApprovalPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-all-approval.
 		GetAllApprovalPenyusunanKpi(
@@ -65,10 +85,18 @@ type (
 			req *dto.GetAllDaftarApprovalPenyusunanKpiRequest,
 		) ([]*model.DataKpi, int64, error)
 
+		// =============================================================================
+		// GET DETAIL
+		// =============================================================================
+
 		// GetDetailPenyusunanKpi digunakan oleh endpoint POST /penyusunan-kpi/get-detail.
 		GetDetailPenyusunanKpi(
 			req *dto.GetDetailPenyusunanKpiRequest,
 		) (*model.DataKpi, error)
+
+		// =============================================================================
+		// EXPORT DATA
+		// =============================================================================
 
 		// GetKpiExportData digunakan oleh endpoint POST /penyusunan-kpi/get-excel dan /penyusunan-kpi/get-pdf.
 		GetKpiExportData(
@@ -76,7 +104,7 @@ type (
 		) (*dto.KpiExportData, error)
 
 		// =============================================================================
-		// Approval Helper
+		// APPROVAL HELPER
 		// =============================================================================
 
 		// GetApprovalListJSON digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi untuk mengambil daftar approval dalam format JSON.
@@ -89,7 +117,7 @@ type (
 		CheckApprovalPenyusunanExists(user, idPengajuan string) (bool, error)
 
 		// =============================================================================
-		// Get Exist
+		// GET EXIST
 		// =============================================================================
 
 		// GetExistDataKpi digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
@@ -99,7 +127,7 @@ type (
 		GetExistDataKpiStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error)
 
 		// =============================================================================
-		// Service Helpers
+		// SERVICE HELPERS
 		// =============================================================================
 
 		// LookupKpiMaster digunakan oleh service ValidatePenyusunanKpi dan RevisionPenyusunanKpi untuk mencari id_kpi, kpi, dan rumus dari mst_kpi.
