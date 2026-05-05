@@ -77,26 +77,34 @@ type (
 		// =============================================================================
 		// Digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi
 		// =============================================================================
+
+		// GetApprovalListJSON digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi untuk mengambil daftar approval dalam format JSON.
 		GetApprovalListJSON(idPengajuan, userID string) (string, error)
+
+		// GetCatatanTolakan digunakan oleh service RejectPenyusunanKpi untuk mengambil catatan tolakan berdasarkan id_pengajuan.
 		GetCatatanTolakan(idPengajuan string) (string, error)
+
+		// CheckApprovalPenyusunanExists digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi untuk memvalidasi keberadaan approval.
 		CheckApprovalPenyusunanExists(user, idPengajuan string) (bool, error)
 
 		// =============================================================================
-		// GET EXIST
+		// Get Exist
 		// =============================================================================
-		// Digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
+
+		// GetExistDataKpi digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
 		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
 
-		// GetExistDataKpiStatus mengecek keberadaan data KPI dan mengembalikan id_pengajuan + status.
+		// GetExistDataKpiStatus digunakan oleh service untuk mengecek keberadaan data KPI dan mengembalikan id_pengajuan beserta statusnya.
 		GetExistDataKpiStatus(tahun, triwulan, kostl string) (idPengajuan string, status int, found bool, err error)
 
 		// =============================================================================
-		// Helpers
+		// Helpers Service
 		// =============================================================================
-		// LookupKpiMaster mencari id_kpi, kpi, dan rumus dari mst_kpi.
+
+		// LookupKpiMaster digunakan oleh service ValidatePenyusunanKpi untuk mencari id_kpi, kpi, dan rumus dari mst_kpi.
 		LookupKpiMaster(kpiText string) (idKpi, kpiFromDB, rumus string, err error)
 
-		// LookupPolarisasi mencari id_polarisasi dari mst_polarisasi.
+		// LookupPolarisasi digunakan oleh service ValidatePenyusunanKpi untuk mencari id_polarisasi dari mst_polarisasi.
 		LookupPolarisasi(polarisasiText string) (idPolarisasi string, err error)
 
 		GetDB() *gorm.DB
