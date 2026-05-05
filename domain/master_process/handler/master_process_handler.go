@@ -20,6 +20,12 @@ func NewMasterProcessHandler(service service.MasterProcessServiceInterface) *Mas
 	return &MasterProcessHandler{service: service}
 }
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterProcess handles POST /master-process/get-all.
+// Menerima application/json dengan JSON biasa.
 func (h *MasterProcessHandler) GetAllMasterProcess(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllMasterProcessRequest](c)
 	if err != nil {

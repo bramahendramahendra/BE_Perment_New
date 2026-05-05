@@ -7,6 +7,11 @@ import (
 
 type (
 	MasterTahunServiceInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterTahun digunakan oleh endpoint POST /master-tahun/get-all.
 		GetAllMasterTahun() (data []dto.MasterTahunResponse, err error)
 	}
 

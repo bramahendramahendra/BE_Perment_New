@@ -7,6 +7,11 @@ import (
 
 type (
 	MasterProcessServiceInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterProcess digunakan oleh endpoint POST /master-process/get-all.
 		GetAllMasterProcess(req *dto.GetAllMasterProcessRequest) (data []dto.MasterProcessResponse, err error)
 	}
 

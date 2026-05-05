@@ -16,6 +16,12 @@ func NewMasterKpiHandler(service service.MasterKpiServiceInterface) *MasterKpiHa
 	return &MasterKpiHandler{service: service}
 }
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterKpi handles POST /master-kpi/get-all.
+// Menerima application/json dengan JSON biasa.
 func (h *MasterKpiHandler) GetAllMasterKpi(c *gin.Context) {
 	data, err := h.service.GetAllMasterKpi()
 	if err != nil {

@@ -8,6 +8,11 @@ import (
 
 type (
 	MasterPerspektifRepoInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterPerspektif digunakan oleh endpoint POST /master-perspektif/get-all.
 		GetAllMasterPerspektif() ([]*model.MstPerspektif, error)
 		GetDB() *gorm.DB
 	}

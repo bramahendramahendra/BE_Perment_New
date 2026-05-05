@@ -4,6 +4,11 @@ import (
 	dto "permen_api/domain/master_divisi/dto"
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterDivisi digunakan oleh endpoint POST /master-divisi/get-all.
 func (s *masterDivisiService) GetAllMasterDivisi() (data []dto.MasterDivisiResponse, err error) {
 	dataDB, err := s.repo.GetAllMasterDivisi()
 	if err != nil {

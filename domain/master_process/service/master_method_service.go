@@ -7,6 +7,11 @@ import (
 	customErrors "permen_api/errors"
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterProcess digunakan oleh endpoint POST /master-process/get-all.
 func (s *masterProcessService) GetAllMasterProcess(req *dto.GetAllMasterProcessRequest) (data []dto.MasterProcessResponse, err error) {
 	exists, err := s.repo.CheckTriwulanExists(req.Triwulan)
 	if err != nil {

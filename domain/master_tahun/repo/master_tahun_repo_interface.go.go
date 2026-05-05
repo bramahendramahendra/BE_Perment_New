@@ -8,7 +8,12 @@ import (
 
 type (
 	MasterTahunRepoInterface interface {
-		GetMasterTahunConfig() (*model.MstTahun, error)
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterTahun digunakan oleh endpoint POST /master-tahun/get-all.
+		GetAllMasterTahun() (*model.MstTahun, error)
 		GetDB() *gorm.DB
 	}
 

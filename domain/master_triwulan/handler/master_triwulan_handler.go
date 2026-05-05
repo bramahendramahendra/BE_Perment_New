@@ -16,6 +16,12 @@ func NewMasterTriwulanHandler(service service.MasterTriwulanServiceInterface) *M
 	return &MasterTriwulanHandler{service: service}
 }
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterTriwulan handles POST /master-triwulan/get-all.
+// Menerima application/json dengan JSON biasa.
 func (h *MasterTriwulanHandler) GetAllMasterTriwulan(c *gin.Context) {
 	data, err := h.service.GetAllMasterTriwulan()
 	if err != nil {

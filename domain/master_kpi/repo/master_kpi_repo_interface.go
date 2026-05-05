@@ -8,6 +8,11 @@ import (
 
 type (
 	MasterKpiRepoInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterKpi digunakan oleh endpoint POST /master-kpi/get-all.
 		GetAllMasterKpi() ([]*model.MstKpi, error)
 		GetDB() *gorm.DB
 	}

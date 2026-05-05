@@ -8,6 +8,11 @@ import (
 
 type (
 	MasterStatusRepoInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterStatus digunakan oleh endpoint POST /master-status/get-all.
 		GetAllMasterStatus() ([]*model.MstStatus, error)
 		GetDB() *gorm.DB
 	}

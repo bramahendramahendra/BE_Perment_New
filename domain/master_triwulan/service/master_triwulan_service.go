@@ -4,6 +4,11 @@ import (
 	dto "permen_api/domain/master_triwulan/dto"
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterTriwulan digunakan oleh endpoint POST /master-triwulan/get-all.
 func (s *masterTriwulanService) GetAllMasterTriwulan() (data []dto.MasterTriwulanResponse, err error) {
 	dataDB, err := s.repo.GetAllMasterTriwulan()
 	if err != nil {

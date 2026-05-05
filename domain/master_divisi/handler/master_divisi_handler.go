@@ -16,6 +16,12 @@ func NewMasterDivisiHandler(service service.MasterDivisiServiceInterface) *Maste
 	return &MasterDivisiHandler{service: service}
 }
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterDivisi handles POST /master-divisi/get-all
+// Menerima application/json dengan JSON biasa.
 func (h *MasterDivisiHandler) GetAllMasterDivisi(c *gin.Context) {
 	data, err := h.service.GetAllMasterDivisi()
 	if err != nil {

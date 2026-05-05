@@ -7,6 +7,11 @@ import (
 
 type (
 	MasterKpiServiceInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterKpi digunakan oleh endpoint POST /master-kpi/get-all.
 		GetAllMasterKpi() (data []dto.MasterKpiResponse, err error)
 	}
 

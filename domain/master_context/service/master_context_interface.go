@@ -7,6 +7,11 @@ import (
 
 type (
 	MasterContextServiceInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterContext digunakan oleh endpoint POST /master-context/get-all.
 		GetAllMasterContext(req *dto.GetAllMasterContextRequest) (data []dto.MasterContextResponse, err error)
 	}
 

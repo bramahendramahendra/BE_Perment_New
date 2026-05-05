@@ -16,6 +16,11 @@ const (
 	`
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterDivisi digunakan oleh endpoint POST /master-divisi/get-all.
 func (r *masterDivisiRepo) GetAllMasterDivisi() ([]*model.MstDivisi, error) {
 	var masterdivisis []*model.MstDivisi
 	err := r.db.Raw(GetAllMasterDivisiQuery).Scan(&masterdivisis).Error

@@ -7,6 +7,11 @@ import (
 
 type (
 	MasterDivisiServiceInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterDivisi digunakan oleh endpoint POST /master-divisi/get-all.
 		GetAllMasterDivisi() (data []dto.MasterDivisiResponse, err error)
 	}
 

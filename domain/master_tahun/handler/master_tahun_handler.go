@@ -16,6 +16,12 @@ func NewMasterTahunHandler(service service.MasterTahunServiceInterface) *MasterT
 	return &MasterTahunHandler{service: service}
 }
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterTahun handles POST /master-tahun/get-all.
+// Menerima application/json dengan JSON biasa.
 func (h *MasterTahunHandler) GetAllMasterTahun(c *gin.Context) {
 	data, err := h.service.GetAllMasterTahun()
 	if err != nil {

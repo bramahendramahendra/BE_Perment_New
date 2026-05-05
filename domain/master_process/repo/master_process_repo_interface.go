@@ -9,8 +9,20 @@ import (
 
 type (
 	MasterProcessRepoInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterProcess digunakan oleh endpoint POST /master-process/get-all.
 		GetAllMasterProcess(req *dto.GetAllMasterProcessRequest) ([]*model.MstMethod, error)
+
+		// =============================================================================
+		// CHECK EXIST
+		// =============================================================================
+
+		// CheckTriwulanExists digunakan oleh service untuk mengecek keberadaan data Triwulan.
 		CheckTriwulanExists(idTriwulan string) (bool, error)
+
 		GetDB() *gorm.DB
 	}
 

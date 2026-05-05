@@ -4,6 +4,11 @@ import (
 	dto "permen_api/domain/master_status/dto"
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterStatus digunakan oleh endpoint POST /master-status/get-all.
 func (s *masterStatusService) GetAllMasterStatus() (data []dto.MasterStatusResponse, err error) {
 	dataDB, err := s.repo.GetAllMasterStatus()
 	if err != nil {

@@ -7,6 +7,11 @@ import (
 
 type (
 	MasterTriwulanServiceInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterTriwulan digunakan oleh endpoint POST /master-triwulan/get-all.
 		GetAllMasterTriwulan() (data []dto.MasterTriwulanResponse, err error)
 	}
 

@@ -7,6 +7,11 @@ import (
 
 type (
 	MasterStatusServiceInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterStatus digunakan oleh endpoint POST /master-status/get-all.
 		GetAllMasterStatus() (data []dto.MasterStatusResponse, err error)
 	}
 

@@ -18,6 +18,11 @@ const (
 		WHERE id_triwulan = ?`
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterProcess digunakan oleh endpoint POST /master-process/get-all.
 func (r *masterProcessRepo) GetAllMasterProcess(req *dto.GetAllMasterProcessRequest) ([]*model.MstMethod, error) {
 	var processes []*model.MstMethod
 
@@ -55,6 +60,11 @@ func (r *masterProcessRepo) GetAllMasterProcess(req *dto.GetAllMasterProcessRequ
 	return processes, nil
 }
 
+// =============================================================================
+// CHECK EXIST
+// =============================================================================
+
+// CheckTriwulanExists digunakan oleh service untuk mengecek keberadaan data Triwulan.
 func (r *masterProcessRepo) CheckTriwulanExists(idTriwulan string) (bool, error) {
 	var count int
 	err := r.db.Raw(CheckTriwulanExistsQuery, idTriwulan).Scan(&count).Error

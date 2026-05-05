@@ -8,7 +8,13 @@ import (
 
 type (
 	MasterDivisiRepoInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterDivisi digunakan oleh endpoint POST /master-divisi/get-all.
 		GetAllMasterDivisi() ([]*model.MstDivisi, error)
+
 		GetDB() *gorm.DB
 	}
 

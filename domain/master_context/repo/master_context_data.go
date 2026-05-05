@@ -18,6 +18,11 @@ const (
 		WHERE id_triwulan = ?`
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterContext digunakan oleh endpoint POST /master-context/get-all.
 func (r *masterContextRepo) GetAllMasterContext(req *dto.GetAllMasterContextRequest) ([]*model.MstChallenge, error) {
 	var contexts []*model.MstChallenge
 
@@ -55,6 +60,11 @@ func (r *masterContextRepo) GetAllMasterContext(req *dto.GetAllMasterContextRequ
 	return contexts, nil
 }
 
+// =============================================================================
+// CHECK EXIST
+// =============================================================================
+
+// CheckTriwulanExists digunakan oleh service untuk mengecek keberadaan data Triwulan.
 func (r *masterContextRepo) CheckTriwulanExists(idTriwulan string) (bool, error) {
 	var count int
 	err := r.db.Raw(CheckTriwulanExistsQuery, idTriwulan).Scan(&count).Error

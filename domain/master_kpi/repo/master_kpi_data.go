@@ -5,9 +5,18 @@ import (
 )
 
 const (
-	GetAllMasterKpiQuery = `SELECT id_kpi, kpi, rumus FROM mst_kpi ORDER BY id_kpi ASC`
+	GetAllMasterKpiQuery = `
+		SELECT id_kpi, kpi, rumus 
+		FROM mst_kpi 
+		ORDER BY id_kpi ASC
+	`
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterKpi digunakan oleh endpoint POST /master-kpi/get-all.
 func (r *masterKpiRepo) GetAllMasterKpi() ([]*model.MstKpi, error) {
 	var masterkpis []*model.MstKpi
 	err := r.db.Raw(GetAllMasterKpiQuery).Scan(&masterkpis).Error

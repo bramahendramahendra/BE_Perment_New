@@ -8,6 +8,11 @@ import (
 
 type (
 	MasterTriwulanRepoInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterTriwulan digunakan oleh endpoint POST /master-triwulan/get-all.
 		GetAllMasterTriwulan() ([]*model.MstTriwulan, error)
 		GetDB() *gorm.DB
 	}

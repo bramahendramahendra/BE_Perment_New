@@ -7,6 +7,11 @@ import (
 
 type (
 	MasterPerspektifServiceInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterPerspektif digunakan oleh endpoint POST /master-perspektif/get-all.
 		GetAllMasterPerspektif() (data []dto.MasterPerspektifResponse, err error)
 	}
 

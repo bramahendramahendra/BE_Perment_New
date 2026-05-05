@@ -16,6 +16,12 @@ func NewMasterStatusHandler(service service.MasterStatusServiceInterface) *Maste
 	return &MasterStatusHandler{service: service}
 }
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterStatus handles POST /master-status/get-all.
+// Menerima application/json dengan JSON biasa.
 func (h *MasterStatusHandler) GetAllMasterStatus(c *gin.Context) {
 	data, err := h.service.GetAllMasterStatus()
 	if err != nil {

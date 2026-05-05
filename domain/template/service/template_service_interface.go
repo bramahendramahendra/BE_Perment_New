@@ -7,6 +7,11 @@ import (
 
 type (
 	TemplateServiceInterface interface {
+
+		// =============================================================================
+		// GET TEMPLATE PENYUSUNAN
+		// =============================================================================
+
 		// GenerateFormatPenyusunanKpi digunakan oleh endpoint POST /template/format-penyusunan-kpi.
 		// Menghasilkan file Excel template penyusunan KPI sesuai triwulan (tanpa isi data baris).
 		// Sheet 1 — nama sheet mengikuti nilai triwulan dari request (TW1, TW2, TW3, TW4):
@@ -24,6 +29,10 @@ type (
 		// Sheet 2 — nama sheet "KPI":
 		//   Kolom A (KPI) dan B (Polarisasi) dari join mst_kpi dan mst_polarisasi.
 		GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusunanKpiRequest) (fileBytes []byte, filename string, err error)
+
+		// =============================================================================
+		// GET TEMPLATE REALISASI
+		// =============================================================================
 
 		// GenerateRevisionRealisasiKpi digunakan oleh endpoint POST /template/revision-realisasi-kpi.
 		// Menghasilkan file Excel realisasi KPI yang sudah terisi data realisasi berdasarkan id_pengajuan,

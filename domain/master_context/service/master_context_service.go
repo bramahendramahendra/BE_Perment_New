@@ -7,7 +7,14 @@ import (
 	customErrors "permen_api/errors"
 )
 
-func (s *masterContextService) GetAllMasterContext(req *dto.GetAllMasterContextRequest) (data []dto.MasterContextResponse, err error) {
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterContext digunakan oleh endpoint POST /master-context/get-all.
+func (s *masterContextService) GetAllMasterContext(
+	req *dto.GetAllMasterContextRequest,
+) (data []dto.MasterContextResponse, err error) {
 	exists, err := s.repo.CheckTriwulanExists(req.Triwulan)
 	if err != nil {
 		return nil, err

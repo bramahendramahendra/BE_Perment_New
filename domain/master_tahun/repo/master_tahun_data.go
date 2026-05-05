@@ -8,7 +8,12 @@ const (
 	GetMasterTahunConfigQuery = `SELECT id, batas_atas, batas_bawah FROM mst_tahun LIMIT 1`
 )
 
-func (r *masterTahunRepo) GetMasterTahunConfig() (*model.MstTahun, error) {
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterTahun digunakan oleh endpoint POST /master-tahun/get-all.
+func (r *masterTahunRepo) GetAllMasterTahun() (*model.MstTahun, error) {
 	var mstTahun model.MstTahun
 	err := r.db.Raw(GetMasterTahunConfigQuery).Scan(&mstTahun).Error
 	if err != nil {

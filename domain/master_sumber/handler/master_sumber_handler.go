@@ -16,6 +16,12 @@ func NewMasterSumberHandler(service service.MasterSumberServiceInterface) *Maste
 	return &MasterSumberHandler{service: service}
 }
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterSumber handles POST /master-sumber/get-all.
+// Menerima application/json dengan JSON biasa.
 func (h *MasterSumberHandler) GetAllMasterSumber(c *gin.Context) {
 	data, err := h.service.GetAllMasterSumber()
 	if err != nil {

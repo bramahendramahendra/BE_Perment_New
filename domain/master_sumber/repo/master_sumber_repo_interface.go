@@ -8,6 +8,11 @@ import (
 
 type (
 	MasterSumberRepoInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterSumber digunakan oleh endpoint POST /master-sumber/get-all.
 		GetAllMasterSumber() ([]*model.MstSumber, error)
 		GetDB() *gorm.DB
 	}

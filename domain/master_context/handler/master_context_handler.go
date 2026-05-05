@@ -20,6 +20,12 @@ func NewMasterContextHandler(service service.MasterContextServiceInterface) *Mas
 	return &MasterContextHandler{service: service}
 }
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterContext handles POST /master-context/get-all.
+// Menerima application/json dengan JSON biasa.
 func (h *MasterContextHandler) GetAllMasterContext(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllMasterContextRequest](c)
 	if err != nil {

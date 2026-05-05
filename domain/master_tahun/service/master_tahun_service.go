@@ -5,8 +5,13 @@ import (
 	"time"
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterTahun digunakan oleh endpoint POST /master-tahun/get-all.
 func (s *masterTahunService) GetAllMasterTahun() (data []dto.MasterTahunResponse, err error) {
-	config, err := s.repo.GetMasterTahunConfig()
+	config, err := s.repo.GetAllMasterTahun()
 	if err != nil {
 		return data, err
 	}

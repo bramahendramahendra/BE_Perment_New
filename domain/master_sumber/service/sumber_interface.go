@@ -7,6 +7,11 @@ import (
 
 type (
 	MasterSumberServiceInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterSumber digunakan oleh endpoint POST /master-sumber/get-all.
 		GetAllMasterSumber() (data []dto.MasterSumberResponse, err error)
 	}
 

@@ -4,6 +4,11 @@ import (
 	dto "permen_api/domain/master_kpi/dto"
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterKpi digunakan oleh endpoint POST /master-kpi/get-all.
 func (s *masterKpiService) GetAllMasterKpi() (data []dto.MasterKpiResponse, err error) {
 	dataDB, err := s.repo.GetAllMasterKpi()
 	if err != nil {

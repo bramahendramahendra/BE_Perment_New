@@ -9,8 +9,20 @@ import (
 
 type (
 	MasterContextRepoInterface interface {
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
+
+		// GetAllMasterContext digunakan oleh endpoint POST /master-context/get-all.
 		GetAllMasterContext(req *dto.GetAllMasterContextRequest) ([]*model.MstChallenge, error)
+
+		// =============================================================================
+		// CHECK EXIST
+		// =============================================================================
+
+		// CheckTriwulanExists digunakan oleh service untuk mengecek keberadaan data Triwulan.
 		CheckTriwulanExists(idTriwulan string) (bool, error)
+
 		GetDB() *gorm.DB
 	}
 

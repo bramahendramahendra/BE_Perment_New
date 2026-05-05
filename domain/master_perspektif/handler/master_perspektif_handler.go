@@ -16,6 +16,12 @@ func NewMasterPerspektifHandler(service service.MasterPerspektifServiceInterface
 	return &MasterPerspektifHandler{service: service}
 }
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterKpi handles POST /master-perspektif/get-all.
+// Menerima application/json dengan JSON biasa.
 func (h *MasterPerspektifHandler) GetAllMasterPerspektif(c *gin.Context) {
 	data, err := h.service.GetAllMasterPerspektif()
 	if err != nil {

@@ -4,6 +4,11 @@ import (
 	dto "permen_api/domain/master_perspektif/dto"
 )
 
+// =============================================================================
+// GET ALL
+// =============================================================================
+
+// GetAllMasterPerspektif digunakan oleh endpoint POST /master-perspektif/get-all.
 func (s *masterPerspektifService) GetAllMasterPerspektif() (data []dto.MasterPerspektifResponse, err error) {
 	dataDB, err := s.repo.GetAllMasterPerspektif()
 	if err != nil {
