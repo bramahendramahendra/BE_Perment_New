@@ -255,24 +255,24 @@ const (
 	// Use func : ValidateRealisasiKpi, RevisionRealisasiKpi
 	queryUpdateResultDetailRealisasi = `
 		UPDATE data_result_detail
-		SET realisasi_result = ?
-			AND lampiran_evidence = ?
+		SET realisasi_result   = ?,
+		    lampiran_evidence  = ?
 		WHERE id_pengajuan = ?
 		  AND id_detail_result = ?`
 
 	// Use func : ValidateRealisasiKpi, RevisionRealisasiKpi
 	queryUpdateProcessDetailRealisasi = `
 		UPDATE data_method_detail
-		SET realisasi_method = ?
-			AND lampiran_evidence = ?
+		SET realisasi_method  = ?,
+		    lampiran_evidence = ?
 		WHERE id_pengajuan = ?
 		  AND id_detail_method = ?`
 
 	// Use func : ValidateRealisasiKpi, RevisionRealisasiKpi
 	queryUpdateContextDetailRealisasi = `
 		UPDATE data_challenge_detail
-		SET realisasi_challenge = ?
-			AND lampiran_evidence = ?
+		SET realisasi_challenge = ?,
+		    lampiran_evidence   = ?
 		WHERE id_pengajuan = ?
 		  AND id_detail_challenge = ?`
 
@@ -367,11 +367,11 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	}
 
 	// -------------------------------------------------------------------------
-	// UPDATE result (data_challenge_detail.realisasi_challenge) — TW2/TW4
+	// UPDATE result (data_result_detail.realisasi_result) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, r2 := range resultList {
 		if err := tx.Exec(queryUpdateResultDetailRealisasi,
-			r2.RealisasiResult, req.IdPengajuan, r2.IdDetailResult,
+			r2.RealisasiResult, r2.LampiranEvidence, req.IdPengajuan, r2.IdDetailResult,
 		).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("gagal update result '%s': %w", r2.IdDetailResult, err)
@@ -383,7 +383,7 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	// -------------------------------------------------------------------------
 	for _, p := range processList {
 		if err := tx.Exec(queryUpdateProcessDetailRealisasi,
-			p.RealisasiProcess, req.IdPengajuan, p.IdDetailProcess,
+			p.RealisasiProcess, p.LampiranEvidence, req.IdPengajuan, p.IdDetailProcess,
 		).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("gagal update process '%s': %w", p.IdDetailProcess, err)
@@ -391,11 +391,11 @@ func (r *realisasiKpiRepo) ValidateRealisasiKpi(
 	}
 
 	// -------------------------------------------------------------------------
-	// UPDATE context (data_challenge_detail.realisasi_challenge untuk context) — TW2/TW4
+	// UPDATE context (data_challenge_detail.realisasi_challenge) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, c := range contextList {
 		if err := tx.Exec(queryUpdateContextDetailRealisasi,
-			c.RealisasiContext, req.IdPengajuan, c.IdDetailContext,
+			c.RealisasiContext, c.LampiranEvidence, req.IdPengajuan, c.IdDetailContext,
 		).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("gagal update context '%s': %w", c.IdDetailContext, err)
@@ -569,11 +569,11 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	}
 
 	// -------------------------------------------------------------------------
-	// UPDATE result (data_challenge_detail.realisasi_challenge) — TW2/TW4
+	// UPDATE result (data_result_detail.realisasi_result) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, r2 := range resultList {
 		if err := tx.Exec(queryUpdateResultDetailRealisasi,
-			r2.RealisasiResult, req.IdPengajuan, r2.IdDetailResult,
+			r2.RealisasiResult, r2.LampiranEvidence, req.IdPengajuan, r2.IdDetailResult,
 		).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("gagal update result '%s': %w", r2.IdDetailResult, err)
@@ -585,7 +585,7 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	// -------------------------------------------------------------------------
 	for _, p := range processList {
 		if err := tx.Exec(queryUpdateProcessDetailRealisasi,
-			p.RealisasiProcess, req.IdPengajuan, p.IdDetailProcess,
+			p.RealisasiProcess, p.LampiranEvidence, req.IdPengajuan, p.IdDetailProcess,
 		).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("gagal update process '%s': %w", p.IdDetailProcess, err)
@@ -593,11 +593,11 @@ func (r *realisasiKpiRepo) RevisionRealisasiKpi(
 	}
 
 	// -------------------------------------------------------------------------
-	// UPDATE context (data_challenge_detail.realisasi_challenge untuk context) — TW2/TW4
+	// UPDATE context (data_challenge_detail.realisasi_challenge) — TW2/TW4
 	// -------------------------------------------------------------------------
 	for _, c := range contextList {
 		if err := tx.Exec(queryUpdateContextDetailRealisasi,
-			c.RealisasiContext, req.IdPengajuan, c.IdDetailContext,
+			c.RealisasiContext, c.LampiranEvidence, req.IdPengajuan, c.IdDetailContext,
 		).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("gagal update context '%s': %w", c.IdDetailContext, err)

@@ -21,6 +21,9 @@ func (s *realisasiKpiService) resolveRealisasiLookups(
 	if err := utils.ValidateLinkDokumenSumber(kpiRows, kpiSubDetails, linkFormats); err != nil {
 		return &customErrors.BadRequestError{Message: err.Error()}
 	}
+	if err := utils.ValidateLampiranEvidence(kpiRows, kpiSubDetails, linkFormats); err != nil {
+		return &customErrors.BadRequestError{Message: err.Error()}
+	}
 	return s.enrichRowsFromDB(idPengajuan, kpiRows, kpiSubDetails)
 }
 

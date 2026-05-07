@@ -150,6 +150,57 @@ func ParseCapping(cappingStr string) float64 {
 	}
 }
 
+// ValidateLampiranEvidence memvalidasi kolom R/V/Z (Lampiran Evidence) untuk TW2/TW4
+// terhadap daftar prefix URL yang diizinkan dari DB (mst_link_format).
+func ValidateLampiranEvidence(
+	kpiRows []dto.RealisasiKpiRow,
+	kpiSubDetails map[int][]dto.RealisasiKpiSubDetailRow,
+	allowedPrefixes []string,
+) error {
+	type evidenceField struct {
+		kolom string
+		value *string
+	}
+
+	for _, kpiRow := range kpiRows {
+		for _, row := range kpiSubDetails[kpiRow.KpiIndex] {
+			if !row.IsTW24 {
+				continue
+			}
+
+			fields := []evidenceField{
+				{"R (Lampiran Evidence Result)", row.LampiranEvidenceResult},
+				{"V (Lampiran Evidence Process)", row.LampiranEvidenceProcess},
+				{"Z (Lampiran Evidence Context)", row.LampiranEvidenceContext},
+			}
+
+			for _, f := range fields {
+				if f.value == nil || *f.value == "" {
+					return fmt.Errorf(
+						"baris No %d, Sub KPI '%s': Kolom %s tidak boleh kosong",
+						row.No, row.SubKPI, f.kolom,
+					)
+				}
+				link := strings.TrimSpace(*f.value)
+				valid := false
+				for _, prefix := range allowedPrefixes {
+					if strings.HasPrefix(link, prefix) {
+						valid = true
+						break
+					}
+				}
+				if !valid {
+					return fmt.Errorf(
+						"baris No %d, Sub KPI '%s': Kolom %s '%s' tidak sesuai format yang diizinkan",
+						row.No, row.SubKPI, f.kolom, link,
+					)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // ValidateLinkDokumenSumber memvalidasi kolom N (Link Dokumen Sumber) setiap baris Excel
 // terhadap daftar prefix URL yang diizinkan dari DB (mst_link_format).
 func ValidateLinkDokumenSumber(
