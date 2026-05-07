@@ -15,8 +15,9 @@ import (
 )
 
 const (
+
 	// =============================================================================
-	// Check Count
+	// Get Count
 	// =============================================================================
 
 	// Use func : GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, GetAllDaftarApprovalPenyusunanKpi
@@ -25,13 +26,38 @@ const (
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status`
 
-	queryCheckApprovalPenyusunan = `
+	// Use func : CheckApprovalPenyusunanExists
+	queryGetCountApprovalKpi = `
 		SELECT COUNT(*) FROM data_kpi
 		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
 
 	// =============================================================================
-	// Check Data
+	// Get Data
 	// =============================================================================
+
+	// Use func : CreatePenyusunanKpi, RejectPenyusunanKpi
+	queryGetKpiBaseData = `
+		SELECT kostl_tx, entry_user
+		FROM data_kpi
+		WHERE id_pengajuan = ?
+		LIMIT 1`
+
+	// Use func : GetCatatanTolakan
+	queryGetCatatanTolakan = `
+		SELECT IFNULL(catatan_tolakan, '') FROM data_kpi
+		WHERE id_pengajuan = ? LIMIT 1`
+
+	// =============================================================================
+	// Get Exist
+	// =============================================================================
+
+	// Use func : GetExistDataKpi
+	queryGetExistDataKpi = `
+		SELECT a.tahun, a.triwulan, a.kostl, a.kostl_tx, a.status, b.status_desc, a.entry_user, a.entry_name
+		FROM data_kpi a
+		INNER JOIN mst_status b ON a.status = b.id_status
+		WHERE a.id_pengajuan = ?
+		LIMIT 1`
 
 	// Use func : GetExistDataKpiStatus
 	queryGetExistDataKpiStatus = `
@@ -40,22 +66,64 @@ const (
 		WHERE tahun = ? AND triwulan = ? AND kostl = ?
 		LIMIT 1`
 
-	// queryGetKpiBaseData digunakan oleh: SubmitPenyusunanKpi (kostl_tx),
-	// ApprovePenyusunanKpi (entry_user), dan GetKpiExportData (kostl_tx, tahun, triwulan).
-	queryGetKpiBaseData = `
-		SELECT kostl_tx, tahun, triwulan, entry_user
-		FROM data_kpi
-		WHERE id_pengajuan = ?
+	// =============================================================================
+	// Get Helper
+	// =============================================================================
+
+	// Use func : GetApprovalListJSON
+	queryGetApprovalListJSON = `
+		SELECT approval_list FROM data_kpi
+		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
+
+	// Use func : RevisionPenyusunanKpi
+	queryGetApprovalForRevision = `
+		SELECT approval_posisi, approval_list FROM data_kpi
+		WHERE id_pengajuan = ? LIMIT 1`
+
+	// =============================================================================
+	// SERVICE HELPERS
+	// =============================================================================
+
+	// Use func : LookupKpiMaster
+	queryLookupSubKpi = `
+		SELECT id_kpi, kpi, rumus
+		FROM mst_kpi
+		WHERE LOWER(kpi) = LOWER(?)
 		LIMIT 1`
 
-	// queryGetExistDataKpi digunakan oleh: RevisionPenyusunanKpi (service) untuk mengambil
-	// tahun, triwulan, kostl, kostl_tx berdasarkan id_pengajuan.
-	queryGetExistDataKpi = `
-		SELECT a.tahun, a.triwulan, a.kostl, a.kostl_tx, a.status, b.status_desc, a.entry_user, a.entry_name
-		FROM data_kpi a
-		INNER JOIN mst_status b ON a.status = b.id_status
-		WHERE a.id_pengajuan = ?
+	// Use func : LookupPolarisasi
+	queryLookupPolarisasi = `
+		SELECT id_polarisasi
+		FROM mst_polarisasi
+		WHERE LOWER(polarisasi) = LOWER(?)
 		LIMIT 1`
+
+	// =============================================================================
+	// Get Export
+	// =============================================================================
+
+	// Use func : GetKpiExportData
+	queryGetKpiBaseDataForExport = `
+		SELECT kostl_tx, tahun, triwulan, entry_user
+		FROM data_kpi
+		WHERE id_pengajuan = ? AND kostl = ? AND tahun = ? AND triwulan = ?
+		LIMIT 1`
+
+	// Use func : GetKpiExportData
+	queryGetSubDetailForExport = `
+		SELECT
+			a.kpi,
+			IFNULL(CAST(a.bobot AS CHAR), '') bobot,
+			IFNULL(a.target_tahunan, '')       target_tahunan,
+			IFNULL(a.capping, '')              capping
+		FROM data_kpi_subdetail a
+		INNER JOIN data_kpi b ON a.id_pengajuan = b.id_pengajuan
+		WHERE a.id_pengajuan = ? AND b.kostl = ? AND b.tahun = ? AND b.triwulan = ?
+		ORDER BY a.id_sub_detail ASC`
+
+	// =============================================================================
+	// Get Other
+	// =============================================================================
 
 	// Use func : ValidatePenyusunanKpi
 	queryGetOrgeh = `
@@ -65,18 +133,11 @@ const (
 		ORDER BY HILFM ASC 
 		LIMIT 1`
 
-	queryLookupSubKpi = `
-		SELECT id_kpi, kpi, rumus
-		FROM mst_kpi
-		WHERE LOWER(kpi) = LOWER(?)
-		LIMIT 1`
+	// =============================================================================
+	// Get KPI
+	// =============================================================================
 
-	queryLookupPolarisasi = `
-		SELECT id_polarisasi
-		FROM mst_polarisasi
-		WHERE LOWER(polarisasi) = LOWER(?)
-		LIMIT 1`
-
+	// Use func : GetAllApprovalPenyusunanKpi, GetAllTolakanPenyusunanKpi, GetAllDaftarPenyusunanKpi, GetAllDaftarApprovalPenyusunanKpi, dan GetDetailPenyusunanKpi
 	queryGetDataKpi = `
 		SELECT
 			a.id_pengajuan, a.tahun, a.triwulan, a.kostl, a.kostl_tx,
@@ -100,6 +161,7 @@ const (
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status`
 
+	// Use func : GetDetailPenyusunanKpi
 	queryGetDataKpiDetail = `
 		SELECT
 			a.id_detail,
@@ -113,8 +175,7 @@ const (
 		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
 		WHERE a.id_pengajuan = ?`
 
-	// queryGetDataKpiSubDetailPenyusunan digunakan oleh GetDetailPenyusunanKpi (versi ringan).
-	// JOIN ke mst_polarisasi via a.rumus untuk mendapatkan polarisasi dan id_polarisasi.
+	// Use func : GetDetailPenyusunanKpi
 	queryGetDataKpiSubDetail = `
 		SELECT
 			a.id_sub_detail,
@@ -137,6 +198,7 @@ const (
 		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
 		WHERE a.id_detail = ?`
 
+	// Use func : GetDetailPenyusunanKpi
 	queryGetDataResultDetail = `
 		SELECT
 			id_detail_result,
@@ -144,6 +206,7 @@ const (
 		FROM data_result_detail
 		WHERE id_pengajuan = ?`
 
+	// Use func : GetDetailPenyusunanKpi
 	queryGetDataProcessDetail = `
 		SELECT
 			id_detail_method,
@@ -153,6 +216,7 @@ const (
 		FROM data_method_detail
 		WHERE id_pengajuan = ?`
 
+	// Use func : GetDetailPenyusunanKpi
 	queryGetDataContextDetail = `
 		SELECT
 			id_detail_challenge,
@@ -162,52 +226,25 @@ const (
 		FROM data_challenge_detail
 		WHERE id_pengajuan = ?`
 
-	queryGetKpiBaseDataForExport = `
-		SELECT kostl_tx, tahun, triwulan, entry_user
-		FROM data_kpi
-		WHERE id_pengajuan = ? AND kostl = ? AND tahun = ? AND triwulan = ?
-		LIMIT 1`
-
-	queryGetSubDetailForExport = `
-		SELECT
-			a.kpi,
-			IFNULL(CAST(a.bobot AS CHAR), '') bobot,
-			IFNULL(a.target_tahunan, '')       target_tahunan,
-			IFNULL(a.capping, '')              capping
-		FROM data_kpi_subdetail a
-		INNER JOIN data_kpi b ON a.id_pengajuan = b.id_pengajuan
-		WHERE a.id_pengajuan = ? AND b.kostl = ? AND b.tahun = ? AND b.triwulan = ?
-		ORDER BY a.id_sub_detail ASC`
-
-	queryGetApprovalListJSON = `
-		SELECT approval_list FROM data_kpi
-		WHERE status = 0 AND approval_posisi = ? AND id_pengajuan = ?`
-
-	queryGetCatatanTolakan = `
-		SELECT IFNULL(catatan_tolakan, '') FROM data_kpi
-		WHERE id_pengajuan = ? LIMIT 1`
-
-	// queryGetApprovalForRevision digunakan oleh RevisionPenyusunanKpi untuk membaca
-	queryGetApprovalForRevision = `
-		SELECT approval_posisi, approval_list FROM data_kpi
-		WHERE id_pengajuan = ? LIMIT 1`
 	// =============================================================================
 	// Insert
 	// =============================================================================
-	// queryInsertKpi digunakan oleh ValidatePenyusunanKpi.
+
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
 	queryInsertKpi = `
 		INSERT INTO data_kpi 
 			(id_pengajuan, tahun, triwulan, kostl, kostl_tx, orgeh, orgeh_tx, 
 			 entry_user, entry_name, entry_time, approval_posisi, approval_list, status) 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-	// queryInsertKpiDetail: id_perspektif diisi NULL karena sudah tidak digunakan.
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
 	queryInsertKpiDetail = `
 		INSERT INTO data_kpi_detail 
 			(id_pengajuan, id_detail, tahun, triwulan, id_kpi, kpi, rumus, 
 			 id_perspektif, id_keterangan_project) 
 		VALUES %s`
 
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
 	queryInsertKpiSubDetail = `
 		INSERT INTO data_kpi_subdetail 
 			(id_pengajuan, id_detail, id_sub_detail, tahun, triwulan, 
@@ -218,18 +255,21 @@ const (
 			target_qualifier, id_keterangan_project, id_qualifier) 
 		VALUES %s`
 
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
 	queryInsertResultDetail = `
 		INSERT INTO data_result_detail
 			(id_pengajuan, id_detail_result, tahun, triwulan,
 			nama_result, deskripsi_result)
 		VALUES %s`
 
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
 	queryInsertProcessDetail = `
 		INSERT INTO data_method_detail 
 			(id_pengajuan, id_detail_method, tahun, triwulan, 
 			 nama_method, deskripsi_method) 
 		VALUES %s`
 
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
 	queryInsertContextDetail = `
 		INSERT INTO data_challenge_detail 
 			(id_pengajuan, id_detail_challenge, tahun, triwulan, 
@@ -237,40 +277,57 @@ const (
 		VALUES %s`
 
 	// =============================================================================
-	// Update
+	// Update KPI
 	// =============================================================================
-	// queryUpdateKpi digunakan oleh CreatePenyusunanKpi untuk mengisi approval dan mengubah status.
+
+	// Use func : CreatePenyusunanKpi
 	queryUpdateKpi = `
 		UPDATE data_kpi 
 		SET approval_posisi = ?, approval_list = ?, status = 0
 		WHERE id_pengajuan = ?`
 
-	queryApproveChainPenyusunan = `
-		UPDATE data_kpi SET approval_posisi = ?, approval_list = ? WHERE id_pengajuan = ?`
-
-	queryApproveFinalPenyusunan = `
-		UPDATE data_kpi SET status = 2, approval_list = ? WHERE id_pengajuan = ?`
-
-	queryRejectPenyusunan = `
-		UPDATE data_kpi SET status = 1, approval_list = ?, catatan_tolakan = ? WHERE id_pengajuan = ?`
-
-	// queryUpdateKpiRevision digunakan oleh RevisionPenyusunanKpi untuk update header data_kpi.
-	// status = 0 → langsung ke approval (tidak perlu draft lagi).
+	// Use func : RevisionPenyusunanKpi
 	queryUpdateKpiRevision = `
 		UPDATE data_kpi
 		SET entry_time = ?, approval_list = ?, approval_posisi = ?, status = 0
 		WHERE id_pengajuan = ?`
 
 	// =============================================================================
-	// Delete
+	// Update Approval
 	// =============================================================================
 
-	// Query-query DELETE berikut digunakan oleh RevisionPenyusunanKpi dan ValidatePenyusunanKpi (replace draft).
-	queryDeleteKpiHeader     = `DELETE FROM data_kpi WHERE id_pengajuan = ?`
-	queryDeleteKpiDetail     = `DELETE FROM data_kpi_detail WHERE id_pengajuan = ?`
-	queryDeleteKpiSubDetail  = `DELETE FROM data_kpi_subdetail WHERE id_pengajuan = ?`
-	queryDeleteResultDetail  = `DELETE FROM data_result_detail WHERE id_pengajuan = ?`
+	// Use func : ApprovePenyusunanKpi
+	queryApproveChainPenyusunan = `
+		UPDATE data_kpi SET approval_posisi = ?, approval_list = ? WHERE id_pengajuan = ?`
+
+	// Use func : ApprovePenyusunanKpi
+	queryApproveFinalPenyusunan = `
+		UPDATE data_kpi SET status = 2, approval_list = ? WHERE id_pengajuan = ?`
+
+	// Use func : RejectPenyusunanKpi
+	queryRejectPenyusunan = `
+		UPDATE data_kpi SET status = 1, approval_list = ?, catatan_tolakan = ? WHERE id_pengajuan = ?`
+
+	// =============================================================================
+	// Delete KPI
+	// =============================================================================
+
+	// Use func : ValidatePenyusunanKpi
+	queryDeleteKpi = `DELETE FROM data_kpi WHERE id_pengajuan = ?`
+
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
+	queryDeleteKpiDetail = `DELETE FROM data_kpi_detail WHERE id_pengajuan = ?`
+
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
+	queryDeleteKpiSubDetail = `DELETE FROM data_kpi_subdetail WHERE id_pengajuan = ?`
+
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
+	queryDeleteResultDetail = `DELETE FROM data_result_detail WHERE id_pengajuan = ?`
+
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
 	queryDeleteProcessDetail = `DELETE FROM data_method_detail WHERE id_pengajuan = ?`
+
+	// Use func : ValidatePenyusunanKpi, RevisionPenyusunanKpi
 	queryDeleteContextDetail = `DELETE FROM data_challenge_detail WHERE id_pengajuan = ?`
 )
 
@@ -435,7 +492,7 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 			{queryDeleteResultDetail, "data_result_detail"},
 			{queryDeleteProcessDetail, "data_method_detail"},
 			{queryDeleteContextDetail, "data_challenge_detail"},
-			{queryDeleteKpiHeader, "data_kpi"},
+			{queryDeleteKpi, "data_kpi"},
 		} {
 			if err := tx.Exec(q.query, idLama).Error; err != nil {
 				tx.Rollback()
@@ -509,7 +566,6 @@ func (r *penyusunanKpiRepo) ValidatePenyusunanKpi(
 func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 	req *dto.CreatePenyusunanKpiRequest,
 ) error {
-
 	// Ambil userid pertama dari ApprovalList sebagai approval_posisi
 	approvalPosisi := ""
 	if len(req.ApprovalListPenyusunan) > 0 {
@@ -528,7 +584,6 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 	if err := r.db.Raw(queryGetKpiBaseData, req.IdPengajuan).Scan(&kpiBase).Error; err != nil {
 		return fmt.Errorf("gagal mengambil kostl_tx: %w", err)
 	}
-	kostlTx := kpiBase.KostlTx
 
 	// =========================================================================
 	// Jalankan dalam transaksi agar update + notif atomic
@@ -548,7 +603,7 @@ func (r *penyusunanKpiRepo) CreatePenyusunanKpi(
 	if err := notif.Insert(
 		tx,
 		req.IdPengajuan,
-		kostlTx,
+		kpiBase.KostlTx,
 		req.EntryUserPenyusunan,
 		approvalPosisi,
 		"approval_penyusunan",
@@ -891,7 +946,6 @@ func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catat
 	if err := r.db.Raw(queryGetKpiBaseData, idPengajuan).Scan(&kpiBase).Error; err != nil {
 		return fmt.Errorf("gagal mengambil entry_user: %w", err)
 	}
-	entryUser := kpiBase.EntryUser
 
 	tx := r.db.Begin()
 	if tx.Error != nil {
@@ -909,7 +963,7 @@ func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catat
 		idPengajuan,
 		"Penyusunan Ditolak, ID : "+idPengajuan,
 		user,
-		entryUser,
+		kpiBase.EntryUser,
 		"penyusunan_ditolak",
 	); err != nil {
 		tx.Rollback()
@@ -1483,7 +1537,7 @@ func (r *penyusunanKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error
 // CheckApprovalPenyusunanExists digunakan oleh service ApprovePenyusunanKpi dan RejectPenyusunanKpi untuk memvalidasi keberadaan approval.
 func (r *penyusunanKpiRepo) CheckApprovalPenyusunanExists(user, idPengajuan string) (bool, error) {
 	var count int64
-	if err := r.db.Raw(queryCheckApprovalPenyusunan, user, idPengajuan).Scan(&count).Error; err != nil {
+	if err := r.db.Raw(queryGetCountApprovalKpi, user, idPengajuan).Scan(&count).Error; err != nil {
 		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
 	}
 	return count > 0, nil

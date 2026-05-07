@@ -15,17 +15,41 @@ import (
 
 const (
 	// =============================================================================
+	// Get Count
+	// =============================================================================
+
+	// Use func : GetAllRealisasiKpi, GetAllApprovalRealisasiKpi, GetAllTolakanRealisasiKpi, GetAllDaftarRealisasiKpi, GetAllDaftarApprovalRealisasiKpi
+	queryGetCountDataKpi = `
+		SELECT COUNT(1)
+		FROM data_kpi a
+		INNER JOIN mst_status b ON a.status = b.id_status`
+
+	// Use func : CheckApprovalRealisasiExists
+	queryGetCountApprovalKpi = `
+		SELECT COUNT(*) FROM data_kpi
+		WHERE status = 3 AND approval_posisi = ? AND id_pengajuan = ?`
+
+	// =============================================================================
 	// Get Data
 	// =============================================================================
 
-	// queryGetKpiBaseData digunakan oleh: SubmitPenyusunanKpi (kostl_tx),
-	// ApprovePenyusunanKpi (entry_user), dan GetKpiExportData (kostl_tx, tahun, triwulan).
+	// Use func : CreateRealisasiKpi, RejectRealisasiKpi
 	queryGetKpiBaseData = `
-		SELECT kostl_tx, tahun, triwulan, entry_user
+		SELECT kostl_tx, entry_user_realisasi
 		FROM data_kpi
 		WHERE id_pengajuan = ?
 		LIMIT 1`
 
+	// Use func : GetCatatanTolakan
+	queryGetCatatanTolakan = `
+		SELECT IFNULL(catatan_tolakan, '') FROM data_kpi
+		WHERE id_pengajuan = ? LIMIT 1`
+
+	// =============================================================================
+	// Get Exist
+	// =============================================================================
+
+	// Use func : GetExistDataKpi
 	queryGetExistDataKpi = `
 		SELECT a.tahun, a.triwulan, a.kostl, a.kostl_tx, a.status, b.status_desc, a.entry_user_realisasi, a.entry_name_realisasi
 		FROM data_kpi a
@@ -33,31 +57,31 @@ const (
 		WHERE a.id_pengajuan = ? AND status IN (2, 3, 4, 80, 81)
 		LIMIT 1`
 
+	// =============================================================================
+	// Get Helper
+	// =============================================================================
+
+	// Use func : GetApprovalListJSON
 	queryGetApprovalListJSON = `
 		SELECT approval_list_realisasi FROM data_kpi
 		WHERE status = 3 AND approval_posisi = ? AND id_pengajuan = ?`
 
-	queryGetCatatanTolakan = `
-		SELECT IFNULL(catatan_tolakan, '') FROM data_kpi
-		WHERE id_pengajuan = ? LIMIT 1`
-
-	// queryGetApprovalForRevision digunakan oleh RevisionPenyusunanKpi untuk membaca
+	// Use func : RevisionRealisasiKpi
 	queryGetApprovalForRevision = `
 		SELECT approval_posisi, approval_list_realisasi FROM data_kpi
 		WHERE id_pengajuan = ? LIMIT 1`
 
+	// =============================================================================
+	// SERVICE HELPERS
+	// =============================================================================
+
+	// Use func : GetLinkFormats
 	queryGetLinkFormats = `
 		SELECT url_prefix
 		FROM mst_link_format
 		WHERE is_active = 1
 		ORDER BY id_link_format ASC`
 
-	// =============================================================================
-	// Lookup
-	// =============================================================================
-
-	// queryLookupSubDetail mencari id_sub_detail, id_detail, target_kuantitatif_triwulan,
-	// rumus (id_polarisasi), dan id_qualifier berdasarkan id_pengajuan + nama kpi (dari detail) + nama sub_kpi.
 	queryLookupSubDetail = `
 		SELECT
 			s.id_sub_detail,
@@ -82,117 +106,12 @@ const (
 		  AND LOWER(s.kpi)  = LOWER(?)
 		LIMIT 1`
 
-	// queryGetKpiHeaderRealisasi mengambil kostl_tx, tahun, triwulan untuk keperluan notifikasi.
-	queryGetKpiHeaderRealisasi = `
-		SELECT kostl_tx, tahun, triwulan, entry_user_realisasi
-		FROM data_kpi
-		WHERE id_pengajuan = ?
-		LIMIT 1`
-
 	// =============================================================================
-	// Update
-	// =============================================================================
-	// queryUpdateKpi meng-update header data_kpi ke status realisasi yang diberikan.
-	queryUpdateKpiRealisasi = `
-		UPDATE data_kpi
-		SET status                  = ?,
-		    entry_user_realisasi    = ?,
-		    entry_name_realisasi    = ?,
-		    entry_time_realisasi    = ?
-		WHERE id_pengajuan = ?`
-
-	// queryUpdateKpiRealisasi digunakan oleh CreateRealisasiKpi untuk mengisi approval dan mengubah status.
-	queryUpdateKpiRealisasiCreate = `
-		UPDATE data_kpi 
-		SET approval_posisi = ?, approval_list_realisasi = ?, status = 3
-		WHERE id_pengajuan = ?`
-
-	queryUpdateKpiRealisasiRevision = `
-		UPDATE data_kpi
-		SET entry_time_realisasi = ?, approval_posisi = ?, approval_list_realisasi = ?, status = 3
-		WHERE id_pengajuan = ?`
-
-	// queryUpdateSubDetailRealisasi meng-update satu baris data_kpi_subdetail dengan nilai realisasi.
-	queryUpdateKpiSubDetailRealisasi = `
-		UPDATE data_kpi_subdetail
-		SET realisasi                      	= ?,
-		    realisasi_kuantitatif          	= ?,
-		    realisasi_validated            	= ?,
-		    realisasi_kuantitatif_validated = ?,
-		    pencapaian                     	= ?,
-		    skor                           	= ?,
-		    realisasi_qualifier            	= ?,
-		    realisasi_kuantitatif_qualifier = ?
-		WHERE id_pengajuan = ?
-		  AND id_sub_detail = ?`
-
-	// queryUpdateKpiDetailLampiranFile meng-update lampiran_file pada data_kpi_detail (1 per KPI).
-	queryUpdateKpiDetailLampiranFile = `
-		UPDATE data_kpi_detail
-		SET lampiran_file = ?
-		WHERE id_pengajuan = ?
-		  AND id_detail = ?`
-
-	// queryUpdateResultDetailRealisasi meng-update realisasi pada data_result_detail.
-	queryUpdateResultDetailRealisasi = `
-		UPDATE data_result_detail
-		SET realisasi_result = ?
-		WHERE id_pengajuan = ?
-		  AND id_detail_result = ?`
-
-	// queryUpdateProcessDetailRealisasi meng-update realisasi pada data_method_detail.
-	queryUpdateProcessDetailRealisasi = `
-		UPDATE data_method_detail
-		SET realisasi_method = ?
-		WHERE id_pengajuan = ?
-		  AND id_detail_method = ?`
-
-	// queryUpdateContextDetailRealisasi meng-update realisasi pada data_challenge_detail.
-	queryUpdateContextDetailRealisasi = `
-		UPDATE data_challenge_detail
-		SET realisasi_challenge = ?
-		WHERE id_pengajuan = ?
-		  AND id_detail_challenge = ?`
-
-	// =============================================================================
-	// Update — Create (Submit)
+	// Get KPI
 	// =============================================================================
 
-	queryApproveChainRealisasi = `
-		UPDATE data_kpi
-		SET approval_posisi         = ?,
-		    approval_list_realisasi = ?
-		WHERE id_pengajuan = ?`
-
-	queryApproveFinalRealisasi = `
-		UPDATE data_kpi
-		SET status                  = 5,
-		    approval_list_realisasi = ?
-		WHERE id_pengajuan = ?`
-
-	queryRejectRealisasi = `
-		UPDATE data_kpi
-		SET status                  = 4,
-		    approval_list_realisasi = ?,
-		    catatan_tolakan         = ?
-		WHERE id_pengajuan = ?`
-
-	// queryCheckApprovalRealisasi memvalidasi bahwa user adalah approval_posisi aktif dan status = 3.
-	queryCheckApprovalRealisasi = `
-		SELECT COUNT(*) FROM data_kpi
-		WHERE status = 3 AND approval_posisi = ? AND id_pengajuan = ?`
-
-	// Use func : GetAllApprovalRealisasiKpi, GetAllTolakanRealisasiKpi, GetAllDaftarRealisasiKpi, GetAllDaftarApprovalRealisasiKpi
-	queryGetCountDataKpiRealisasi = `
-		SELECT COUNT(1)
-		FROM data_kpi a
-		INNER JOIN mst_status b ON a.status = b.id_status`
-
-	// =============================================================================
-	// GetAll
-	// =============================================================================
-
-	queryGetDataKpiRealisasi = `
+	// Use func : GetAllRealisasiKpi, GetAllApprovalRealisasiKpi, GetAllTolakanRealisasiKpi, GetAllDaftarRealisasiKpi, GetAllDaftarApprovalRealisasiKpi, dan GetDetailRealisasiKpi
+	queryGetDataKpi = `
 		SELECT
 			a.id_pengajuan, a.tahun, a.triwulan, a.kostl, a.kostl_tx,
 			a.orgeh, a.orgeh_tx, a.entry_user, a.entry_name, a.entry_time,
@@ -207,23 +126,8 @@ const (
 		FROM data_kpi a
 		INNER JOIN mst_status b ON a.status = b.id_status`
 
-	// queryGetDetailHeader mengambil header satu pengajuan untuk GetDetailRealisasiKpi.
-	queryGetDetailHeader = `
-		SELECT
-			a.id_pengajuan, a.tahun, a.triwulan, a.kostl, a.kostl_tx,
-			a.orgeh, a.orgeh_tx, a.entry_user, a.entry_name, a.entry_time,
-			a.approval_posisi, a.approval_list, a.status, b.status_desc,
-			IFNULL(a.entry_user_realisasi, '')    entry_user_realisasi,
-			IFNULL(a.entry_name_realisasi, '')    entry_name_realisasi,
-			IFNULL(a.entry_time_realisasi, '')    entry_time_realisasi,
-			IFNULL(a.approval_list_realisasi, '') approval_list_realisasi,
-			IFNULL(a.catatan_tolakan, '')          catatan_tolakan,
-			IFNULL(a.total_bobot, '')              total_bobot,
-			IFNULL(a.total_pencapaian, '')         total_pencapaian
-		FROM data_kpi a
-		INNER JOIN mst_status b ON a.status = b.id_status`
-
-	queryGetDetailKpiList = `
+	// Use func : GetDetailRealisasiKpi
+	queryGetDataKpiDetail = `
 		SELECT
 			a.id_detail,
 			a.id_kpi, a.kpi, a.rumus,
@@ -238,7 +142,8 @@ const (
 		WHERE a.id_pengajuan = ?
 		ORDER BY a.id_detail ASC`
 
-	queryGetDetailSubKpiList = `
+	// Use func : GetDetailRealisasiKpi
+	queryGetDataKpiSubDetail = `
 		SELECT
 			a.id_sub_detail,
 			a.id_kpi, a.kpi, a.rumus,
@@ -270,7 +175,8 @@ const (
 		WHERE a.id_pengajuan = ? AND a.id_detail = ?
 		ORDER BY a.id_sub_detail ASC`
 
-	queryGetDetailResultList = `
+	// Use func : GetDetailRealisasiKpi
+	queryGetDataResultDetail = `
 		SELECT
 			id_detail_result,
 			nama_result, deskripsi_result,
@@ -280,7 +186,18 @@ const (
 		WHERE id_pengajuan = ?
 		ORDER BY id_detail_result ASC`
 
-	queryGetDetailContextList = `
+	// Use func : GetDetailRealisasiKpi
+	queryGetDataProcessDetail = `
+		SELECT
+			id_detail_method, nama_method, deskripsi_method,
+			IFNULL(realisasi_method, '')  realisasi_method,
+			IFNULL(lampiran_evidence, '') lampiran_evidence
+		FROM data_method_detail
+		WHERE id_pengajuan = ?
+		ORDER BY id_detail_method ASC`
+
+	// Use func : GetDetailRealisasiKpi
+	queryGetDataContextDetail = `
 		SELECT
 			id_detail_challenge, nama_challenge, deskripsi_challenge,
 			IFNULL(realisasi_challenge, '') realisasi_challenge,
@@ -289,14 +206,101 @@ const (
 		WHERE id_pengajuan = ?
 		ORDER BY id_detail_challenge ASC`
 
-	queryGetDetailProcessList = `
-		SELECT
-			id_detail_method, nama_method, deskripsi_method,
-			IFNULL(realisasi_method, '')  realisasi_method,
-			IFNULL(lampiran_evidence, '') lampiran_evidence
-		FROM data_method_detail
+	// =============================================================================
+	// Update KPI
+	// =============================================================================
+
+	// Use func : ValidateRealisasiKpi
+	queryUpdateKpiRealisasi = `
+		UPDATE data_kpi
+		SET status                  = ?,
+		    entry_user_realisasi    = ?,
+		    entry_name_realisasi    = ?,
+		    entry_time_realisasi    = ?
+		WHERE id_pengajuan = ?`
+
+	// Use func : CreateRealisasiKpi
+	queryUpdateKpiRealisasiCreate = `
+		UPDATE data_kpi 
+		SET approval_posisi = ?, approval_list_realisasi = ?, status = 3
+		WHERE id_pengajuan = ?`
+
+	// Use func : RevisionRealisasiKpi
+	queryUpdateKpiRealisasiRevision = `
+		UPDATE data_kpi
+		SET entry_time_realisasi = ?, approval_posisi = ?, approval_list_realisasi = ?, status = 3
+		WHERE id_pengajuan = ?`
+
+	// Use func : ValidateRealisasiKpi, RevisionRealisasiKpi
+	queryUpdateKpiSubDetailRealisasi = `
+		UPDATE data_kpi_subdetail
+		SET realisasi                      	= ?,
+		    realisasi_kuantitatif          	= ?,
+		    realisasi_validated            	= ?,
+		    realisasi_kuantitatif_validated = ?,
+		    pencapaian                     	= ?,
+		    skor                           	= ?,
+		    realisasi_qualifier            	= ?,
+		    realisasi_kuantitatif_qualifier = ?
 		WHERE id_pengajuan = ?
-		ORDER BY id_detail_method ASC`
+		  AND id_sub_detail = ?`
+
+	// Use func : ValidateRealisasiKpi, RevisionRealisasiKpi
+	queryUpdateKpiDetailLampiranFile = `
+		UPDATE data_kpi_detail
+		SET lampiran_file = ?
+		WHERE id_pengajuan = ?
+		  AND id_detail = ?`
+
+	// Use func : ValidateRealisasiKpi, RevisionRealisasiKpi
+	queryUpdateResultDetailRealisasi = `
+		UPDATE data_result_detail
+		SET realisasi_result = ?
+			AND lampiran_evidence = ?
+		WHERE id_pengajuan = ?
+		  AND id_detail_result = ?`
+
+	// Use func : ValidateRealisasiKpi, RevisionRealisasiKpi
+	queryUpdateProcessDetailRealisasi = `
+		UPDATE data_method_detail
+		SET realisasi_method = ?
+			AND lampiran_evidence = ?
+		WHERE id_pengajuan = ?
+		  AND id_detail_method = ?`
+
+	// Use func : ValidateRealisasiKpi, RevisionRealisasiKpi
+	queryUpdateContextDetailRealisasi = `
+		UPDATE data_challenge_detail
+		SET realisasi_challenge = ?
+			AND lampiran_evidence = ?
+		WHERE id_pengajuan = ?
+		  AND id_detail_challenge = ?`
+
+	// =============================================================================
+	// Update Approval
+	// =============================================================================
+
+	// Use func : ApproveRealisasiKpi
+	queryApproveChainRealisasi = `
+		UPDATE data_kpi
+		SET approval_posisi         = ?,
+		    approval_list_realisasi = ?
+		WHERE id_pengajuan = ?`
+
+	// Use func : ApproveRealisasiKpi
+	queryApproveFinalRealisasi = `
+		UPDATE data_kpi
+		SET status                  = 5,
+		    approval_list_realisasi = ?
+		WHERE id_pengajuan = ?`
+
+	// Use func : RejectRealisasiKpi
+	queryRejectRealisasi = `
+		UPDATE data_kpi
+		SET status                  = 4,
+		    approval_list_realisasi = ?,
+		    catatan_tolakan         = ?
+		WHERE id_pengajuan = ?`
 )
 
 // =============================================================================
@@ -441,7 +445,6 @@ func (r *realisasiKpiRepo) CreateRealisasiKpi(
 	if err := r.db.Raw(queryGetKpiBaseData, req.IdPengajuan).Scan(&kpiBase).Error; err != nil {
 		return fmt.Errorf("gagal mengambil kostl_tx: %w", err)
 	}
-	kostlTx := kpiBase.KostlTx
 
 	// =========================================================================
 	// Jalankan dalam transaksi agar update + notif atomic
@@ -460,7 +463,7 @@ func (r *realisasiKpiRepo) CreateRealisasiKpi(
 
 	if err := notif.Insert(tx,
 		req.IdPengajuan,
-		kostlTx,
+		kpiBase.KostlTx,
 		req.EntryUserRealisasi,
 		approvalPosisi,
 		"approval_realisasi",
@@ -667,10 +670,10 @@ func (r *realisasiKpiRepo) ApproveRealisasiKpi(idPengajuan, approvalList, approv
 // RejectRealisasiKpi digunakan oleh endpoint POST /realisasi-kpi/reject.
 func (r *realisasiKpiRepo) RejectRealisasiKpi(idPengajuan, approvalList, catatan, user string) error {
 	// Ambil entry_user_realisasi untuk notifikasi penolakan ke pengaju
-	var header struct {
+	var kpiBase struct {
 		EntryUserRealisasi string `gorm:"column:entry_user_realisasi"`
 	}
-	if err := r.db.Raw(queryGetKpiHeaderRealisasi, idPengajuan).Scan(&header).Error; err != nil {
+	if err := r.db.Raw(queryGetKpiBaseData, idPengajuan).Scan(&kpiBase).Error; err != nil {
 		return fmt.Errorf("gagal mengambil entry_user_realisasi: %w", err)
 	}
 
@@ -690,7 +693,7 @@ func (r *realisasiKpiRepo) RejectRealisasiKpi(idPengajuan, approvalList, catatan
 		idPengajuan,
 		"Realisasi Ditolak, ID : "+idPengajuan,
 		user,
-		header.EntryUserRealisasi,
+		kpiBase.EntryUserRealisasi,
 		"realisasi_ditolak",
 	); err != nil {
 		tx.Rollback()
@@ -731,7 +734,7 @@ func (r *realisasiKpiRepo) GetAllRealisasiKpi(
 	// COUNT TOTAL RECORDS
 	// =========================================================================
 	var total int64
-	countQuery := queryGetCountDataKpiRealisasi + where
+	countQuery := queryGetCountDataKpi + where
 	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
@@ -752,7 +755,7 @@ func (r *realisasiKpiRepo) GetAllRealisasiKpi(
 	// =========================================================================
 	// QUERY HEADER
 	// =========================================================================
-	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listQuery := queryGetDataKpi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
 
 	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
@@ -823,7 +826,7 @@ func (r *realisasiKpiRepo) GetAllApprovalRealisasiKpi(
 	// COUNT TOTAL RECORDS
 	// =========================================================================
 	var total int64
-	countQuery := queryGetCountDataKpiRealisasi + where
+	countQuery := queryGetCountDataKpi + where
 	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
@@ -844,7 +847,7 @@ func (r *realisasiKpiRepo) GetAllApprovalRealisasiKpi(
 	// =========================================================================
 	// QUERY HEADER
 	// =========================================================================
-	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listQuery := queryGetDataKpi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
 
 	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
@@ -915,7 +918,7 @@ func (r *realisasiKpiRepo) GetAllTolakanRealisasiKpi(
 	// COUNT TOTAL RECORDS
 	// =========================================================================
 	var total int64
-	countQuery := queryGetCountDataKpiRealisasi + where
+	countQuery := queryGetCountDataKpi + where
 	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
@@ -936,7 +939,7 @@ func (r *realisasiKpiRepo) GetAllTolakanRealisasiKpi(
 	// =========================================================================
 	// QUERY HEADER
 	// =========================================================================
-	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listQuery := queryGetDataKpi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
 
 	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
@@ -1015,7 +1018,7 @@ func (r *realisasiKpiRepo) GetAllDaftarRealisasiKpi(
 	// COUNT TOTAL RECORDS
 	// =========================================================================
 	var total int64
-	countQuery := queryGetCountDataKpiRealisasi + where
+	countQuery := queryGetCountDataKpi + where
 	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
@@ -1036,7 +1039,7 @@ func (r *realisasiKpiRepo) GetAllDaftarRealisasiKpi(
 	// =========================================================================
 	// QUERY HEADER
 	// =========================================================================
-	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listQuery := queryGetDataKpi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
 
 	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
@@ -1115,7 +1118,7 @@ func (r *realisasiKpiRepo) GetAllDaftarApprovalRealisasiKpi(
 	// COUNT TOTAL RECORDS
 	// =========================================================================
 	var total int64
-	countQuery := queryGetCountDataKpiRealisasi + where
+	countQuery := queryGetCountDataKpi + where
 	if err := r.db.Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
@@ -1136,7 +1139,7 @@ func (r *realisasiKpiRepo) GetAllDaftarApprovalRealisasiKpi(
 	// =========================================================================
 	// QUERY HEADER
 	// =========================================================================
-	listQuery := queryGetDataKpiRealisasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
+	listQuery := queryGetDataKpi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
 
 	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
@@ -1199,7 +1202,7 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	// QUERY HEADER
 	// =========================================================================
 	var result model.DataKpi
-	headerQuery := queryGetDetailHeader + where + " LIMIT 1"
+	headerQuery := queryGetDataKpi + where + " LIMIT 1"
 	if err := r.db.Raw(headerQuery, args...).Scan(&result).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil detail realisasi KPI: %w", err)
 	}
@@ -1208,12 +1211,12 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	// KPI DETAIL + SUB DETAIL
 	// =========================================================================
 	var kpiDetails []model.DataKpiDetail
-	if err := r.db.Raw(queryGetDetailKpiList, result.IdPengajuan).Scan(&kpiDetails).Error; err != nil {
+	if err := r.db.Raw(queryGetDataKpiDetail, result.IdPengajuan).Scan(&kpiDetails).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil kpi detail: %w", err)
 	}
 	for i := range kpiDetails {
 		var subDetails []model.DataKpiSubDetail
-		if err := r.db.Raw(queryGetDetailSubKpiList, result.IdPengajuan, kpiDetails[i].IdDetail).Scan(&subDetails).Error; err != nil {
+		if err := r.db.Raw(queryGetDataKpiSubDetail, result.IdPengajuan, kpiDetails[i].IdDetail).Scan(&subDetails).Error; err != nil {
 			return nil, fmt.Errorf("gagal mengambil kpi sub detail: %w", err)
 		}
 		if subDetails == nil {
@@ -1232,7 +1235,7 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	// RESULT DETAIL
 	// =========================================================================
 	var resultList []model.DataResultDetail
-	if err := r.db.Raw(queryGetDetailResultList, result.IdPengajuan).Scan(&resultList).Error; err != nil {
+	if err := r.db.Raw(queryGetDataResultDetail, result.IdPengajuan).Scan(&resultList).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil result detail: %w", err)
 	}
 	if resultList == nil {
@@ -1245,7 +1248,7 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	// PROCESS DETAIL
 	// =========================================================================
 	var processList []model.DataMethodDetail
-	if err := r.db.Raw(queryGetDetailProcessList, result.IdPengajuan).Scan(&processList).Error; err != nil {
+	if err := r.db.Raw(queryGetDataProcessDetail, result.IdPengajuan).Scan(&processList).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil process detail: %w", err)
 	}
 	if processList == nil {
@@ -1258,7 +1261,7 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	// CONTEXT DETAIL
 	// =========================================================================
 	var contextList []model.DataChallengeDetail
-	if err := r.db.Raw(queryGetDetailContextList, result.IdPengajuan).Scan(&contextList).Error; err != nil {
+	if err := r.db.Raw(queryGetDataContextDetail, result.IdPengajuan).Scan(&contextList).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil context detail: %w", err)
 	}
 	if contextList == nil {
@@ -1301,7 +1304,7 @@ func (r *realisasiKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error)
 // CheckApprovalRealisasiExists digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi untuk memvalidasi keberadaan approval.
 func (r *realisasiKpiRepo) CheckApprovalRealisasiExists(user, idPengajuan string) (bool, error) {
 	var count int64
-	if err := r.db.Raw(queryCheckApprovalRealisasi, user, idPengajuan).Scan(&count).Error; err != nil {
+	if err := r.db.Raw(queryGetCountApprovalKpi, user, idPengajuan).Scan(&count).Error; err != nil {
 		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
 	}
 	return count > 0, nil
