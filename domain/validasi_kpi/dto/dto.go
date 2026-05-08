@@ -253,8 +253,8 @@ type GetAllTolakanValidasiKpiRequest struct {
 	EntryUserRealisasi string `json:"entry_user_validasi"`
 }
 
-// GetAllDaftarPenyusunanValidasiKpiRequest adalah request untuk endpoint POST /validasi-kpi/get-all-daftar-penyusunan.
-type GetAllDaftarPenyusunanValidasiKpiRequest struct {
+// GetAllDaftarPValidasiKpiRequest adalah request untuk endpoint POST /validasi-kpi/get-all-daftar-penyusunan.
+type GetAllDaftarPValidasiKpiRequest struct {
 	Divisi   string `json:"divisi"`
 	Triwulan string `json:"triwulan"`
 	Tahun    string `json:"tahun"`

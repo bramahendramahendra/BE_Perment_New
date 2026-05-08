@@ -2,6 +2,7 @@ package handler
 
 import (
 	"strings"
+	"time"
 
 	dto "permen_api/domain/validasi_kpi/dto"
 	service "permen_api/domain/validasi_kpi/service"
@@ -23,14 +24,13 @@ func NewValidasiKpiHandler(service service.ValidasiKpiServiceInterface) *Validas
 }
 
 // =============================================================================
-// INPUT VALIDASI (validate + create + revision dalam satu endpoint)
+// INPUT
 // =============================================================================
 
-// InputValidasi handles POST /validasi-kpi/input
-// Menerima application/json. Menyimpan data validasi KPI dan mengirim notifikasi ke approver (status → 6).
-// Berlaku untuk status 5 (baru), 7 (revisi setelah tolak), 90/91 (ulang setelah batal).
-func (h *ValidasiKpiHandler) InputValidasi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.InputValidasiRequest](c)
+// InputValidasiKpi handles POST /validasi-kpi/input
+// Menerima application/json dengan JSON biasa.
+func (h *ValidasiKpiHandler) InputValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.InputValidasiKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -48,13 +48,14 @@ func (h *ValidasiKpiHandler) InputValidasi(c *gin.Context) {
 	}
 	req.EntryUserValidasi = strings.TrimSpace(parts[0])
 	req.EntryNameValidasi = strings.TrimSpace(parts[1])
+	req.EntryTimeValidasi = time.Now().Format("2006-01-02 15:04:05")
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	data, err := h.service.InputValidasi(&req)
+	data, err := h.service.InputValidasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -69,13 +70,13 @@ func (h *ValidasiKpiHandler) InputValidasi(c *gin.Context) {
 }
 
 // =============================================================================
-// APPROVE VALIDASI
+// APPROVAL
 // =============================================================================
 
-// ApproveValidasi handles POST /validasi-kpi/approve
-// Menerima application/json. Memproses approve validasi KPI dalam rantai approval.
-func (h *ValidasiKpiHandler) ApproveValidasi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.ApproveValidasiRequest](c)
+// ApproveValidasiKpi handles POST /validasi-kpi/approve
+// Menerima application/json dengan JSON biasa.
+func (h *ValidasiKpiHandler) ApproveValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.ApproveValidasiKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -91,6 +92,7 @@ func (h *ValidasiKpiHandler) ApproveValidasi(c *gin.Context) {
 		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
 		return
 	}
+
 	req.ApprovalUserValidasi = strings.TrimSpace(parts[0])
 	req.ApprovalNameValidasi = strings.TrimSpace(parts[1])
 
@@ -99,7 +101,7 @@ func (h *ValidasiKpiHandler) ApproveValidasi(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.ApproveValidasi(&req)
+	data, err := h.service.ApproveValidasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -113,14 +115,10 @@ func (h *ValidasiKpiHandler) ApproveValidasi(c *gin.Context) {
 	})
 }
 
-// =============================================================================
-// REJECT VALIDASI
-// =============================================================================
-
-// RejectValidasi handles POST /validasi-kpi/reject
-// Menerima application/json. Memproses penolakan validasi KPI (status → 7).
-func (h *ValidasiKpiHandler) RejectValidasi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.RejectValidasiRequest](c)
+// RejectValidasiKpi handles POST /validasi-kpi/reject
+// Menerima application/json dengan JSON biasa.
+func (h *ValidasiKpiHandler) RejectValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.RejectValidasiKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -144,7 +142,7 @@ func (h *ValidasiKpiHandler) RejectValidasi(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.RejectValidasi(&req)
+	data, err := h.service.RejectValidasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -159,57 +157,47 @@ func (h *ValidasiKpiHandler) RejectValidasi(c *gin.Context) {
 }
 
 // =============================================================================
-// VALIDASI BATAL
+// GET ALL
 // =============================================================================
 
-// ValidasiBatal handles POST /validasi-kpi/batal
-// Menerima application/json. Membatalkan proses validasi (status → 91).
-func (h *ValidasiKpiHandler) ValidasiBatal(c *gin.Context) {
-	req, err := binder.BindJSON[dto.ValidasiBatalRequest](c)
+// GetAllValidasiKpi handles POST /validasi-kpi/get-all-validasi
+// Menerima application/json.
+func (h *ValidasiKpiHandler) GetAllValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllValidasiKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
-
-	userq := c.GetHeader("userq")
-	if userq == "" {
-		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
-		return
-	}
-	parts := strings.SplitN(userq, " | ", 2)
-	if len(parts) != 2 {
-		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
-		return
-	}
-	req.User = strings.TrimSpace(parts[0])
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	data, err := h.service.ValidasiBatal(&req)
+	data, total, err := h.service.GetAllValidasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
+	pagination := response_helper.SetPagination(&globalDTO.FilterRequestParams{
+		Page:  req.Page,
+		Limit: req.Limit,
+	}, total)
+
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
-		Code:    "00",
-		Status:  true,
-		Message: "Validasi KPI berhasil dibatalkan",
-		Data:    data,
+		Code:       "00",
+		Status:     true,
+		Message:    "Data Validasi KPI berhasil diambil",
+		Data:       data,
+		Pagination: pagination,
 	})
 }
 
-// =============================================================================
-// GET ALL APPROVAL VALIDASI
-// =============================================================================
-
 // GetAllApprovalValidasi handles POST /validasi-kpi/get-all-approval
-// Menerima application/json. Mengambil list pengajuan yang menunggu approval user (status=6).
-func (h *ValidasiKpiHandler) GetAllApprovalValidasi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.GetAllApprovalValidasiRequest](c)
+// Menerima application/json dengan JSON biasa.
+func (h *ValidasiKpiHandler) GetAllApprovalValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllApprovalValidasiKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -225,9 +213,15 @@ func (h *ValidasiKpiHandler) GetAllApprovalValidasi(c *gin.Context) {
 		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
 		return
 	}
-	req.ApprovalUser = strings.TrimSpace(parts[0])
 
-	data, total, err := h.service.GetAllApprovalValidasi(&req)
+	req.ApprovalUserValidasi = strings.TrimSpace(parts[0])
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, total, err := h.service.GetAllApprovalValidasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -247,20 +241,21 @@ func (h *ValidasiKpiHandler) GetAllApprovalValidasi(c *gin.Context) {
 	})
 }
 
-// =============================================================================
-// GET ALL TOLAKAN VALIDASI
-// =============================================================================
-
-// GetAllTolakanValidasi handles POST /validasi-kpi/get-all-tolakan
-// Menerima application/json. Mengambil list pengajuan yang ditolak (status=7).
-func (h *ValidasiKpiHandler) GetAllTolakanValidasi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.GetAllTolakanValidasiRequest](c)
+// GetAllTolakanValidasiKpi handles POST /validasi-kpi/get-all-tolakan
+// Menerima application/json dengan JSON biasa.
+func (h *ValidasiKpiHandler) GetAllTolakanValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllTolakanValidasiKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	data, total, err := h.service.GetAllTolakanValidasi(&req)
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, total, err := h.service.GetAllTolakanValidasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -280,20 +275,21 @@ func (h *ValidasiKpiHandler) GetAllTolakanValidasi(c *gin.Context) {
 	})
 }
 
-// =============================================================================
-// GET ALL DAFTAR PENYUSUNAN VALIDASI
-// =============================================================================
-
-// GetAllDaftarPenyusunanValidasi handles POST /validasi-kpi/get-all-daftar-penyusunan
-// Menerima application/json.
-func (h *ValidasiKpiHandler) GetAllDaftarPenyusunanValidasi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.GetAllDaftarPenyusunanValidasiRequest](c)
+// GetAllDaftarValidasiKpi handles POST /validasi-kpi/get-all-daftar-penyusunan
+// Menerima application/json dengan JSON biasa.
+func (h *ValidasiKpiHandler) GetAllDaftarValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllDaftarPValidasiKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	data, total, err := h.service.GetAllDaftarPenyusunanValidasi(&req)
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, total, err := h.service.GetAllDaftarValidasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -307,20 +303,16 @@ func (h *ValidasiKpiHandler) GetAllDaftarPenyusunanValidasi(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:       "00",
 		Status:     true,
-		Message:    "Data Daftar Penyusunan Validasi KPI berhasil diambil",
+		Message:    "Data Daftar Validasi KPI berhasil diambil",
 		Data:       data,
 		Pagination: pagination,
 	})
 }
 
-// =============================================================================
-// GET ALL DAFTAR APPROVAL VALIDASI
-// =============================================================================
-
 // GetAllDaftarApprovalValidasi handles POST /validasi-kpi/get-all-daftar-approval
-// Menerima application/json. Mengambil semua pengajuan yang pernah melibatkan user dalam approval validasi.
-func (h *ValidasiKpiHandler) GetAllDaftarApprovalValidasi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.GetAllDaftarApprovalValidasiRequest](c)
+// Menerima application/json dengan JSON biasa.
+func (h *ValidasiKpiHandler) GetAllDaftarApprovalValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllDaftarApprovalValidasiKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -336,9 +328,15 @@ func (h *ValidasiKpiHandler) GetAllDaftarApprovalValidasi(c *gin.Context) {
 		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
 		return
 	}
-	req.ApprovalUser = strings.TrimSpace(parts[0])
 
-	data, total, err := h.service.GetAllDaftarApprovalValidasi(&req)
+	req.ApprovalUserValidasi = strings.TrimSpace(parts[0])
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, total, err := h.service.GetAllDaftarApprovalValidasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -359,44 +357,11 @@ func (h *ValidasiKpiHandler) GetAllDaftarApprovalValidasi(c *gin.Context) {
 }
 
 // =============================================================================
-// GET ALL VALIDASI
-// =============================================================================
-
-// GetAllValidasi handles POST /validasi-kpi/get-all-validasi
-// Menerima application/json.
-func (h *ValidasiKpiHandler) GetAllValidasi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.GetAllValidasiRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	data, total, err := h.service.GetAllValidasi(&req)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	pagination := response_helper.SetPagination(&globalDTO.FilterRequestParams{
-		Page:  req.Page,
-		Limit: req.Limit,
-	}, total)
-
-	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
-		Code:       "00",
-		Status:     true,
-		Message:    "Data Validasi KPI berhasil diambil",
-		Data:       data,
-		Pagination: pagination,
-	})
-}
-
-// =============================================================================
 // GET DETAIL VALIDASI
 // =============================================================================
 
 // GetDetailValidasiKpi handles POST /validasi-kpi/get-detail
-// Menerima application/json. Mengambil detail lengkap satu pengajuan validasi KPI.
+// Menerima application/json dengan JSON biasa.
 func (h *ValidasiKpiHandler) GetDetailValidasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetDetailValidasiKpiRequest](c)
 	if err != nil {

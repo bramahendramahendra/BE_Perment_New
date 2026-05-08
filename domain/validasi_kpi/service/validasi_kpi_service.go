@@ -15,8 +15,8 @@ import (
 
 // InputValidasi digunakan oleh endpoint POST /validasi-kpi/input.
 func (s *validasiKpiService) InputValidasi(
-	req *dto.InputValidasiRequest,
-) (data dto.InputValidasiResponse, err error) {
+	req *dto.InputValidasiKpiRequest,
+) (data dto.InputValidasiKpiResponse, err error) {
 	existData, err := s.repo.GetExistDataValidasi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{
@@ -44,8 +44,8 @@ func (s *validasiKpiService) InputValidasi(
 
 // ApproveValidasi digunakan oleh endpoint POST /validasi-kpi/approve.
 func (s *validasiKpiService) ApproveValidasi(
-	req *dto.ApproveValidasiRequest,
-) (data dto.ApproveValidasiResponse, err error) {
+	req *dto.ApproveValidasiKpiRequest,
+) (data dto.ApproveValidasiKpiResponse, err error) {
 	existData, err := s.repo.GetExistDataValidasi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{
@@ -104,8 +104,8 @@ func (s *validasiKpiService) ApproveValidasi(
 
 // RejectValidasi digunakan oleh endpoint POST /validasi-kpi/reject.
 func (s *validasiKpiService) RejectValidasi(
-	req *dto.RejectValidasiRequest,
-) (data dto.RejectValidasiResponse, err error) {
+	req *dto.RejectValidasiKpiRequest,
+) (data dto.RejectValidasiKpiResponse, err error) {
 	existData, err := s.repo.GetExistDataValidasi(req.IdPengajuan)
 	if err != nil {
 		return data, &customErrors.BadRequestError{
@@ -156,28 +156,6 @@ func (s *validasiKpiService) RejectValidasi(
 		Status:      "Reject Validasi",
 		Catatan:     req.Catatan,
 	}, nil
-}
-
-// =============================================================================
-// VALIDASI BATAL
-// =============================================================================
-
-// ValidasiBatal digunakan oleh endpoint POST /validasi-kpi/batal.
-func (s *validasiKpiService) ValidasiBatal(
-	req *dto.ValidasiBatalRequest,
-) (data dto.ValidasiBatalResponse, err error) {
-	_, err = s.repo.GetExistDataValidasi(req.IdPengajuan)
-	if err != nil {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-		}
-	}
-
-	if err := s.repo.ValidasiBatal(req); err != nil {
-		return data, err
-	}
-
-	return dto.ValidasiBatalResponse{IdPengajuan: req.IdPengajuan}, nil
 }
 
 // =============================================================================

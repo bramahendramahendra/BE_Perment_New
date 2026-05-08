@@ -8,52 +8,56 @@ import (
 type (
 	ValidasiKpiServiceInterface interface {
 		// =============================================================================
-		// INPUT VALIDASI (validate + create + revision)
+		// INPUT
 		// =============================================================================
 
-		// InputValidasi digunakan oleh endpoint POST /validasi-kpi/input.
-		// Menyimpan data validasi KPI, mengatur rantai approval, dan mengirim notifikasi (status → 6).
-		// Berlaku untuk status 5 (baru), 7 (revisi), 90/91 (ulang setelah batal).
-		InputValidasi(req *dto.InputValidasiRequest) (data dto.InputValidasiResponse, err error)
+		// InputValidasiKpi digunakan oleh endpoint POST /validasi-kpi/input.
+		InputValidasiKpi(
+			req *dto.InputValidasiKpiRequest,
+		) (data dto.InputValidasiKpiResponse, err error)
 
 		// =============================================================================
 		// APPROVAL
 		// =============================================================================
 
-		// ApproveValidasi digunakan oleh endpoint POST /validasi-kpi/approve.
-		// Memproses approve dalam rantai approval; jika approver terakhir → status = 8 (final).
-		ApproveValidasi(req *dto.ApproveValidasiRequest) (data dto.ApproveValidasiResponse, err error)
+		// ApproveValidasiKpi digunakan oleh endpoint POST /validasi-kpi/approve.
+		ApproveValidasiKpi(
+			req *dto.ApproveValidasiKpiRequest,
+		) (data dto.ApproveValidasiKpiResponse, err error)
 
-		// RejectValidasi digunakan oleh endpoint POST /validasi-kpi/reject.
-		// Memproses penolakan validasi KPI (status → 7) dan mengirim notifikasi ke pengaju.
-		RejectValidasi(req *dto.RejectValidasiRequest) (data dto.RejectValidasiResponse, err error)
-
-		// =============================================================================
-		// BATAL
-		// =============================================================================
-
-		// ValidasiBatal digunakan oleh endpoint POST /validasi-kpi/batal.
-		// Membatalkan proses validasi (status → 91) dan menghapus notifikasi terkait.
-		ValidasiBatal(req *dto.ValidasiBatalRequest) (data dto.ValidasiBatalResponse, err error)
+		// RejectValidasiKpi digunakan oleh endpoint POST /validasi-kpi/reject.
+		RejectValidasiKpi(
+			req *dto.RejectValidasiKpiRequest,
+		) (data dto.RejectValidasiKpiResponse, err error)
 
 		// =============================================================================
 		// GET ALL
 		// =============================================================================
 
-		// GetAllApprovalValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-approval.
-		GetAllApprovalValidasi(req *dto.GetAllApprovalValidasiRequest) (data []*dto.GetAllValidasiResponse, total int64, err error)
+		// GetAllValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all.
+		GetAllValidasiKpi(
+			req *dto.GetAllValidasiKpiRequest,
+		) (data []*dto.GetAllValidasiKpiResponse, total int64, err error)
 
-		// GetAllTolakanValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-tolakan.
-		GetAllTolakanValidasi(req *dto.GetAllTolakanValidasiRequest) (data []*dto.GetAllValidasiResponse, total int64, err error)
+		// GetAllApprovalValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-approval.
+		GetAllApprovalValidasiKpi(
+			req *dto.GetAllApprovalValidasiKpiRequest,
+		) (data []*dto.GetAllApprovalValidasiKpiResponse, total int64, err error)
 
-		// GetAllDaftarPenyusunanValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-penyusunan.
-		GetAllDaftarPenyusunanValidasi(req *dto.GetAllDaftarPenyusunanValidasiRequest) (data []*dto.GetAllValidasiResponse, total int64, err error)
+		// GetAllTolakanValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-tolakan.
+		GetAllTolakanValidasiKpi(
+			req *dto.GetAllTolakanValidasiKpiRequest,
+		) (data []*dto.GetAllTolakanValidasiKpiResponse, total int64, err error)
 
-		// GetAllDaftarApprovalValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-approval.
-		GetAllDaftarApprovalValidasi(req *dto.GetAllDaftarApprovalValidasiRequest) (data []*dto.GetAllValidasiResponse, total int64, err error)
+		// GetAllDaftarValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-validasi.
+		GetAllDaftarValidasiKpi(
+			req *dto.GetAllDaftarPValidasiKpiRequest,
+		) (data []*dto.GetAllDaftarValidasiKpiResponse, total int64, err error)
 
-		// GetAllValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-validasi.
-		GetAllValidasi(req *dto.GetAllValidasiRequest) (data []*dto.GetAllValidasiResponse, total int64, err error)
+		// GetAllDaftarApprovalValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-approval.
+		GetAllDaftarApprovalValidasiKpi(
+			req *dto.GetAllDaftarApprovalValidasiKpiRequest,
+		) (data []*dto.GetAllDaftarApprovalValidasiKpiResponse, total int64, err error)
 
 		// =============================================================================
 		// GET DETAIL

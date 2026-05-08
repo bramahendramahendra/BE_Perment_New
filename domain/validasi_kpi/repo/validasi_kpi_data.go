@@ -539,13 +539,33 @@ func (r *validasiKpiRepo) GetAllValidasiKPi(
 	// =========================================================================
 	// QUERY HEADER
 	// =========================================================================
+	listQuery := queryGetDataKpiValidasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
-	rows, err := r.db.Raw(queryGetDataKpiValidasi+where+" ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?", listArgs...).Rows()
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
 	if err != nil {
 		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
 	}
-	results, err := r.scanGetAllRows(rows)
-	return results, total, err
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.Status, &h.StatusDesc,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================
@@ -574,18 +594,47 @@ func (r *validasiKpiRepo) GetAllApprovalValidasi(
 	where := " WHERE " + strings.Join(conditions, " AND ")
 
 	var total int64
-	if err := r.db.Raw(queryGetCountDataKpiValidasi+where, args...).Scan(&total).Error; err != nil {
+	if err := r.db.Raw(queryGetCountDataKpi+where, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
 
-	_, limit, offset := paginateValidasi(req.Page, req.Limit)
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	listQuery := queryGetDataKpiValidasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
-	rows, err := r.db.Raw(queryGetDataKpiValidasi+where+" ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?", listArgs...).Rows()
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
 	if err != nil {
 		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
 	}
-	results, err := r.scanGetAllRows(rows)
-	return results, total, err
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.Status, &h.StatusDesc,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================
@@ -614,18 +663,47 @@ func (r *validasiKpiRepo) GetAllTolakanValidasi(
 	where := " WHERE " + strings.Join(conditions, " AND ")
 
 	var total int64
-	if err := r.db.Raw(queryGetCountDataKpiValidasi+where, args...).Scan(&total).Error; err != nil {
+	if err := r.db.Raw(queryGetCountDataKpi+where, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
 
-	_, limit, offset := paginateValidasi(req.Page, req.Limit)
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	listQuery := queryGetDataKpiValidasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
-	rows, err := r.db.Raw(queryGetDataKpiValidasi+where+" ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?", listArgs...).Rows()
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
 	if err != nil {
 		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
 	}
-	results, err := r.scanGetAllRows(rows)
-	return results, total, err
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.Status, &h.StatusDesc,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================
@@ -658,18 +736,47 @@ func (r *validasiKpiRepo) GetAllDaftarPenyusunanValidasi(
 	where := " WHERE " + strings.Join(conditions, " AND ")
 
 	var total int64
-	if err := r.db.Raw(queryGetCountDataKpiValidasi+where, args...).Scan(&total).Error; err != nil {
+	if err := r.db.Raw(queryGetCountDataKpi+where, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
 
-	_, limit, offset := paginateValidasi(req.Page, req.Limit)
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	listQuery := queryGetDataKpiValidasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
-	rows, err := r.db.Raw(queryGetDataKpiValidasi+where+" ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?", listArgs...).Rows()
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
 	if err != nil {
 		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
 	}
-	results, err := r.scanGetAllRows(rows)
-	return results, total, err
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.Status, &h.StatusDesc,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================
@@ -698,18 +805,47 @@ func (r *validasiKpiRepo) GetAllDaftarApprovalValidasi(
 	where := " WHERE " + strings.Join(conditions, " AND ")
 
 	var total int64
-	if err := r.db.Raw(queryGetCountDataKpiValidasi+where, args...).Scan(&total).Error; err != nil {
+	if err := r.db.Raw(queryGetCountDataKpi+where, args...).Scan(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("gagal menghitung total data: %w", err)
 	}
 
-	_, limit, offset := paginateValidasi(req.Page, req.Limit)
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	listQuery := queryGetDataKpiValidasi + where + " ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?"
 	listArgs := append(args, limit, offset)
-	rows, err := r.db.Raw(queryGetDataKpiValidasi+where+" ORDER BY a.tahun DESC, a.triwulan DESC LIMIT ? OFFSET ?", listArgs...).Rows()
+
+	rows, err := r.db.Raw(listQuery, listArgs...).Rows()
 	if err != nil {
 		return nil, 0, fmt.Errorf("gagal mengambil daftar KPI: %w", err)
 	}
-	results, err := r.scanGetAllRows(rows)
-	return results, total, err
+	defer rows.Close()
+
+	var results []*model.DataKpi
+
+	for rows.Next() {
+		var h model.DataKpi
+
+		if err := rows.Scan(
+			&h.IdPengajuan, &h.Tahun, &h.Triwulan,
+			&h.Kostl, &h.KostlTx,
+			&h.Orgeh, &h.OrgehTx,
+			&h.Status, &h.StatusDesc,
+		); err != nil {
+			return nil, 0, fmt.Errorf("gagal scan header KPI: %w", err)
+		}
+
+		results = append(results, &h)
+	}
+
+	return results, total, nil
 }
 
 // =============================================================================

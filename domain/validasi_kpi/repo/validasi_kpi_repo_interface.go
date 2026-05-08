@@ -51,9 +51,9 @@ type (
 			req *dto.GetAllTolakanValidasiKpiRequest,
 		) ([]*model.DataKpi, int64, error)
 
-		// GetAllDaftarPenyusunanValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-validasi.
-		GetAllDaftarPenyusunanValidasiKpi(
-			req *dto.GetAllDaftarPenyusunanValidasiKpiRequest,
+		// GetAllDaftarValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-validasi.
+		GetAllDaftarValidasiKpi(
+			req *dto.GetAllDaftarPValidasiKpiRequest,
 		) ([]*model.DataKpi, int64, error)
 
 		// GetAllDaftarApprovalValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-approval.
