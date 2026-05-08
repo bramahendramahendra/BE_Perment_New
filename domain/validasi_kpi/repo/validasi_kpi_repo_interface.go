@@ -9,50 +9,83 @@ import (
 
 type (
 	ValidasiKpiRepoInterface interface {
-		// CheckExistInputValidasi memeriksa apakah id_pengajuan ada dengan status yang mengizinkan input validasi (5, 7, 90, 91).
-		CheckExistInputValidasi(idPengajuan string) (bool, error)
+		// =============================================================================
+		// INPUT
+		// =============================================================================
 
-		// CheckExistApprovalValidasi memeriksa apakah id_pengajuan ada dengan status 6 (pending approval validasi).
-		CheckExistApprovalValidasi(idPengajuan string) (bool, error)
+		// InputValidasiKpi digunakan oleh endpoint POST /validasi-kpi/input.
+		InputValidasiKpi(
+			req *dto.InputValidasiKpiRequest,
+		) error
 
-		// CheckExistBatalValidasi memeriksa apakah id_pengajuan ada di tabel data_kpi.
-		CheckExistBatalValidasi(idPengajuan string) (bool, error)
+		// =============================================================================
+		// APPROVAL
+		// =============================================================================
 
-		// GetKostlTxByIdPengajuan mengambil kostl_tx dari data_kpi berdasarkan id_pengajuan.
-		GetKostlTxByIdPengajuan(idPengajuan string) (string, error)
+		// ApproveValidasiKpi digunakan oleh endpoint POST /validasi-kpi/approve.
+		ApproveValidasiKpi(
+			idPengajuan, approvalList, approvalPosisi, user string,
+		) error
 
-		// GetEntryUserValidasiByIdPengajuan mengambil entry_user_validasi untuk keperluan notifikasi tolakan.
-		GetEntryUserValidasiByIdPengajuan(idPengajuan string) (string, error)
+		// RejectValidasiKpi digunakan oleh endpoint POST /validasi-kpi/reject.
+		RejectValidasiKpi(
+			idPengajuan, approvalList, catatan, user string,
+		) error
 
-		// InputValidasi menyimpan data validasi ke data_kpi dan data_kpi_subdetail (status → 6).
-		InputValidasi(req *dto.InputValidasiRequest) error
+		// =============================================================================
+		// GET ALL
+		// =============================================================================
 
-		// ApprovalValidasi memproses approve atau reject validasi KPI.
-		ApprovalValidasi(req *dto.ApprovalValidasiRequest) error
+		// GetAllValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all.
+		GetAllValidasiKpi(
+			req *dto.GetAllValidasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
 
-		// ValidasiBatal membatalkan proses validasi (status → 91) dan menghapus notifikasi terkait.
-		ValidasiBatal(req *dto.ValidasiBatalRequest) error
+		// GetAllApprovalValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-approval.
+		GetAllApprovalValidasiKpi(
+			req *dto.GetAllApprovalValidasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
 
-		// ApproveValidasi memproses approve validasi KPI (status → 8 atau chain).
-		ApproveValidasi(req *dto.ApproveValidasiRequest) error
+		// GetAllTolakanValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-tolakan.
+		GetAllTolakanValidasiKpi(
+			req *dto.GetAllTolakanValidasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
 
-		// RejectValidasi memproses reject validasi KPI (status → 7).
-		RejectValidasi(req *dto.RejectValidasiRequest) error
+		// GetAllDaftarPenyusunanValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-validasi.
+		GetAllDaftarPenyusunanValidasiKpi(
+			req *dto.GetAllDaftarPenyusunanValidasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
 
-		// GetAllApprovalValidasi mengambil list pengajuan validasi yang menunggu approval user (status=6, approval_posisi=user).
-		GetAllApprovalValidasi(req *dto.GetAllApprovalValidasiRequest) ([]*model.DataKpi, int64, error)
+		// GetAllDaftarApprovalValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-approval.
+		GetAllDaftarApprovalValidasiKpi(
+			req *dto.GetAllDaftarApprovalValidasiKpiRequest,
+		) ([]*model.DataKpi, int64, error)
 
-		// GetAllTolakanValidasi mengambil list pengajuan validasi yang ditolak (status=7).
-		GetAllTolakanValidasi(req *dto.GetAllTolakanValidasiRequest) ([]*model.DataKpi, int64, error)
+		// =============================================================================
+		// GET DETAIL
+		// =============================================================================
 
-		// GetAllDaftarPenyusunanValidasi mengambil semua pengajuan dalam konteks validasi dengan filter opsional.
-		GetAllDaftarPenyusunanValidasi(req *dto.GetAllDaftarPenyusunanValidasiRequest) ([]*model.DataKpi, int64, error)
+		// GetDetailRealisasiKpi digunakan oleh endpoint POST /validasi-kpi/get-detail.
+		GetDetailValidasiKpi(
+			req *dto.GetDetailValidasiKpiRequest,
+		) (*model.DataKpi, error)
 
-		// GetAllDaftarApprovalValidasi mengambil pengajuan validasi yang pernah melibatkan user dalam approval.
-		GetAllDaftarApprovalValidasi(req *dto.GetAllDaftarApprovalValidasiRequest) ([]*model.DataKpi, int64, error)
+		// =============================================================================
+		// APPROVAL HELPER
+		// =============================================================================
 
-		// GetAllValidasi mengambil semua pengajuan validasi tanpa filter user (mirip get-all realisasi).
-		GetAllValidasi(req *dto.GetAllValidasiRequest) ([]*model.DataKpi, int64, error)
+		// CheckApprovalValidasiExists memvalidasi bahwa user adalah approver aktif untuk pengajuan (status=6, approval_posisi=user).
+		CheckApprovalValidasiExists(user, idPengajuan string) (bool, error)
+
+		// GetApprovalListValidasiJSON mengambil approval_list_validasi dalam format JSON string.
+		GetApprovalListValidasiJSON(idPengajuan, userID string) (string, error)
+
+		// =============================================================================
+		// GET EXIST
+		// =============================================================================
+
+		// GetExistDataValidasi mengambil data header KPI berdasarkan id_pengajuan untuk validasi status.
+		GetExistDataValidasi(idPengajuan string) (*model.DataKpiExist, error)
 	}
 
 	validasiKpiRepo struct {

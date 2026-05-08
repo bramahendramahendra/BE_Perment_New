@@ -38,8 +38,8 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 2 = Penyusunan Disetujui
-	if dbStatus != 2 {
+	// Validasi: status harus 2 = Penyusunan Disetujui atau 81 = ...
+	if dbStatus != 2 && dbStatus != 81 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
 		}

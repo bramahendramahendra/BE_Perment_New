@@ -22,27 +22,13 @@ func NewValidasiKpiHandler(service service.ValidasiKpiServiceInterface) *Validas
 	return &ValidasiKpiHandler{service: service}
 }
 
-// parseUserqHeader mengekstrak userid dan nama dari header "userq" (format: "userid | nama").
-func parseUserqHeader(c *gin.Context) (userid, nama string, ok bool) {
-	userq := c.GetHeader("userq")
-	if userq == "" {
-		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
-		return "", "", false
-	}
-	parts := strings.SplitN(userq, " | ", 2)
-	if len(parts) != 2 {
-		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
-		return "", "", false
-	}
-	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), true
-}
-
 // =============================================================================
-// INPUT VALIDASI
+// INPUT VALIDASI (validate + create + revision dalam satu endpoint)
 // =============================================================================
 
 // InputValidasi handles POST /validasi-kpi/input
 // Menerima application/json. Menyimpan data validasi KPI dan mengirim notifikasi ke approver (status → 6).
+// Berlaku untuk status 5 (baru), 7 (revisi setelah tolak), 90/91 (ulang setelah batal).
 func (h *ValidasiKpiHandler) InputValidasi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.InputValidasiRequest](c)
 	if err != nil {
@@ -50,12 +36,18 @@ func (h *ValidasiKpiHandler) InputValidasi(c *gin.Context) {
 		return
 	}
 
-	userid, nama, ok := parseUserqHeader(c)
-	if !ok {
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
 		return
 	}
-	req.EntryUserValidasi = userid
-	req.EntryNameValidasi = nama
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+	req.EntryUserValidasi = strings.TrimSpace(parts[0])
+	req.EntryNameValidasi = strings.TrimSpace(parts[1])
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -77,54 +69,11 @@ func (h *ValidasiKpiHandler) InputValidasi(c *gin.Context) {
 }
 
 // =============================================================================
-// APPROVAL VALIDASI (legacy — approve atau reject dalam satu endpoint)
-// =============================================================================
-
-// ApprovalValidasi handles POST /validasi-kpi/approval
-// Menerima application/json. Memproses approve atau reject validasi KPI.
-func (h *ValidasiKpiHandler) ApprovalValidasi(c *gin.Context) {
-	req, err := binder.BindJSON[dto.ApprovalValidasiRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	userid, nama, ok := parseUserqHeader(c)
-	if !ok {
-		return
-	}
-	req.ApprovalUser = userid
-	req.ApprovalName = nama
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, err := h.service.ApprovalValidasi(&req)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	message := "Validasi KPI berhasil diapprove"
-	if req.Status == "reject" {
-		message = "Validasi KPI berhasil ditolak"
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
-		Code:    "00",
-		Status:  true,
-		Message: message,
-		Data:    data,
-	})
-}
-
-// =============================================================================
 // APPROVE VALIDASI
 // =============================================================================
 
 // ApproveValidasi handles POST /validasi-kpi/approve
+// Menerima application/json. Memproses approve validasi KPI dalam rantai approval.
 func (h *ValidasiKpiHandler) ApproveValidasi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.ApproveValidasiRequest](c)
 	if err != nil {
@@ -132,12 +81,18 @@ func (h *ValidasiKpiHandler) ApproveValidasi(c *gin.Context) {
 		return
 	}
 
-	userid, nama, ok := parseUserqHeader(c)
-	if !ok {
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
 		return
 	}
-	req.ApprovalUser = userid
-	req.ApprovalName = nama
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+	req.ApprovalUserValidasi = strings.TrimSpace(parts[0])
+	req.ApprovalNameValidasi = strings.TrimSpace(parts[1])
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -163,6 +118,7 @@ func (h *ValidasiKpiHandler) ApproveValidasi(c *gin.Context) {
 // =============================================================================
 
 // RejectValidasi handles POST /validasi-kpi/reject
+// Menerima application/json. Memproses penolakan validasi KPI (status → 7).
 func (h *ValidasiKpiHandler) RejectValidasi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.RejectValidasiRequest](c)
 	if err != nil {
@@ -170,12 +126,18 @@ func (h *ValidasiKpiHandler) RejectValidasi(c *gin.Context) {
 		return
 	}
 
-	userid, nama, ok := parseUserqHeader(c)
-	if !ok {
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
 		return
 	}
-	req.ApprovalUser = userid
-	req.ApprovalName = nama
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+	req.ApprovalUserValidasi = strings.TrimSpace(parts[0])
+	req.ApprovalNameValidasi = strings.TrimSpace(parts[1])
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -197,10 +159,55 @@ func (h *ValidasiKpiHandler) RejectValidasi(c *gin.Context) {
 }
 
 // =============================================================================
+// VALIDASI BATAL
+// =============================================================================
+
+// ValidasiBatal handles POST /validasi-kpi/batal
+// Menerima application/json. Membatalkan proses validasi (status → 91).
+func (h *ValidasiKpiHandler) ValidasiBatal(c *gin.Context) {
+	req, err := binder.BindJSON[dto.ValidasiBatalRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
+		return
+	}
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+	req.User = strings.TrimSpace(parts[0])
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.ValidasiBatal(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
+		Code:    "00",
+		Status:  true,
+		Message: "Validasi KPI berhasil dibatalkan",
+		Data:    data,
+	})
+}
+
+// =============================================================================
 // GET ALL APPROVAL VALIDASI
 // =============================================================================
 
 // GetAllApprovalValidasi handles POST /validasi-kpi/get-all-approval
+// Menerima application/json. Mengambil list pengajuan yang menunggu approval user (status=6).
 func (h *ValidasiKpiHandler) GetAllApprovalValidasi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllApprovalValidasiRequest](c)
 	if err != nil {
@@ -208,11 +215,17 @@ func (h *ValidasiKpiHandler) GetAllApprovalValidasi(c *gin.Context) {
 		return
 	}
 
-	userid, _, ok := parseUserqHeader(c)
-	if !ok {
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
 		return
 	}
-	req.ApprovalUser = userid
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+	req.ApprovalUser = strings.TrimSpace(parts[0])
 
 	data, total, err := h.service.GetAllApprovalValidasi(&req)
 	if err != nil {
@@ -239,6 +252,7 @@ func (h *ValidasiKpiHandler) GetAllApprovalValidasi(c *gin.Context) {
 // =============================================================================
 
 // GetAllTolakanValidasi handles POST /validasi-kpi/get-all-tolakan
+// Menerima application/json. Mengambil list pengajuan yang ditolak (status=7).
 func (h *ValidasiKpiHandler) GetAllTolakanValidasi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllTolakanValidasiRequest](c)
 	if err != nil {
@@ -271,6 +285,7 @@ func (h *ValidasiKpiHandler) GetAllTolakanValidasi(c *gin.Context) {
 // =============================================================================
 
 // GetAllDaftarPenyusunanValidasi handles POST /validasi-kpi/get-all-daftar-penyusunan
+// Menerima application/json.
 func (h *ValidasiKpiHandler) GetAllDaftarPenyusunanValidasi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllDaftarPenyusunanValidasiRequest](c)
 	if err != nil {
@@ -303,6 +318,7 @@ func (h *ValidasiKpiHandler) GetAllDaftarPenyusunanValidasi(c *gin.Context) {
 // =============================================================================
 
 // GetAllDaftarApprovalValidasi handles POST /validasi-kpi/get-all-daftar-approval
+// Menerima application/json. Mengambil semua pengajuan yang pernah melibatkan user dalam approval validasi.
 func (h *ValidasiKpiHandler) GetAllDaftarApprovalValidasi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllDaftarApprovalValidasiRequest](c)
 	if err != nil {
@@ -310,11 +326,17 @@ func (h *ValidasiKpiHandler) GetAllDaftarApprovalValidasi(c *gin.Context) {
 		return
 	}
 
-	userid, _, ok := parseUserqHeader(c)
-	if !ok {
+	userq := c.GetHeader("userq")
+	if userq == "" {
+		c.Error(&errors.BadRequestError{Message: "header 'userq' tidak ditemukan"})
 		return
 	}
-	req.ApprovalUser = userid
+	parts := strings.SplitN(userq, " | ", 2)
+	if len(parts) != 2 {
+		c.Error(&errors.BadRequestError{Message: "format header 'userq' tidak valid"})
+		return
+	}
+	req.ApprovalUser = strings.TrimSpace(parts[0])
 
 	data, total, err := h.service.GetAllDaftarApprovalValidasi(&req)
 	if err != nil {
@@ -341,6 +363,7 @@ func (h *ValidasiKpiHandler) GetAllDaftarApprovalValidasi(c *gin.Context) {
 // =============================================================================
 
 // GetAllValidasi handles POST /validasi-kpi/get-all-validasi
+// Menerima application/json.
 func (h *ValidasiKpiHandler) GetAllValidasi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllValidasiRequest](c)
 	if err != nil {
@@ -369,30 +392,24 @@ func (h *ValidasiKpiHandler) GetAllValidasi(c *gin.Context) {
 }
 
 // =============================================================================
-// VALIDASI BATAL
+// GET DETAIL VALIDASI
 // =============================================================================
 
-// ValidasiBatal handles POST /validasi-kpi/batal
-// Menerima application/json. Membatalkan proses validasi (status → 91).
-func (h *ValidasiKpiHandler) ValidasiBatal(c *gin.Context) {
-	req, err := binder.BindJSON[dto.ValidasiBatalRequest](c)
+// GetDetailValidasiKpi handles POST /validasi-kpi/get-detail
+// Menerima application/json. Mengambil detail lengkap satu pengajuan validasi KPI.
+func (h *ValidasiKpiHandler) GetDetailValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetDetailValidasiKpiRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
-
-	userid, _, ok := parseUserqHeader(c)
-	if !ok {
-		return
-	}
-	req.User = userid
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	data, err := h.service.ValidasiBatal(&req)
+	data, err := h.service.GetDetailValidasiKpi(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -401,7 +418,7 @@ func (h *ValidasiKpiHandler) ValidasiBatal(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &globalDTO.ResponseParams{
 		Code:    "00",
 		Status:  true,
-		Message: "Validasi KPI berhasil dibatalkan",
+		Message: "Data detail Validasi KPI berhasil diambil",
 		Data:    data,
 	})
 }

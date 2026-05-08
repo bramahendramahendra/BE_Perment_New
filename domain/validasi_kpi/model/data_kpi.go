@@ -31,4 +31,8 @@ type DataKpi struct {
 	ApprovalListValidasi     string `gorm:"column:approval_list_validasi"`
 	LampiranValidasi         string `gorm:"column:lampiran_validasi"`
 	QualifierOverallValidasi string `gorm:"column:qualifier_overall_validasi"`
+
+	// Diisi oleh GetDetailValidasiKpi — tidak dipetakan ke kolom DB
+	TotalKpi int                  `gorm:"-"`
+	Kpi      []DataKpiDetailValidasi `gorm:"-"`
 }

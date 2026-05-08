@@ -14,16 +14,16 @@ import (
 //
 // Daftar endpoint:
 //
-//	POST /validasi-kpi/input                    → InputValidasi                 (application/json)
-//	POST /validasi-kpi/approval                 → ApprovalValidasi              (application/json)
-//	POST /validasi-kpi/approve                  → ApproveValidasi               (application/json)
-//	POST /validasi-kpi/reject                   → RejectValidasi                (application/json)
-//	POST /validasi-kpi/batal                    → ValidasiBatal                 (application/json)
-//	POST /validasi-kpi/get-all-approval         → GetAllApprovalValidasi        (application/json)
-//	POST /validasi-kpi/get-all-tolakan          → GetAllTolakanValidasi         (application/json)
-//	POST /validasi-kpi/get-all-daftar-penyusunan → GetAllDaftarPenyusunanValidasi (application/json)
-//	POST /validasi-kpi/get-all-daftar-approval  → GetAllDaftarApprovalValidasi  (application/json)
-//	POST /validasi-kpi/get-all-validasi         → GetAllValidasi                (application/json)
+//	POST /validasi-kpi/input                      → InputValidasi                   (application/json) — validate + create + revision
+//	POST /validasi-kpi/approve                    → ApproveValidasi                 (application/json)
+//	POST /validasi-kpi/reject                     → RejectValidasi                  (application/json)
+//	POST /validasi-kpi/batal                      → ValidasiBatal                   (application/json)
+//	POST /validasi-kpi/get-all-approval           → GetAllApprovalValidasi          (application/json)
+//	POST /validasi-kpi/get-all-tolakan            → GetAllTolakanValidasi           (application/json)
+//	POST /validasi-kpi/get-all-daftar-penyusunan  → GetAllDaftarPenyusunanValidasi  (application/json)
+//	POST /validasi-kpi/get-all-daftar-approval    → GetAllDaftarApprovalValidasi    (application/json)
+//	POST /validasi-kpi/get-all-validasi           → GetAllValidasi                  (application/json)
+//	POST /validasi-kpi/get-detail                 → GetDetailValidasiKpi            (application/json)
 func ValidasiKpiRoutes(r *gin.RouterGroup) {
 	validasiKpiRepo := repo.NewValidasiKpiRepo(db.DB)
 	validasiKpiService := service.NewValidasiKpiService(validasiKpiRepo)
@@ -31,7 +31,6 @@ func ValidasiKpiRoutes(r *gin.RouterGroup) {
 
 	validasiKpiGroup := r.Group("validasi-kpi")
 	validasiKpiGroup.POST("/input", validasiKpiHandler.InputValidasi)
-	validasiKpiGroup.POST("/approval", validasiKpiHandler.ApprovalValidasi)
 	validasiKpiGroup.POST("/approve", validasiKpiHandler.ApproveValidasi)
 	validasiKpiGroup.POST("/reject", validasiKpiHandler.RejectValidasi)
 	validasiKpiGroup.POST("/batal", validasiKpiHandler.ValidasiBatal)
@@ -40,4 +39,5 @@ func ValidasiKpiRoutes(r *gin.RouterGroup) {
 	validasiKpiGroup.POST("/get-all-daftar-penyusunan", validasiKpiHandler.GetAllDaftarPenyusunanValidasi)
 	validasiKpiGroup.POST("/get-all-daftar-approval", validasiKpiHandler.GetAllDaftarApprovalValidasi)
 	validasiKpiGroup.POST("/get-all-validasi", validasiKpiHandler.GetAllValidasi)
+	validasiKpiGroup.POST("/get-detail", validasiKpiHandler.GetDetailValidasiKpi)
 }
