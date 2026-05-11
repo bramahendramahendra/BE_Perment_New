@@ -418,7 +418,7 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 	}
 
 	var qualifierOverall []dto.DataValidasiQualifierOverall
-	if dataDB.QualifierOverallValidasi != "" && dataDB.QualifierOverallValidasi != "null" {
+	if dataDB.QualifierOverallValidasi != "" && dataDB.QualifierOverallValidasi != "null" && dataDB.QualifierOverallValidasi != "-" {
 		if err = json.Unmarshal([]byte(dataDB.QualifierOverallValidasi), &qualifierOverall); err != nil {
 			return nil, fmt.Errorf("gagal parse qualifier_overall_validasi: %w", err)
 		}
