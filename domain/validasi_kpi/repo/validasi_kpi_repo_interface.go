@@ -74,18 +74,21 @@ type (
 		// APPROVAL HELPER
 		// =============================================================================
 
-		// CheckApprovalValidasiExists memvalidasi bahwa user adalah approver aktif untuk pengajuan (status=6, approval_posisi=user).
-		CheckApprovalValidasiExists(user, idPengajuan string) (bool, error)
+		// GetApprovalListJSON digunakan oleh service ApproveValidasiKpi dan RejectValidasiKpi untuk mengambil daftar approval dalam format JSON.
+		GetApprovalListJSON(idPengajuan, userID string) (string, error)
 
-		// GetApprovalListValidasiJSON mengambil approval_list_validasi dalam format JSON string.
-		GetApprovalListValidasiJSON(idPengajuan, userID string) (string, error)
+		// GetCatatanTolakan digunakan oleh service RejectValidasiKpi untuk mengambil catatan tolakan berdasarkan id_pengajuan.
+		GetCatatanTolakan(idPengajuan string) (string, error)
+
+		// CheckApprovalValidasiExists digunakan oleh service ApproveValidasiKpi dan RejectValidasiKpi untuk memvalidasi keberadaan approval.
+		CheckApprovalValidasiExists(user, idPengajuan string) (bool, error)
 
 		// =============================================================================
 		// GET EXIST
 		// =============================================================================
 
-		// GetExistDataValidasi mengambil data header KPI berdasarkan id_pengajuan untuk validasi status.
-		GetExistDataValidasi(idPengajuan string) (*model.DataKpiExist, error)
+		// GetExistDataKpi digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
+		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
 	}
 
 	validasiKpiRepo struct {

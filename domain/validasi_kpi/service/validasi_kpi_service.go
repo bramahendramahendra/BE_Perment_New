@@ -6,56 +6,116 @@ import (
 	"time"
 
 	dto "permen_api/domain/validasi_kpi/dto"
+	"permen_api/domain/validasi_kpi/utils"
 	customErrors "permen_api/errors"
 )
 
 // =============================================================================
-// INPUT VALIDASI (validate + create + revision)
+// INPUT
 // =============================================================================
 
-// InputValidasi digunakan oleh endpoint POST /validasi-kpi/input.
-func (s *validasiKpiService) InputValidasi(
+// InputValidasiKpi digunakan oleh endpoint POST /validasi-kpi/input.
+func (s *validasiKpiService) InputValidasiKpi(
 	req *dto.InputValidasiKpiRequest,
 ) (data dto.InputValidasiKpiResponse, err error) {
-	existData, err := s.repo.GetExistDataValidasi(req.IdPengajuan)
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan atau status tidak mengizinkan input validasi", req.IdPengajuan),
-		}
+		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
-	// Status yang diizinkan: 5 (baru), 7 (revisi setelah tolak), 90/91 (ulang setelah batal)
+	// Validasi: status harus 5 = Realisasi Disetujui / 7 = Validasi Ditolak / 90 = Draft Validasi / 91 = Validasi Batal
 	if existData.Status != 5 && existData.Status != 7 && existData.Status != 90 && existData.Status != 91 {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("pengajuan '%s' tidak dapat diinput, status saat ini '%s'", req.IdPengajuan, existData.StatusDesc),
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, existData.StatusDesc),
 		}
 	}
 
-	if err := s.repo.InputValidasi(req); err != nil {
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
+	if req.Kostl != existData.Kostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, existData.Kostl),
+		}
+	}
+	if req.Triwulan != existData.Triwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, existData.Triwulan),
+		}
+	}
+	if req.Tahun != existData.Tahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, existData.Tahun),
+		}
+	}
+
+	if err := s.repo.InputValidasiKpi(req); err != nil {
 		return data, err
 	}
 
-	return dto.InputValidasiResponse{IdPengajuan: req.IdPengajuan}, nil
+	approvalList := make([]dto.ApprovalUser, len(req.ApprovalListValidasi))
+	for i, a := range req.ApprovalListValidasi {
+		approvalList[i] = dto.ApprovalUser{Userid: a.Userid, Nama: a.Nama, Posisi: a.Posisi}
+	}
+
+	data = dto.InputValidasiKpiResponse{
+		IdPengajuan: req.IdPengajuan,
+		Triwulan:    req.Triwulan,
+		Tahun:       req.Tahun,
+		Divisi: dto.Divisi{
+			Kostl:   req.Kostl,
+			KostlTx: existData.KostlTx,
+		},
+		EntryValidasi: dto.EntryUserValidasi{
+			EntryUserValidasi: req.EntryUserValidasi,
+			EntryNameValidasi: req.EntryNameValidasi,
+			EntryTimeValidasi: req.EntryTimeValidasi,
+		},
+		ApprovalListValidasi:         approvalList,
+		TotalBobot:                   req.TotalBobot,
+		TotalPencapaian:              req.TotalPencapaian,
+		TotalBobotPengurang:          req.TotalBobotPengurang,
+		TotalPencapaianPost:          req.TotalPencapaianPost,
+		KpiList:                      req.Kpi,
+		DataValidasiQualifierOverall: req.DataValidasiQualifierOverall,
+		LampiranValidasi:             req.LampiranValidasi,
+	}
+
+	return data, nil
 }
 
 // =============================================================================
-// APPROVE VALIDASI
+// APPROVE
 // =============================================================================
 
-// ApproveValidasi digunakan oleh endpoint POST /validasi-kpi/approve.
-func (s *validasiKpiService) ApproveValidasi(
+// ApproveValidasiKpi digunakan oleh endpoint POST /validasi-kpi/approve.
+func (s *validasiKpiService) ApproveValidasiKpi(
 	req *dto.ApproveValidasiKpiRequest,
 ) (data dto.ApproveValidasiKpiResponse, err error) {
-	existData, err := s.repo.GetExistDataValidasi(req.IdPengajuan)
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-		}
+		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
 
+	// Validasi: status harus 6 = Approval Validasi
 	if existData.Status != 6 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat diapprove, status saat ini '%s'", req.IdPengajuan, existData.StatusDesc),
+		}
+	}
+
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
+	if req.Kostl != existData.Kostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, existData.Kostl),
+		}
+	}
+	if req.Triwulan != existData.Triwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, existData.Triwulan),
+		}
+	}
+	if req.Tahun != existData.Tahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, existData.Tahun),
 		}
 	}
 
@@ -67,17 +127,18 @@ func (s *validasiKpiService) ApproveValidasi(
 		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan. [Pastikan User Approval sesuai.]"}
 	}
 
-	approvalListJSON, err := s.repo.GetApprovalListValidasiJSON(req.IdPengajuan, req.ApprovalUserValidasi)
+	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUserValidasi)
 	if err != nil {
 		return data, err
 	}
 
-	var approvalList []dto.ApprovalListItem
+	var approvalList []dto.ApprovalUserDetail
 	if err = json.Unmarshal([]byte(approvalListJSON), &approvalList); err != nil {
 		return data, fmt.Errorf("gagal parse approval_list_validasi: %w", err)
 	}
 
-	approvalList, nextApprover, err := processApproveValidasiApprovalList(approvalList, req.ApprovalUserValidasi, req.Catatan.EntryNote)
+	approvalList, nextApprover, err := utils.ProcessApproveApprovalList(approvalList, req.ApprovalUserValidasi, req.Catatan.EntryNote)
+
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
@@ -91,31 +152,50 @@ func (s *validasiKpiService) ApproveValidasi(
 		return data, err
 	}
 
-	return dto.ApproveValidasiResponse{
+	data = dto.ApproveValidasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
 		Status:      "Approve Validasi",
 		Catatan:     req.Catatan,
-	}, nil
+	}
+
+	return data, nil
 }
 
 // =============================================================================
 // REJECT VALIDASI
 // =============================================================================
 
-// RejectValidasi digunakan oleh endpoint POST /validasi-kpi/reject.
-func (s *validasiKpiService) RejectValidasi(
+// RejectValidasiKpi digunakan oleh endpoint POST /validasi-kpi/reject.
+func (s *validasiKpiService) RejectValidasiKpi(
 	req *dto.RejectValidasiKpiRequest,
 ) (data dto.RejectValidasiKpiResponse, err error) {
-	existData, err := s.repo.GetExistDataValidasi(req.IdPengajuan)
+	// Ambil header dari DB berdasarkan id_pengajuan
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
 	if err != nil {
-		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
-		}
+		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
 
+	// Validasi: status harus 6 = Approval Validasi
 	if existData.Status != 6 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat ditolak, status saat ini '%s'", req.IdPengajuan, existData.StatusDesc),
+		}
+	}
+
+	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
+	if req.Kostl != existData.Kostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, existData.Kostl),
+		}
+	}
+	if req.Tahun != existData.Tahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, existData.Tahun),
+		}
+	}
+	if req.Triwulan != existData.Triwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, existData.Triwulan),
 		}
 	}
 
@@ -127,52 +207,118 @@ func (s *validasiKpiService) RejectValidasi(
 		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan. [Pastikan User Approval sesuai.]"}
 	}
 
-	approvalListJSON, err := s.repo.GetApprovalListValidasiJSON(req.IdPengajuan, req.ApprovalUserValidasi)
+	approvalListJSON, err := s.repo.GetApprovalListJSON(req.IdPengajuan, req.ApprovalUserValidasi)
 	if err != nil {
 		return data, err
 	}
 
-	var approvalList []dto.ApprovalListItem
+	var approvalList []dto.ApprovalUserDetail
 	if err = json.Unmarshal([]byte(approvalListJSON), &approvalList); err != nil {
-		return data, fmt.Errorf("gagal parse approval_list_validasi: %w", err)
+		return data, fmt.Errorf("gagal parse approval list validasi: %w", err)
 	}
 
-	approvalList, err = processRejectValidasiApprovalList(approvalList, req.ApprovalUserValidasi, req.Catatan.EntryNote)
+	approvalList, err = utils.ProcessRejectApprovalList(approvalList, req.ApprovalUserValidasi, req.Catatan.EntryNote)
 	if err != nil {
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
 	updatedJSON, err := json.Marshal(approvalList)
 	if err != nil {
-		return data, fmt.Errorf("gagal serialize approval_list_validasi: %w", err)
+		return data, fmt.Errorf("gagal serialize approval list validasi: %w", err)
 	}
 
-	if err = s.repo.RejectValidasiKpi(req.IdPengajuan, string(updatedJSON), req.Catatan.EntryNote, req.ApprovalUserValidasi); err != nil {
+	existingCatatanJSON, err := s.repo.GetCatatanTolakan(req.IdPengajuan)
+	if err != nil {
+		return data, fmt.Errorf("gagal membaca catatan_tolakan: %w", err)
+	}
+
+	nowDisplay := time.Now().Format("02-01-2006 15:04:05")
+	entryUserFull := req.ApprovalUserValidasi + " - " + req.ApprovalNameValidasi
+
+	catatanTolakanJSON, err := utils.AppendCatatanTolakan(existingCatatanJSON, dto.CatatanDetail{
+		Fungsi:    req.Catatan.Fungsi,
+		EntryUser: entryUserFull,
+		EntryTime: nowDisplay,
+		EntryNote: req.Catatan.EntryNote,
+	})
+	if err != nil {
 		return data, err
 	}
 
-	return dto.RejectValidasiResponse{
+	if err = s.repo.RejectValidasiKpi(req.IdPengajuan, string(updatedJSON), catatanTolakanJSON, req.ApprovalUserValidasi); err != nil {
+		return data, err
+	}
+
+	data = dto.RejectValidasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
 		Status:      "Reject Validasi",
 		Catatan:     req.Catatan,
-	}, nil
+	}
+
+	return data, nil
 }
 
 // =============================================================================
 // GET ALL
 // =============================================================================
 
-// GetAllApprovalValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-approval.
-func (s *validasiKpiService) GetAllApprovalValidasi(
-	req *dto.GetAllApprovalValidasiRequest,
-) (data []*dto.GetAllValidasiResponse, total int64, err error) {
-	dataDB, total, err := s.repo.GetAllApprovalValidasi(req)
+// GetAllValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-validasi.
+func (s *validasiKpiService) GetAllValidasiKpi(
+	req *dto.GetAllValidasiKpiRequest,
+) (data []*dto.GetAllValidasiKpiResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAllValidasiKpi(req)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, &dto.GetAllValidasiResponse{
+		data = append(data, &dto.GetAllValidasiKpiResponse{
+			IdPengajuan: v.IdPengajuan,
+			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
+			KostlTx:     v.KostlTx,
+			OrgehTx:     v.OrgehTx,
+			StatusDesc:  v.StatusDesc,
+		})
+	}
+
+	return data, total, nil
+}
+
+// GetAllApprovalValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-approval.
+func (s *validasiKpiService) GetAllApprovalValidasiKpi(
+	req *dto.GetAllApprovalValidasiKpiRequest,
+) (data []*dto.GetAllApprovalValidasiKpiResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAllApprovalValidasiKpi(req)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.GetAllApprovalValidasiKpiResponse{
+			IdPengajuan: v.IdPengajuan,
+			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
+			KostlTx:     v.KostlTx,
+			OrgehTx:     v.OrgehTx,
+			StatusDesc:  v.StatusDesc,
+		})
+	}
+
+	return data, total, nil
+}
+
+// GetAllTolakanValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-tolakan.
+func (s *validasiKpiService) GetAllTolakanValidasiKpi(
+	req *dto.GetAllTolakanValidasiKpiRequest,
+) (data []*dto.GetAllTolakanValidasiKpiResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAllTolakanValidasiKpi(req)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.GetAllTolakanValidasiKpiResponse{
 			IdPengajuan: v.IdPengajuan,
 			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
@@ -185,17 +331,17 @@ func (s *validasiKpiService) GetAllApprovalValidasi(
 	return data, total, nil
 }
 
-// GetAllTolakanValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-tolakan.
-func (s *validasiKpiService) GetAllTolakanValidasi(
-	req *dto.GetAllTolakanValidasiRequest,
-) (data []*dto.GetAllValidasiResponse, total int64, err error) {
-	dataDB, total, err := s.repo.GetAllTolakanValidasi(req)
+// GetAllDaftarValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-validasi.
+func (s *validasiKpiService) GetAllDaftarValidasiKpi(
+	req *dto.GetAllDaftarPValidasiKpiRequest,
+) (data []*dto.GetAllDaftarValidasiKpiResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAllDaftarValidasiKpi(req)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, &dto.GetAllValidasiResponse{
+		data = append(data, &dto.GetAllDaftarValidasiKpiResponse{
 			IdPengajuan: v.IdPengajuan,
 			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
@@ -208,63 +354,17 @@ func (s *validasiKpiService) GetAllTolakanValidasi(
 	return data, total, nil
 }
 
-// GetAllDaftarPenyusunanValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-penyusunan.
-func (s *validasiKpiService) GetAllDaftarPenyusunanValidasi(
-	req *dto.GetAllDaftarPenyusunanValidasiRequest,
-) (data []*dto.GetAllValidasiResponse, total int64, err error) {
-	dataDB, total, err := s.repo.GetAllDaftarPenyusunanValidasi(req)
+// GetAllDaftarApprovalValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-approval.
+func (s *validasiKpiService) GetAllDaftarApprovalValidasiKpi(
+	req *dto.GetAllDaftarApprovalValidasiKpiRequest,
+) (data []*dto.GetAllDaftarApprovalValidasiKpiResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAllDaftarApprovalValidasiKpi(req)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, &dto.GetAllValidasiResponse{
-			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
-			Triwulan:    v.Triwulan,
-			KostlTx:     v.KostlTx,
-			OrgehTx:     v.OrgehTx,
-			StatusDesc:  v.StatusDesc,
-		})
-	}
-
-	return data, total, nil
-}
-
-// GetAllDaftarApprovalValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-daftar-approval.
-func (s *validasiKpiService) GetAllDaftarApprovalValidasi(
-	req *dto.GetAllDaftarApprovalValidasiRequest,
-) (data []*dto.GetAllValidasiResponse, total int64, err error) {
-	dataDB, total, err := s.repo.GetAllDaftarApprovalValidasi(req)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	for _, v := range dataDB {
-		data = append(data, &dto.GetAllValidasiResponse{
-			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
-			Triwulan:    v.Triwulan,
-			KostlTx:     v.KostlTx,
-			OrgehTx:     v.OrgehTx,
-			StatusDesc:  v.StatusDesc,
-		})
-	}
-
-	return data, total, nil
-}
-
-// GetAllValidasi digunakan oleh endpoint POST /validasi-kpi/get-all-validasi.
-func (s *validasiKpiService) GetAllValidasi(
-	req *dto.GetAllValidasiRequest,
-) (data []*dto.GetAllValidasiResponse, total int64, err error) {
-	dataDB, total, err := s.repo.GetAllValidasi(req)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	for _, v := range dataDB {
-		data = append(data, &dto.GetAllValidasiResponse{
+		data = append(data, &dto.GetAllDaftarApprovalValidasiKpiResponse{
 			IdPengajuan: v.IdPengajuan,
 			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
@@ -295,18 +395,16 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 		}
 	}
 
-	// Parse approval_list_validasi (JSON → []ApprovalListItem)
-	var approvalListValidasi []dto.ApprovalListItem
+	var approvalListValidasi []dto.ApprovalUserDetail
 	if dataDB.ApprovalListValidasi != "" && dataDB.ApprovalListValidasi != "null" {
 		if err = json.Unmarshal([]byte(dataDB.ApprovalListValidasi), &approvalListValidasi); err != nil {
 			return nil, fmt.Errorf("gagal parse approval_list_validasi: %w", err)
 		}
 	}
 	if approvalListValidasi == nil {
-		approvalListValidasi = []dto.ApprovalListItem{}
+		approvalListValidasi = []dto.ApprovalUserDetail{}
 	}
 
-	// Parse lampiran_validasi (JSON → []string)
 	var lampiranValidasi []string
 	if dataDB.LampiranValidasi != "" && dataDB.LampiranValidasi != "null" {
 		if err = json.Unmarshal([]byte(dataDB.LampiranValidasi), &lampiranValidasi); err != nil {
@@ -317,23 +415,31 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 		lampiranValidasi = []string{}
 	}
 
-	// Parse qualifier_overall_validasi (JSON → []QualifierOverallItem)
-	var qualifierOverall []dto.QualifierOverallItem
+	var qualifierOverall []dto.DataValidasiQualifierOverall
 	if dataDB.QualifierOverallValidasi != "" && dataDB.QualifierOverallValidasi != "null" {
 		if err = json.Unmarshal([]byte(dataDB.QualifierOverallValidasi), &qualifierOverall); err != nil {
 			return nil, fmt.Errorf("gagal parse qualifier_overall_validasi: %w", err)
 		}
 	}
 	if qualifierOverall == nil {
-		qualifierOverall = []dto.QualifierOverallItem{}
+		qualifierOverall = []dto.DataValidasiQualifierOverall{}
 	}
 
-	// Build KPI list dari nested model
-	kpiList := make([]dto.DataKpiDetailValidasiResponse, len(dataDB.Kpi))
+	var catatanList []dto.CatatanDetail
+	if dataDB.CatatanTolakan != "" && dataDB.CatatanTolakan != "null" {
+		if err = json.Unmarshal([]byte(dataDB.CatatanTolakan), &catatanList); err != nil {
+			return nil, fmt.Errorf("gagal parse catatan_tolakan: %w", err)
+		}
+	}
+	if catatanList == nil {
+		catatanList = []dto.CatatanDetail{}
+	}
+
+	kpiList := make([]dto.DataKpiDetail, len(dataDB.Kpi))
 	for i, kpi := range dataDB.Kpi {
-		subList := make([]dto.DataKpiSubDetailValidasiResponse, len(kpi.KpiSubDetail))
+		subList := make([]dto.DataKpiSubdetail, len(kpi.KpiSubDetail))
 		for j, sub := range kpi.KpiSubDetail {
-			subList[j] = dto.DataKpiSubDetailValidasiResponse{
+			subList[j] = dto.DataKpiSubdetail{
 				IdSubDetail:                      sub.IdSubDetail,
 				IdSubKpi:                         sub.IdKpi,
 				SubKpi:                           sub.Kpi,
@@ -342,7 +448,7 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 				TargetKuantitatifTriwulan:        sub.TargetKuantitatifTriwulan,
 				TargetQualifier:                  sub.TargetQualifier,
 				RealisasiValidated:               sub.RealisasiValidated,
-				RealisasiKuantitatifValidated:    sub.RealisasiKuantitatifValidated,
+				RealisasiKuantitatifValidated:    fmt.Sprintf("%v", sub.RealisasiKuantitatifValidated),
 				ValidasiKeterangan:               sub.ValidasiKeterangan,
 				Pencapaian:                       sub.Pencapaian,
 				Skor:                             sub.Skor,
@@ -350,7 +456,7 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 				PencapaianPostQualifierValidated: sub.PencapaianPostQualifierValidated,
 			}
 		}
-		kpiList[i] = dto.DataKpiDetailValidasiResponse{
+		kpiList[i] = dto.DataKpiDetail{
 			IdDetail:     kpi.IdDetail,
 			IdKpi:        kpi.IdKpi,
 			Kpi:          kpi.Kpi,
@@ -389,7 +495,7 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 		},
 		ApprovalPosisi:           dataDB.ApprovalPosisi,
 		ApprovalListValidasi:     approvalListValidasi,
-		CatatanTolakan:           dataDB.CatatanTolakan,
+		Catatan:                  catatanList,
 		TotalBobot:               dataDB.TotalBobot,
 		TotalPencapaian:          dataDB.TotalPencapaian,
 		TotalBobotPengurang:      dataDB.TotalBobotPengurang,
@@ -407,12 +513,10 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 // HELPER — approval list processing
 // =============================================================================
 
-// processApproveValidasiApprovalList menandai entry approver sebagai "approve",
-// lalu mengembalikan nextApprover (userid approver berikutnya, "" jika sudah final).
 func processApproveValidasiApprovalList(
-	list []dto.ApprovalListItem,
+	list []dto.ApprovalUserDetail,
 	userID, catatan string,
-) (updated []dto.ApprovalListItem, nextApprover string, err error) {
+) (updated []dto.ApprovalUserDetail, nextApprover string, err error) {
 	now := time.Now().Format("02-01-2006 15:04:05")
 	found := false
 
@@ -430,7 +534,6 @@ func processApproveValidasiApprovalList(
 		return nil, "", fmt.Errorf("user '%s' tidak ditemukan dalam daftar approval atau sudah memproses", userID)
 	}
 
-	// Cari approver berikutnya (entry pertama yang status-nya masih kosong)
 	for _, item := range list {
 		if item.Status == "" {
 			nextApprover = item.Userid
@@ -441,11 +544,10 @@ func processApproveValidasiApprovalList(
 	return list, nextApprover, nil
 }
 
-// processRejectValidasiApprovalList menandai entry approver sebagai "reject".
 func processRejectValidasiApprovalList(
-	list []dto.ApprovalListItem,
+	list []dto.ApprovalUserDetail,
 	userID, catatan string,
-) (updated []dto.ApprovalListItem, err error) {
+) (updated []dto.ApprovalUserDetail, err error) {
 	now := time.Now().Format("02-01-2006 15:04:05")
 	found := false
 

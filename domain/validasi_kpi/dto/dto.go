@@ -178,12 +178,11 @@ type InputValidasiKpiRequest struct {
 	Kostl                        string                         `json:"kostl"                   validate:"required"`
 	Triwulan                     string                         `json:"triwulan"                validate:"required"`
 	Tahun                        string                         `json:"tahun"                   validate:"required"`
-	ApprovalPosisi               string                         `json:"approval_posisi"                 validate:"required"`
 	ApprovalListValidasi         []ApprovalUserDetail           `json:"approval_list_validasi"          validate:"required"`
 	TotalBobot                   string                         `json:"total_bobot"                     validate:"required"`
 	TotalPencapaian              string                         `json:"total_pencapaian"                validate:"required"`
-	TotalBobotPengurang          interface{}                    `json:"total_bobot_pengurang"           validate:"required"`
-	TotalPencapaianPost          interface{}                    `json:"total_pencapaian_post"           validate:"required"`
+	TotalBobotPengurang          string                         `json:"total_bobot_pengurang"           validate:"required"`
+	TotalPencapaianPost          string                         `json:"total_pencapaian_post"           validate:"required"`
 	Kpi                          []DataKpiDetail                `json:"kpi"                             validate:"required"`
 	DataValidasiQualifierOverall []DataValidasiQualifierOverall `json:"data_validasi_qualifier_overall" validate:"required"`
 	LampiranValidasi             []string                       `json:"lampiran_validasi"`
@@ -291,6 +290,7 @@ type InputValidasiKpiResponse struct {
 	Divisi                       Divisi                         `json:"divisi"`
 	Triwulan                     string                         `json:"triwulan"`
 	Tahun                        string                         `json:"tahun"`
+	EntryValidasi                EntryUserValidasi              `json:"entry_validasi"`
 	ApprovalPosisi               string                         `json:"approval_posisi"`
 	ApprovalListValidasi         []ApprovalUser                 `json:"approval_list_validasi"`
 	TotalBobot                   string                         `json:"total_bobot"`

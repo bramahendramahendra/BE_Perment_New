@@ -38,7 +38,7 @@ func (s *realisasiKpiService) ValidateRealisasiKpi(
 	dbStatus := existData.Status
 	dbStatusDesc := existData.StatusDesc
 
-	// Validasi: status harus 2 = Penyusunan Disetujui atau 81 = ...
+	// Validasi: status harus 2 = Penyusunan Disetujui atau 81 = Realisasi Batal
 	if dbStatus != 2 && dbStatus != 81 {
 		return data, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
@@ -329,33 +329,33 @@ func (s *realisasiKpiService) ApproveRealisasiKpi(
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
 
-	dbTriwulan := existData.Triwulan
-	dbTahun := existData.Tahun
-	dbKostl := existData.Kostl
-	dbStatus := existData.Status
-	dbStatusDesc := existData.StatusDesc
+	// dbTriwulan := existData.Triwulan
+	// dbTahun := existData.Tahun
+	// dbKostl := existData.Kostl
+	// dbStatus := existData.Status
+	// dbStatusDesc := existData.StatusDesc
 
 	// Validasi: status harus 3 = Approval Realisasi
-	if dbStatus != 3 {
+	if existData.Status != 3 {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("pengajuan '%s' tidak dapat diapprove, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat diapprove, status saat ini '%s'", req.IdPengajuan, existData.StatusDesc),
 		}
 	}
 
 	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
-	if req.Kostl != dbKostl {
+	if req.Kostl != existData.Kostl {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, existData.Kostl),
 		}
 	}
-	if req.Triwulan != dbTriwulan {
+	if req.Triwulan != existData.Triwulan {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, existData.Triwulan),
 		}
 	}
-	if req.Tahun != dbTahun {
+	if req.Tahun != existData.Tahun {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, existData.Tahun),
 		}
 	}
 
@@ -410,41 +410,41 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 		return data, &customErrors.BadRequestError{Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan)}
 	}
 
-	dbTriwulan := existData.Triwulan
-	dbTahun := existData.Tahun
-	dbKostl := existData.Kostl
-	dbStatus := existData.Status
-	dbStatusDesc := existData.StatusDesc
+	// dbTriwulan := existData.Triwulan
+	// dbTahun := existData.Tahun
+	// dbKostl := existData.Kostl
+	// dbStatus := existData.Status
+	// dbStatusDesc := existData.StatusDesc
 
 	// Validasi: status harus 3 = Approval Realisasi
-	if dbStatus != 3 {
+	if existData.Status != 3 {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("pengajuan '%s' tidak dapat ditolak, status saat ini '%s'", req.IdPengajuan, dbStatusDesc),
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat ditolak, status saat ini '%s'", req.IdPengajuan, existData.StatusDesc),
 		}
 	}
 
 	// Validasi: kostl, triwulan, tahun dari request harus sesuai dengan data di DB
-	if req.Kostl != dbKostl {
+	if req.Kostl != existData.Kostl {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, dbKostl),
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, existData.Kostl),
 		}
 	}
-	if req.Tahun != dbTahun {
+	if req.Tahun != existData.Tahun {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, dbTahun),
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, existData.Tahun),
 		}
 	}
-	if req.Triwulan != dbTriwulan {
+	if req.Triwulan != existData.Triwulan {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, dbTriwulan),
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, existData.Triwulan),
 		}
 	}
 
-	rejectApprovalExists, err := s.repo.CheckApprovalRealisasiExists(req.ApprovalUserRealisasi, req.IdPengajuan)
+	rejectExists, err := s.repo.CheckApprovalRealisasiExists(req.ApprovalUserRealisasi, req.IdPengajuan)
 	if err != nil {
 		return data, err
 	}
-	if !rejectApprovalExists {
+	if !rejectExists {
 		return data, &customErrors.BadRequestError{Message: "Data tidak ditemukan.[Pastikan User Approval sesuai.]"}
 	}
 
@@ -455,7 +455,7 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 
 	var approvalList []dto.ApprovalUserDetail
 	if err = json.Unmarshal([]byte(approvalListJSON), &approvalList); err != nil {
-		return data, fmt.Errorf("gagal parse approval_list: %w", err)
+		return data, fmt.Errorf("gagal parse approval list realisasi: %w", err)
 	}
 
 	approvalList, err = utils.ProcessRejectApprovalList(approvalList, req.ApprovalUserRealisasi, req.Catatan.EntryNote)
@@ -465,7 +465,7 @@ func (s *realisasiKpiService) RejectRealisasiKpi(
 
 	updatedJSON, err := json.Marshal(approvalList)
 	if err != nil {
-		return data, fmt.Errorf("gagal serialize approval_list: %w", err)
+		return data, fmt.Errorf("gagal serialize approval list realisasi: %w", err)
 	}
 
 	existingCatatanJSON, err := s.repo.GetCatatanTolakan(req.IdPengajuan)

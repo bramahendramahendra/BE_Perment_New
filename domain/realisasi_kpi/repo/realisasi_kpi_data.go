@@ -640,7 +640,9 @@ func (r *realisasiKpiRepo) ApproveRealisasiKpi(idPengajuan, approvalList, approv
 			tx.Rollback()
 			return fmt.Errorf("gagal approve final realisasi: %w", err)
 		}
-		tx.Commit()
+		if err := tx.Commit().Error; err != nil {
+			return fmt.Errorf("gagal commit approve final realisasi: %w", err)
+		}
 		return nil
 	}
 
@@ -663,7 +665,9 @@ func (r *realisasiKpiRepo) ApproveRealisasiKpi(idPengajuan, approvalList, approv
 		return err
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi approve realisasi: %w", err)
+	}
 	return nil
 }
 
@@ -700,7 +704,9 @@ func (r *realisasiKpiRepo) RejectRealisasiKpi(idPengajuan, approvalList, catatan
 		return err
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi reject realisasi: %w", err)
+	}
 	return nil
 }
 
@@ -1199,7 +1205,7 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	where := " WHERE " + strings.Join(conditions, " AND ")
 
 	// =========================================================================
-	// QUERY HEADER
+	// QUERY DATA KPI
 	// =========================================================================
 	var result model.DataKpi
 	headerQuery := queryGetDataKpi + where + " LIMIT 1"
@@ -1208,12 +1214,16 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 	}
 
 	// =========================================================================
-	// KPI DETAIL + SUB DETAIL
+	// QUERY KPI DETAIL
 	// =========================================================================
 	var kpiDetails []model.DataKpiDetail
 	if err := r.db.Raw(queryGetDataKpiDetail, result.IdPengajuan).Scan(&kpiDetails).Error; err != nil {
 		return nil, fmt.Errorf("gagal mengambil kpi detail: %w", err)
 	}
+
+	// =========================================================================
+	// QUERY KPI SUB DETAIL
+	// =========================================================================
 	for i := range kpiDetails {
 		var subDetails []model.DataKpiSubDetail
 		if err := r.db.Raw(queryGetDataKpiSubDetail, result.IdPengajuan, kpiDetails[i].IdDetail).Scan(&subDetails).Error; err != nil {
@@ -1280,6 +1290,7 @@ func (r *realisasiKpiRepo) GetDetailRealisasiKpi(
 // GetApprovalListJSON digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi untuk mengambil daftar approval dalam format JSON.
 func (r *realisasiKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (string, error) {
 	var approvalListBytes []byte
+
 	row := r.db.Raw(queryGetApprovalListJSON, userID, idPengajuan).Row()
 	if err := row.Scan(&approvalListBytes); err != nil {
 		return "", &customErrors.BadRequestError{Message: "Data List Approval tidak ditemukan."}
@@ -1291,6 +1302,15 @@ func (r *realisasiKpiRepo) GetApprovalListJSON(idPengajuan, userID string) (stri
 	return approvalList, nil
 }
 
+// CheckApprovalRealisasiExists digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi untuk memvalidasi keberadaan approval.
+func (r *realisasiKpiRepo) CheckApprovalRealisasiExists(user, idPengajuan string) (bool, error) {
+	var count int64
+	if err := r.db.Raw(queryGetCountApprovalKpi, user, idPengajuan).Scan(&count).Error; err != nil {
+		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
+	}
+	return count > 0, nil
+}
+
 // GetCatatanTolakan digunakan oleh service RejectRealisasiKpi untuk mengambil catatan tolakan berdasarkan id_pengajuan.
 func (r *realisasiKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error) {
 	var val []byte
@@ -1299,15 +1319,6 @@ func (r *realisasiKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error)
 		return "", err
 	}
 	return string(val), nil
-}
-
-// CheckApprovalRealisasiExists digunakan oleh service ApproveRealisasiKpi dan RejectRealisasiKpi untuk memvalidasi keberadaan approval.
-func (r *realisasiKpiRepo) CheckApprovalRealisasiExists(user, idPengajuan string) (bool, error) {
-	var count int64
-	if err := r.db.Raw(queryGetCountApprovalKpi, user, idPengajuan).Scan(&count).Error; err != nil {
-		return false, fmt.Errorf("gagal mengecek data pengajuan: %w", err)
-	}
-	return count > 0, nil
 }
 
 // =============================================================================

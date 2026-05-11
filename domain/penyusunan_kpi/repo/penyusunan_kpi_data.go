@@ -910,7 +910,10 @@ func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, appr
 			tx.Rollback()
 			return fmt.Errorf("gagal approve final penyusunan: %w", err)
 		}
-		tx.Commit()
+
+		if err := tx.Commit().Error; err != nil {
+			return fmt.Errorf("gagal commit approve final penyusunan: %w", err)
+		}
 		return nil
 	}
 
@@ -933,7 +936,9 @@ func (r *penyusunanKpiRepo) ApprovePenyusunanKpi(idPengajuan, approvalList, appr
 		return err
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi approve penyusunan: %w", err)
+	}
 	return nil
 }
 
@@ -970,7 +975,9 @@ func (r *penyusunanKpiRepo) RejectPenyusunanKpi(idPengajuan, approvalList, catat
 		return err
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi reject penyusunan: %w", err)
+	}
 	return nil
 }
 
