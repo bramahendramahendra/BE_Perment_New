@@ -139,7 +139,7 @@ const (
 			COALESCE(NULLIF(a.realisasi_kuantitatif, ''), 0)  realisasi_kuantitatif,
 			IFNULL(a.realisasi_keterangan, '')                realisasi_keterangan,
 			IFNULL(a.realisasi_validated, '')                 realisasi_validated,
-			IFNULL(a.realisasi_kuantitatif_validated, '')     realisasi_kuantitatif_validated,
+			COALESCE(NULLIF(a.realisasi_kuantitatif_validated, ''), 0) realisasi_kuantitatif_validated,
 			COALESCE(NULLIF(a.pencapaian, ''), 0)             pencapaian,
 			COALESCE(NULLIF(a.skor, ''), 0)                   skor,
 			IFNULL(a.realisasi_qualifier, '')             realisasi_qualifier,

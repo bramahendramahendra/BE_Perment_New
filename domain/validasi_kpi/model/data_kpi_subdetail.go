@@ -22,7 +22,7 @@ type DataKpiSubDetail struct {
 	RealisasiKuantitatif             float64 `gorm:"column:realisasi_kuantitatif"`
 	RealisasiKeterangan              string  `gorm:"column:realisasi_keterangan"`
 	RealisasiValidated               string  `gorm:"column:realisasi_validated"`
-	RealisasiKuantitatifValidated    string  `gorm:"column:realisasi_kuantitatif_validated"`
+	RealisasiKuantitatifValidated    float64 `gorm:"column:realisasi_kuantitatif_validated"`
 	ValidasiKeterangan               string  `gorm:"column:validasi_keterangan"`
 	Pencapaian                       float64 `gorm:"column:pencapaian"`
 	Skor                             float64 `gorm:"column:skor"`

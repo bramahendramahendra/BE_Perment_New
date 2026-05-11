@@ -448,7 +448,7 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 				TargetKuantitatifTriwulan:        sub.TargetKuantitatifTriwulan,
 				TargetQualifier:                  sub.TargetQualifier,
 				RealisasiValidated:               sub.RealisasiValidated,
-				RealisasiKuantitatifValidated:    fmt.Sprintf("%v", sub.RealisasiKuantitatifValidated),
+				RealisasiKuantitatifValidated:    sub.RealisasiKuantitatifValidated,
 				ValidasiKeterangan:               sub.ValidasiKeterangan,
 				Pencapaian:                       sub.Pencapaian,
 				Skor:                             sub.Skor,
