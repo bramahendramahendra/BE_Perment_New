@@ -23,20 +23,18 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 	f := ef.File()
 
 	// Lebar kolom
-	// A=No, B=KPI, C=KPI Qualifier, D=Bobot, E=Target TW, F=Target Qualifier,
-	// G=Realisasi TW, H=Realisasi Qualifier, I=Pencapaian, J=Pencapaian Qualifier KPI, K=Post Qualifier
 	colWidths := map[string]float64{
 		"A": 6,
 		"B": 35,
 		"C": 22,
 		"D": 12,
-		"E": 18,
-		"F": 20,
-		"G": 18,
-		"H": 20,
-		"I": 16,
-		"J": 24,
-		"K": 26,
+		"E": 20,
+		"F": 22,
+		"G": 20,
+		"H": 22,
+		"I": 18,
+		"J": 26,
+		"K": 28,
 	}
 	for col, width := range colWidths {
 		if err := f.SetColWidth(sheetName, col, col, width); err != nil {
@@ -44,39 +42,24 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 		}
 	}
 
-	// Baris 1: Nama Divisi + Pencapaian
-	title := buildTitle(exportData)
-	if err := f.MergeCell(sheetName, "A1", "K1"); err != nil {
-		return nil, "", err
-	}
-	if err := f.SetCellValue(sheetName, "A1", title); err != nil {
-		return nil, "", err
-	}
+	// --- Style definitions ---
 
-	// Baris 2: Tahun - Triwulan
-	subtitle := fmt.Sprintf("Tahun %s - TW %s", exportData.Tahun, exportData.TriwulanNum)
-	if err := f.MergeCell(sheetName, "A2", "K2"); err != nil {
-		return nil, "", err
-	}
-	if err := f.SetCellValue(sheetName, "A2", subtitle); err != nil {
-		return nil, "", err
-	}
-
-	// Style: border tipis
-	borderStyle, err := f.NewStyle(&excelize.Style{
-		Border: []excelize.Border{
-			{Type: "left", Color: "000000", Style: 1},
-			{Type: "right", Color: "000000", Style: 1},
-			{Type: "top", Color: "000000", Style: 1},
-			{Type: "bottom", Color: "000000", Style: 1},
-		},
-		Alignment: &excelize.Alignment{WrapText: true, Vertical: "top"},
+	titleStyle, err := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Size: 12, Color: "1F497D"},
+		Alignment: &excelize.Alignment{Vertical: "center"},
 	})
 	if err != nil {
-		return nil, "", fmt.Errorf("gagal membuat border style: %w", err)
+		return nil, "", err
 	}
 
-	// Style: header (biru tua, teks putih, bold)
+	subtitleStyle, err := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Size: 10, Color: "1F497D"},
+		Alignment: &excelize.Alignment{Vertical: "center"},
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
 	headerStyle, err := f.NewStyle(&excelize.Style{
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"1F497D"}, Pattern: 1},
 		Font: &excelize.Font{Bold: true, Color: "FFFFFF", Size: 9},
@@ -89,21 +72,131 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
 	})
 	if err != nil {
-		return nil, "", fmt.Errorf("gagal membuat header style: %w", err)
+		return nil, "", err
 	}
 
-	const numCols = 11
-	applyStyleRow := func(rowNum, styleID int) error {
-		for colIdx := 1; colIdx <= numCols; colIdx++ {
-			cell, _ := excelize.CoordinatesToCellName(colIdx, rowNum)
-			if err := f.SetCellStyle(sheetName, cell, cell, styleID); err != nil {
-				return fmt.Errorf("gagal set style baris %d kolom %d: %w", rowNum, colIdx, err)
-			}
-		}
-		return nil
+	dataStyle, err := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"E2F0D9"}, Pattern: 1},
+		Font: &excelize.Font{Size: 9},
+		Border: []excelize.Border{
+			{Type: "left", Color: "B4B4B4", Style: 1},
+			{Type: "right", Color: "B4B4B4", Style: 1},
+			{Type: "top", Color: "B4B4B4", Style: 1},
+			{Type: "bottom", Color: "B4B4B4", Style: 1},
+		},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
+	})
+	if err != nil {
+		return nil, "", err
 	}
 
-	// Baris 4: Header
+	dataLeftStyle, err := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"E2F0D9"}, Pattern: 1},
+		Font: &excelize.Font{Size: 9},
+		Border: []excelize.Border{
+			{Type: "left", Color: "B4B4B4", Style: 1},
+			{Type: "right", Color: "B4B4B4", Style: 1},
+			{Type: "top", Color: "B4B4B4", Style: 1},
+			{Type: "bottom", Color: "B4B4B4", Style: 1},
+		},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center", WrapText: true},
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Indikator hijau (>= 100%)
+	indicatorGreenStyle, err := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"00B050"}, Pattern: 1},
+		Font: &excelize.Font{Bold: true, Size: 9, Color: "FFFFFF"},
+		Border: []excelize.Border{
+			{Type: "left", Color: "B4B4B4", Style: 1},
+			{Type: "right", Color: "B4B4B4", Style: 1},
+			{Type: "top", Color: "B4B4B4", Style: 1},
+			{Type: "bottom", Color: "B4B4B4", Style: 1},
+		},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Indikator merah (< 100%)
+	indicatorRedStyle, err := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"C00000"}, Pattern: 1},
+		Font: &excelize.Font{Bold: true, Size: 9, Color: "FFFFFF"},
+		Border: []excelize.Border{
+			{Type: "left", Color: "B4B4B4", Style: 1},
+			{Type: "right", Color: "B4B4B4", Style: 1},
+			{Type: "top", Color: "B4B4B4", Style: 1},
+			{Type: "bottom", Color: "B4B4B4", Style: 1},
+		},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	footerBoldStyle, err := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Size: 10, Color: "1F497D"},
+		Alignment: &excelize.Alignment{Vertical: "center"},
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	footerRegularStyle, err := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Size: 9, Color: "1F497D"},
+		Alignment: &excelize.Alignment{Vertical: "center"},
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	footerItalicStyle, err := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Italic: true, Size: 9, Color: "1F497D"},
+		Alignment: &excelize.Alignment{Vertical: "center"},
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	// --- Baris 1: Judul ---
+	title := buildTitle(exportData)
+	if err := f.MergeCell(sheetName, "A1", "K1"); err != nil {
+		return nil, "", err
+	}
+	if err := f.SetCellValue(sheetName, "A1", title); err != nil {
+		return nil, "", err
+	}
+	if err := f.SetCellStyle(sheetName, "A1", "A1", titleStyle); err != nil {
+		return nil, "", err
+	}
+	if err := f.SetRowHeight(sheetName, 1, 18); err != nil {
+		return nil, "", err
+	}
+
+	// --- Baris 2: Subtitle ---
+	subtitle := fmt.Sprintf("Tahun %s - TW %s", exportData.Tahun, exportData.TriwulanNum)
+	if err := f.MergeCell(sheetName, "A2", "K2"); err != nil {
+		return nil, "", err
+	}
+	if err := f.SetCellValue(sheetName, "A2", subtitle); err != nil {
+		return nil, "", err
+	}
+	if err := f.SetCellStyle(sheetName, "A2", "A2", subtitleStyle); err != nil {
+		return nil, "", err
+	}
+	if err := f.SetRowHeight(sheetName, 2, 16); err != nil {
+		return nil, "", err
+	}
+
+	// --- Baris 3: kosong ---
+	if err := f.SetRowHeight(sheetName, 3, 6); err != nil {
+		return nil, "", err
+	}
+
+	// --- Baris 4: Header tabel ---
 	twNum := exportData.TriwulanNum
 	headers := []string{
 		"No", "KPI", "KPI Qualifier", "Bobot (%)",
@@ -111,7 +204,7 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 		"Realisasi Triwulan " + twNum, "Realisasi Qualifier",
 		"Pencapaian", "Pencapaian Qualifier KPI", "Pencapaian KPI Post Qualifier",
 	}
-	if err := f.SetRowHeight(sheetName, 4, 30); err != nil {
+	if err := f.SetRowHeight(sheetName, 4, 32); err != nil {
 		return nil, "", err
 	}
 	for colIdx, header := range headers {
@@ -119,12 +212,16 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 		if err := f.SetCellValue(sheetName, cell, header); err != nil {
 			return nil, "", fmt.Errorf("gagal menulis header '%s': %w", header, err)
 		}
-	}
-	if err := applyStyleRow(4, headerStyle); err != nil {
-		return nil, "", err
+		if err := f.SetCellStyle(sheetName, cell, cell, headerStyle); err != nil {
+			return nil, "", err
+		}
 	}
 
-	// Baris data
+	// --- Baris data ---
+	// Kolom kiri (B, C) pakai left-align; kolom indikator (I, J, K) pakai warna persen
+	leftAlignCols := map[int]bool{2: true, 3: true} // kolom B=2, C=3 (1-based)
+	indicatorCols := map[int]bool{9: true, 10: true, 11: true} // I=9, J=10, K=11
+
 	for i, row := range exportData.Rows {
 		rowNum := 5 + i
 		values := []interface{}{
@@ -140,13 +237,60 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 			row.PencapaianQualifier,
 			row.PencapaianPostQualifier,
 		}
+		if err := f.SetRowHeight(sheetName, rowNum, 22); err != nil {
+			return nil, "", err
+		}
 		for colIdx, val := range values {
-			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowNum)
+			colNum := colIdx + 1
+			cell, _ := excelize.CoordinatesToCellName(colNum, rowNum)
 			if err := f.SetCellValue(sheetName, cell, val); err != nil {
-				return nil, "", fmt.Errorf("gagal menulis data baris %d kolom %d: %w", rowNum, colIdx+1, err)
+				return nil, "", fmt.Errorf("gagal menulis data baris %d kolom %d: %w", rowNum, colNum, err)
+			}
+
+			var styleID int
+			switch {
+			case indicatorCols[colNum]:
+				styleID = indicatorStyleID(val.(string), indicatorGreenStyle, indicatorRedStyle, dataStyle)
+			case leftAlignCols[colNum]:
+				styleID = dataLeftStyle
+			default:
+				styleID = dataStyle
+			}
+			if err := f.SetCellStyle(sheetName, cell, cell, styleID); err != nil {
+				return nil, "", err
 			}
 		}
-		if err := applyStyleRow(rowNum, borderStyle); err != nil {
+	}
+
+	// --- Footer ---
+	footerStart := 5 + len(exportData.Rows) + 1
+	footerRows := []struct {
+		text    string
+		styleID int
+		height  float64
+	}{
+		{"PT Bank Rakyat Indonesia (Persero) Tbk", footerBoldStyle, 16},
+		{"Planning, Budgeting & Performance Management Group", footerBoldStyle, 14},
+		{"Gedung BRI II. Jalan Jendral Sudirman Kav. 44-46. Jakarta, Indonesia 10210", footerRegularStyle, 14},
+		{"", footerRegularStyle, 8},
+		{"Integrity, Collaborative, Accountability, Growth Mindset, Customer Focus", footerItalicStyle, 14},
+	}
+	for j, fr := range footerRows {
+		rowNum := footerStart + j
+		cellRef, _ := excelize.CoordinatesToCellName(1, rowNum)
+		if err := f.MergeCell(sheetName, cellRef, func() string {
+			end, _ := excelize.CoordinatesToCellName(11, rowNum)
+			return end
+		}()); err != nil {
+			return nil, "", err
+		}
+		if err := f.SetCellValue(sheetName, cellRef, fr.text); err != nil {
+			return nil, "", err
+		}
+		if err := f.SetCellStyle(sheetName, cellRef, cellRef, fr.styleID); err != nil {
+			return nil, "", err
+		}
+		if err := f.SetRowHeight(sheetName, rowNum, fr.height); err != nil {
 			return nil, "", err
 		}
 	}
@@ -162,6 +306,21 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 		exportData.TriwulanNum,
 	)
 	return fileBytes, filename, nil
+}
+
+// indicatorStyleID mengembalikan style hijau/merah/default berdasarkan nilai persen.
+func indicatorStyleID(val string, greenStyle, redStyle, defaultStyle int) int {
+	trimmed := strings.TrimSpace(val)
+	if trimmed == "" || trimmed == "-" {
+		return defaultStyle
+	}
+	pctStr := strings.TrimSuffix(trimmed, "%")
+	var pct float64
+	fmt.Sscanf(pctStr, "%f", &pct)
+	if pct >= 100 {
+		return greenStyle
+	}
+	return redStyle
 }
 
 func buildTitle(exportData *dto.ValidasiKpiExportData) string {

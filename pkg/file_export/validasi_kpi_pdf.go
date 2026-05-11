@@ -14,12 +14,13 @@ import (
 func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, string, error) {
 	pdf := gofpdf.New("L", "mm", "A4", "")
 	pdf.SetMargins(10, 10, 10)
+	pdf.SetAutoPageBreak(false, 0)
 	pdf.AddPage()
 
 	// Warna palette
-	headerBgR, headerBgG, headerBgB := 31, 73, 125   // biru tua  (#1F497D)
-	headerFgR, headerFgG, headerFgB := 255, 255, 255 // putih
-	rowGreenR, rowGreenG, rowGreenB := 226, 240, 217  // hijau muda (#E2F0D9)
+	headerBgR, headerBgG, headerBgB := 31, 73, 125
+	headerFgR, headerFgG, headerFgB := 255, 255, 255
+	rowGreenR, rowGreenG, rowGreenB := 226, 240, 217
 	textR, textG, textB := 0, 0, 0
 
 	// Judul
@@ -33,7 +34,6 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 	pdf.CellFormat(0, 6, subtitle, "", 1, "L", false, 0, "")
 	pdf.Ln(3)
 
-	// Lebar kolom — total ~277mm (A4 landscape 297 - 10*2 margin)
 	twNum := exportData.TriwulanNum
 	headers := []string{
 		"No",
@@ -48,35 +48,50 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 		"Pencapaian Qualifier KPI",
 		"Pencapaian KPI Post Qualifier",
 	}
-	colWidths := []float64{8, 46, 24, 13, 22, 24, 22, 24, 20, 27, 27}
-	lineHeight := 6.0
+	// Total 277mm = 297 - 10*2 margin (A4 landscape)
+	colWidths := []float64{8, 52, 26, 13, 25, 26, 25, 26, 24, 26, 26}
+	colAligns := []string{"C", "L", "L", "C", "C", "C", "C", "C", "C", "C", "C"}
+	lineHeight := 5.5
+	headerHeight := 12.0
 
-	// Header tabel
-	pdf.SetFont("Arial", "B", 8)
-	pdf.SetFillColor(headerBgR, headerBgG, headerBgB)
-	pdf.SetTextColor(headerFgR, headerFgG, headerFgB)
-	pdf.SetDrawColor(255, 255, 255)
+	leftMargin, topMargin, _, _ := pdf.GetMargins()
+	// Batas Y sebelum footer: tinggi halaman landscape 210mm
+	pageBreakY := 210.0 - topMargin - 22.0
 
-	startX := pdf.GetX()
-	startY := pdf.GetY()
+	drawTableHeader := func() {
+		pdf.SetFont("Arial", "B", 8)
+		pdf.SetFillColor(headerBgR, headerBgG, headerBgB)
+		pdf.SetTextColor(headerFgR, headerFgG, headerFgB)
+		pdf.SetDrawColor(200, 200, 200)
 
-	// Header dengan MultiCell agar teks panjang bisa wrap
-	headerHeight := 10.0
-	for i, h := range headers {
-		x := startX
-		for j := 0; j < i; j++ {
-			x += colWidths[j]
+		hy := pdf.GetY()
+		for i, h := range headers {
+			x := leftMargin
+			for j := 0; j < i; j++ {
+				x += colWidths[j]
+			}
+			// Background + border
+			pdf.SetXY(x, hy)
+			pdf.CellFormat(colWidths[i], headerHeight, "", "1", 0, "C", true, 0, "")
+			// Teks — offset Y agar center vertikal (headerHeight/lineHeight ≈ 2 baris maks)
+			textH := lineHeight * float64(len(pdf.SplitLines([]byte(h), colWidths[i]-2)))
+			if textH < lineHeight {
+				textH = lineHeight
+			}
+			offsetY := (headerHeight - textH) / 2
+			if offsetY < 0 {
+				offsetY = 0
+			}
+			pdf.SetXY(x, hy+offsetY)
+			pdf.MultiCell(colWidths[i], lineHeight, h, "", "C", false)
 		}
-		pdf.SetXY(x, startY)
-		pdf.CellFormat(colWidths[i], headerHeight, "", "1", 0, "C", true, 0, "")
-		pdf.SetXY(x, startY)
-		pdf.MultiCell(colWidths[i], lineHeight, h, "", "C", false)
+		pdf.SetXY(leftMargin, hy+headerHeight)
 	}
-	pdf.SetXY(startX, startY+headerHeight)
 
-	// Baris data
+	drawTableHeader()
+
 	pdf.SetFont("Arial", "", 8)
-	pdf.SetDrawColor(180, 180, 180)
+	pdf.SetDrawColor(200, 200, 200)
 
 	for _, row := range exportData.Rows {
 		values := []string{
@@ -93,57 +108,79 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 			row.PencapaianPostQualifier,
 		}
 
-		// Hitung tinggi baris
+		// Hitung jumlah baris teks per kolom untuk menentukan rowHeight
 		maxLines := 1
 		for i, v := range values {
 			n := len(pdf.SplitLines([]byte(v), colWidths[i]-2))
-			if n == 0 {
+			if n < 1 {
 				n = 1
 			}
 			if n > maxLines {
 				maxLines = n
 			}
 		}
-		rowHeight := lineHeight * float64(maxLines)
-		if rowHeight < lineHeight {
-			rowHeight = lineHeight
+		rowHeight := lineHeight*float64(maxLines) + 3 // +3mm padding atas-bawah
+		if rowHeight < lineHeight+3 {
+			rowHeight = lineHeight + 3
 		}
 
-		// Cek page break
-		if pdf.GetY()+rowHeight > 200 {
+		if pdf.GetY()+rowHeight > pageBreakY {
 			pdf.AddPage()
+			drawTableHeader()
+			pdf.SetFont("Arial", "", 8)
+			pdf.SetDrawColor(200, 200, 200)
 		}
 
 		pdf.SetFillColor(rowGreenR, rowGreenG, rowGreenB)
 		pdf.SetTextColor(textR, textG, textB)
 
-		rx := pdf.GetX()
+		rx := leftMargin
 		ry := pdf.GetY()
-		colAligns := []string{"C", "L", "L", "C", "C", "C", "C", "C", "C", "C", "C"}
 
 		for i, v := range values {
 			x := rx
 			for j := 0; j < i; j++ {
 				x += colWidths[j]
 			}
+			// Border + background selebar rowHeight
 			pdf.SetXY(x, ry)
 			pdf.CellFormat(colWidths[i], rowHeight, "", "1", 0, colAligns[i], true, 0, "")
-			pdf.SetXY(x, ry)
-			pdf.MultiCell(colWidths[i], lineHeight, v, "", colAligns[i], false)
+
+			// Kolom 8,9,10 = Pencapaian, Pencapaian Qualifier KPI, Pencapaian KPI Post Qualifier
+			if i == 8 || i == 9 || i == 10 {
+				drawIndicatorCell(pdf, x, ry, colWidths[i], rowHeight, lineHeight, v,
+					textR, textG, textB,
+					rowGreenR, rowGreenG, rowGreenB)
+			} else {
+				nLines := len(pdf.SplitLines([]byte(v), colWidths[i]-2))
+				if nLines < 1 {
+					nLines = 1
+				}
+				textH := lineHeight * float64(nLines)
+				offsetY := (rowHeight - textH) / 2
+				if offsetY < 0 {
+					offsetY = 0
+				}
+				pdf.SetXY(x, ry+offsetY)
+				pdf.MultiCell(colWidths[i], lineHeight, v, "", colAligns[i], false)
+			}
 		}
 		pdf.SetXY(rx, ry+rowHeight)
 	}
 
-	// Footer
-	pdf.SetY(-20)
-	pdf.SetFont("Arial", "B", 8)
-	pdf.SetTextColor(textR, textG, textB)
-	pdf.CellFormat(0, 5, "PT Bank Rakyat Indonesia (Persero) Tbk", "", 1, "L", false, 0, "")
-	pdf.SetFont("Arial", "", 7)
-	pdf.CellFormat(0, 4, "Planning, Budgeting & Performance Management Group", "", 1, "L", false, 0, "")
-	pdf.CellFormat(0, 4, "Gedung BRI Jl. Jalan Jenderal Sudirman Kav. 44-46. Jakarta, Indonesia 10210", "", 1, "L", false, 0, "")
-	pdf.SetFont("Arial", "I", 7)
-	pdf.CellFormat(0, 4, "Integrity, Collaborative, Accountability, Growth Mindset, Customer Focus", "", 1, "L", false, 0, "")
+	// Footer langsung setelah tabel
+	footerR, footerG, footerB := 31, 73, 125 // biru sama dengan header (#1F497D)
+	pdf.Ln(6)
+	pdf.SetTextColor(footerR, footerG, footerB)
+	pdf.SetFont("Arial", "B", 10)
+	pdf.CellFormat(0, 6, "PT Bank Rakyat Indonesia (Persero) Tbk", "", 1, "L", false, 0, "")
+	pdf.SetFont("Arial", "B", 9)
+	pdf.CellFormat(0, 5, "Planning, Budgeting & Performance Management Group", "", 1, "L", false, 0, "")
+	pdf.SetFont("Arial", "", 9)
+	pdf.CellFormat(0, 5, "Gedung BRI II. Jalan Jendral Sudirman Kav. 44-46. Jakarta, Indonesia 10210", "", 1, "L", false, 0, "")
+	pdf.Ln(3)
+	pdf.SetFont("Arial", "BI", 9)
+	pdf.CellFormat(0, 5, "Integrity, Collaborative, Accountability, Growth Mindset, Customer Focus", "", 1, "L", false, 0, "")
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
@@ -156,6 +193,55 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 		exportData.TriwulanNum,
 	)
 	return buf.Bytes(), filename, nil
+}
+
+// drawIndicatorCell menggambar lingkaran indikator warna + teks persen di dalam sel.
+// Hijau jika nilai >= 100%, merah jika < 100%. Tidak ada lingkaran untuk nilai "-" atau kosong.
+func drawIndicatorCell(pdf *gofpdf.Fpdf, x, y, w, h, lineH float64, val string, tr, tg, tb, restoreR, restoreG, restoreB int) {
+	const circleR = 2.0
+	const circlePad = 3.5 // jarak dari tepi kiri ke center lingkaran
+
+	trimmed := strings.TrimSpace(val)
+	hasCircle := trimmed != "" && trimmed != "-"
+
+	if hasCircle {
+		pctStr := strings.TrimSuffix(trimmed, "%")
+		var pct float64
+		fmt.Sscanf(pctStr, "%f", &pct)
+
+		cx := x + circlePad
+		cy := y + h/2
+		if pct >= 100 {
+			pdf.SetFillColor(0, 176, 80) // hijau
+		} else {
+			pdf.SetFillColor(192, 0, 0) // merah
+		}
+		pdf.SetDrawColor(0, 0, 0)
+		pdf.Circle(cx, cy, circleR, "F")
+	}
+
+	// Teks di sisa lebar sel, center vertikal
+	textX := x
+	textW := w
+	if hasCircle {
+		textX = x + circlePad*2 + circleR
+		textW = w - (circlePad*2 + circleR)
+	}
+	nLines := len(pdf.SplitLines([]byte(trimmed), textW-1))
+	if nLines < 1 {
+		nLines = 1
+	}
+	offsetY := (h - lineH*float64(nLines)) / 2
+	if offsetY < 0 {
+		offsetY = 0
+	}
+	pdf.SetTextColor(tr, tg, tb)
+	pdf.SetXY(textX, y+offsetY)
+	pdf.MultiCell(textW, lineH, trimmed, "", "R", false)
+
+	// Kembalikan fill color ke warna baris agar sel berikutnya tidak ikut berubah
+	pdf.SetFillColor(restoreR, restoreG, restoreB)
+	pdf.SetDrawColor(200, 200, 200)
 }
 
 func buildPdfTitle(exportData *dto.ValidasiKpiExportData) string {
