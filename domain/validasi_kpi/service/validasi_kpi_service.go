@@ -3,11 +3,13 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	dto "permen_api/domain/validasi_kpi/dto"
 	"permen_api/domain/validasi_kpi/utils"
 	customErrors "permen_api/errors"
+	file_export "permen_api/pkg/file_export"
 )
 
 // =============================================================================
@@ -507,6 +509,101 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 	}
 
 	return data, nil
+}
+
+// =============================================================================
+// DOWNLOAD
+// =============================================================================
+
+// GetExcelValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-excel.
+func (s *validasiKpiService) GetExcelValidasiKpi(
+	req *dto.GetExcelValidasiKpiRequest,
+) ([]byte, string, error) {
+	exportData, err := s.buildValidasiKpiExportData(req.IdPengajuan)
+	if err != nil {
+		return nil, "", err
+	}
+	return file_export.GenerateValidasiKpiExcel(exportData)
+}
+
+// GetPdfValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-pdf.
+func (s *validasiKpiService) GetPdfValidasiKpi(
+	req *dto.GetPdfValidasiKpiRequest,
+) ([]byte, string, error) {
+	exportData, err := s.buildValidasiKpiExportData(req.IdPengajuan)
+	if err != nil {
+		return nil, "", err
+	}
+	return file_export.GenerateValidasiKpiPDF(exportData)
+}
+
+// buildValidasiKpiExportData mengambil data dari DB dan mengubahnya ke ValidasiKpiExportData.
+func (s *validasiKpiService) buildValidasiKpiExportData(idPengajuan string) (*dto.ValidasiKpiExportData, error) {
+	dataDB, err := s.repo.GetDetailValidasiKpi(&dto.GetDetailValidasiKpiRequest{IdPengajuan: idPengajuan})
+	if err != nil {
+		return nil, err
+	}
+	if dataDB.IdPengajuan == "" {
+		return nil, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", idPengajuan),
+		}
+	}
+
+	twNum := strings.TrimPrefix(dataDB.Triwulan, "TW")
+
+	// Status 90 = Draft Validasi
+	isDraft := dataDB.Status == 90
+
+	var rows []dto.ValidasiKpiExportRow
+	no := 1
+	for _, kpi := range dataDB.Kpi {
+		for _, sub := range kpi.KpiSubDetail {
+			noQualifier := strings.EqualFold(sub.IdQualifier, "TIDAK")
+
+			itemQualifier := sub.ItemQualifier
+			targetQualifier := sub.TargetQualifier
+			realisasiQualifier := sub.RealisasiQualifier
+			pencapaianQualifier := fmt.Sprintf("%.2f%%", sub.PencapaianQualifierValidated)
+			pencapaianPost := fmt.Sprintf("%.2f%%", sub.PencapaianPostQualifierValidated)
+
+			if noQualifier {
+				itemQualifier = "-"
+				targetQualifier = "-"
+				realisasiQualifier = "-"
+				pencapaianQualifier = "-"
+				pencapaianPost = "-"
+			}
+
+			rows = append(rows, dto.ValidasiKpiExportRow{
+				No:                      no,
+				Kpi:                     sub.Kpi,
+				ItemQualifier:           itemQualifier,
+				Bobot:                   sub.Bobot,
+				TargetTriwulan:          sub.TargetTriwulan,
+				TargetQualifier:         targetQualifier,
+				RealisasiValidated:      sub.RealisasiValidated,
+				RealisasiQualifier:      realisasiQualifier,
+				Pencapaian:              fmt.Sprintf("%.2f%%", sub.Pencapaian),
+				PencapaianQualifier:     pencapaianQualifier,
+				PencapaianPostQualifier: pencapaianPost,
+			})
+			no++
+		}
+	}
+
+	if rows == nil {
+		rows = []dto.ValidasiKpiExportRow{}
+	}
+
+	return &dto.ValidasiKpiExportData{
+		NamaDivisi:      dataDB.KostlTx,
+		Triwulan:        dataDB.Triwulan,
+		TriwulanNum:     twNum,
+		Tahun:           dataDB.Tahun,
+		TotalPencapaian: dataDB.TotalPencapaian,
+		IsDraft:         isDraft,
+		Rows:            rows,
+	}, nil
 }
 
 // =============================================================================

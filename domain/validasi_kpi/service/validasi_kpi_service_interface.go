@@ -65,6 +65,16 @@ type (
 
 		// GetDetailValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-detail.
 		GetDetailValidasiKpi(req *dto.GetDetailValidasiKpiRequest) (data *dto.GetDetailValidasiKpiResponse, err error)
+
+		// =============================================================================
+		// DOWNLOAD
+		// =============================================================================
+
+		// GetExcelValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-excel.
+		GetExcelValidasiKpi(req *dto.GetExcelValidasiKpiRequest) ([]byte, string, error)
+
+		// GetPdfValidasiKpi digunakan oleh endpoint POST /validasi-kpi/get-pdf.
+		GetPdfValidasiKpi(req *dto.GetPdfValidasiKpiRequest) ([]byte, string, error)
 	}
 
 	validasiKpiService struct {

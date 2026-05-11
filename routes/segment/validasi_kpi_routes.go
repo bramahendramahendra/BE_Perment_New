@@ -24,6 +24,8 @@ import (
 //	POST /validasi-kpi/get-all-daftar-approval    → GetAllDaftarApprovalValidasi    (application/json)
 //	POST /validasi-kpi/get-all-validasi           → GetAllValidasi                  (application/json)
 //	POST /validasi-kpi/get-detail                 → GetDetailValidasiKpi            (application/json)
+//	POST /validasi-kpi/get-excel                  → GetExcelValidasiKpi             (application/json) — download Excel
+//	POST /validasi-kpi/get-pdf                    → GetPdfValidasiKpi               (application/json) — download PDF
 func ValidasiKpiRoutes(r *gin.RouterGroup) {
 	validasiKpiRepo := repo.NewValidasiKpiRepo(db.DB)
 	validasiKpiService := service.NewValidasiKpiService(validasiKpiRepo)
@@ -39,4 +41,6 @@ func ValidasiKpiRoutes(r *gin.RouterGroup) {
 	validasiKpiGroup.POST("/get-all-daftar-approval", validasiKpiHandler.GetAllDaftarApprovalValidasiKpi)
 	validasiKpiGroup.POST("/get-all-validasi", validasiKpiHandler.GetAllValidasiKpi)
 	validasiKpiGroup.POST("/get-detail", validasiKpiHandler.GetDetailValidasiKpi)
+	validasiKpiGroup.POST("/get-excel", validasiKpiHandler.GetExcelValidasiKpi)
+	validasiKpiGroup.POST("/get-pdf", validasiKpiHandler.GetPdfValidasiKpi)
 }

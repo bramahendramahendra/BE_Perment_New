@@ -366,6 +366,42 @@ type GetAllDaftarApprovalValidasiKpiResponse struct {
 	StatusDesc  string `json:"status_desc"`
 }
 
+// GetExcelValidasiKpiRequest digunakan untuk endpoint POST /validasi-kpi/get-excel.
+type GetExcelValidasiKpiRequest struct {
+	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+}
+
+// GetPdfValidasiKpiRequest digunakan untuk endpoint POST /validasi-kpi/get-pdf.
+type GetPdfValidasiKpiRequest struct {
+	IdPengajuan string `json:"id_pengajuan" validate:"required"`
+}
+
+// ValidasiKpiExportRow adalah satu baris data pada tabel export KPI validasi.
+type ValidasiKpiExportRow struct {
+	No                      int
+	Kpi                     string
+	ItemQualifier           string
+	Bobot                   float64
+	TargetTriwulan          string
+	TargetQualifier         string
+	RealisasiValidated      string
+	RealisasiQualifier      string
+	Pencapaian              string
+	PencapaianQualifier     string
+	PencapaianPostQualifier string
+}
+
+// ValidasiKpiExportData adalah data agregat untuk generate file export (PDF/Excel).
+type ValidasiKpiExportData struct {
+	NamaDivisi      string
+	Triwulan        string
+	TriwulanNum     string
+	Tahun           string
+	TotalPencapaian string
+	IsDraft         bool
+	Rows            []ValidasiKpiExportRow
+}
+
 // GetDetailValidasiKpiResponse adalah response untuk endpoint POST /validasi-kpi/get-detail.
 type GetDetailValidasiKpiResponse struct {
 	IdPengajuan              string                         `json:"id_pengajuan"`

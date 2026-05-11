@@ -10,6 +10,7 @@ import (
 	"permen_api/errors"
 	response_helper "permen_api/helper/response"
 	binder "permen_api/pkg/binder"
+	file_export "permen_api/pkg/file_export"
 	validator "permen_api/validation"
 
 	"github.com/gin-gonic/gin"
@@ -386,4 +387,52 @@ func (h *ValidasiKpiHandler) GetDetailValidasiKpi(c *gin.Context) {
 		Message: "Data detail Validasi KPI berhasil diambil",
 		Data:    data,
 	})
+}
+
+// =============================================================================
+// DOWNLOAD
+// =============================================================================
+
+// GetExcelValidasiKpi handles POST /validasi-kpi/get-excel.
+func (h *ValidasiKpiHandler) GetExcelValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetExcelValidasiKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	fileBytes, filename, err := h.service.GetExcelValidasiKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	file_export.SendExcel(c, fileBytes, filename)
+}
+
+// GetPdfValidasiKpi handles POST /validasi-kpi/get-pdf.
+func (h *ValidasiKpiHandler) GetPdfValidasiKpi(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetPdfValidasiKpiRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	fileBytes, filename, err := h.service.GetPdfValidasiKpi(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	file_export.SendPDF(c, fileBytes, filename)
 }
