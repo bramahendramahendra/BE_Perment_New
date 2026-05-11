@@ -140,6 +140,8 @@ const (
 			IFNULL(a.realisasi_keterangan, '')                realisasi_keterangan,
 			IFNULL(a.realisasi_validated, '')                 realisasi_validated,
 			COALESCE(NULLIF(a.realisasi_kuantitatif_validated, ''), 0) realisasi_kuantitatif_validated,
+			IFNULL(a.id_sumber, '')                           id_sumber,
+			IFNULL(s.sumber, '')                              sumber,
 			COALESCE(NULLIF(a.pencapaian, ''), 0)             pencapaian,
 			COALESCE(NULLIF(a.skor, ''), 0)                   skor,
 			IFNULL(a.realisasi_qualifier, '')             realisasi_qualifier,
@@ -150,6 +152,7 @@ const (
 		FROM data_kpi_subdetail a
 		LEFT JOIN mst_polarisasi p ON a.rumus = p.id_polarisasi
 		LEFT JOIN mst_keterangan_project c ON a.id_keterangan_project = c.id
+		LEFT JOIN mst_sumber s ON a.id_sumber = s.id_sumber
 		WHERE a.id_pengajuan = ? AND a.id_detail = ?
 		ORDER BY a.id_sub_detail ASC`
 
@@ -212,6 +215,7 @@ const (
 		    target_kuantitatif_triwulan         = ?,
 		    realisasi_validated                 = ?,
 		    realisasi_kuantitatif_validated     = ?,
+		    id_sumber                           = ?,
 		    pencapaian                          = ?,
 		    skor                                = ?,
 		    validasi_keterangan                 = ?,
@@ -333,6 +337,7 @@ func (r *validasiKpiRepo) InputValidasiKpi(req *dto.InputValidasiKpiRequest) err
 				sub.TargetKuantitatifTriwulan,
 				sub.RealisasiValidated,
 				sub.RealisasiKuantitatifValidated,
+				sub.IdSumber,
 				sub.Pencapaian,
 				sub.Skor,
 				sub.ValidasiKeterangan,

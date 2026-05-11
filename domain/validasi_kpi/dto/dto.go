@@ -120,6 +120,8 @@ type DataKpiSubdetail struct {
 	RealisasiKeterangan              string      `json:"realisasi_keterangan"`
 	RealisasiValidated               string      `json:"realisasi_validated"`
 	RealisasiKuantitatifValidated    float64     `json:"realisasi_kuantitatif_validated"`
+	IdSumber                         string      `json:"id_sumber"`
+	Sumber                           string      `json:"sumber"`
 	ValidasiKeterangan               string      `json:"validasi_keterangan"`
 	Pencapaian                       float64     `json:"pencapaian"`
 	Skor                             float64     `json:"skor"`

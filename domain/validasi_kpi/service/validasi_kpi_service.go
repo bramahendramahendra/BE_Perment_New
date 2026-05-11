@@ -451,6 +451,8 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 				TargetQualifier:                  sub.TargetQualifier,
 				RealisasiValidated:               sub.RealisasiValidated,
 				RealisasiKuantitatifValidated:    sub.RealisasiKuantitatifValidated,
+				IdSumber:                         sub.IdSumber,
+				Sumber:                           sub.Sumber,
 				ValidasiKeterangan:               sub.ValidasiKeterangan,
 				Pencapaian:                       sub.Pencapaian,
 				Skor:                             sub.Skor,
