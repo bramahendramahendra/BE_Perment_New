@@ -7,6 +7,7 @@ import (
 	"time"
 
 	dto "permen_api/domain/validasi_kpi/dto"
+	model "permen_api/domain/validasi_kpi/model"
 	"permen_api/domain/validasi_kpi/utils"
 	customErrors "permen_api/errors"
 	file_export "permen_api/pkg/file_export"
@@ -59,6 +60,77 @@ func (s *validasiKpiService) InputValidasiKpi(
 	}
 
 	data = dto.InputValidasiKpiResponse{
+		IdPengajuan: req.IdPengajuan,
+		Triwulan:    req.Triwulan,
+		Tahun:       req.Tahun,
+		Divisi: dto.Divisi{
+			Kostl:   req.Kostl,
+			KostlTx: existData.KostlTx,
+		},
+		EntryValidasi: dto.EntryUserValidasi{
+			EntryUserValidasi: req.EntryUserValidasi,
+			EntryNameValidasi: req.EntryNameValidasi,
+			EntryTimeValidasi: req.EntryTimeValidasi,
+		},
+		ApprovalListValidasi:         approvalList,
+		TotalBobot:                   req.TotalBobot,
+		TotalPencapaian:              req.TotalPencapaian,
+		TotalBobotPengurang:          req.TotalBobotPengurang,
+		TotalPencapaianPost:          req.TotalPencapaianPost,
+		KpiList:                      req.Kpi,
+		DataValidasiQualifierOverall: req.DataValidasiQualifierOverall,
+		LampiranValidasi:             req.LampiranValidasi,
+	}
+
+	return data, nil
+}
+
+// =============================================================================
+// DRAFT
+// =============================================================================
+
+// DraftValidasiKpi digunakan oleh endpoint POST /validasi-kpi/draft.
+func (s *validasiKpiService) DraftValidasiKpi(
+	req *dto.DraftValidasiKpiRequest,
+) (data dto.DraftValidasiKpiResponse, err error) {
+	existData, err := s.repo.GetExistDataKpi(req.IdPengajuan)
+	if err != nil {
+		return data, &customErrors.BadRequestError{Message: err.Error()}
+	}
+
+	// Validasi: status harus 5 = Realisasi Disetujui / 7 = Validasi Ditolak / 91 = Validasi Batal
+	if existData.Status != 5 && existData.Status != 7 && existData.Status != 91 {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat disimpan sebagai draft, status saat ini '%s'", req.IdPengajuan, existData.StatusDesc),
+		}
+	}
+
+	if req.Kostl != existData.Kostl {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("kostl '%s' tidak sesuai dengan data pengajuan (kostl: '%s')", req.Kostl, existData.Kostl),
+		}
+	}
+	if req.Triwulan != existData.Triwulan {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("triwulan '%s' tidak sesuai dengan data pengajuan (triwulan: '%s')", req.Triwulan, existData.Triwulan),
+		}
+	}
+	if req.Tahun != existData.Tahun {
+		return data, &customErrors.BadRequestError{
+			Message: fmt.Sprintf("tahun '%s' tidak sesuai dengan data pengajuan (tahun: '%s')", req.Tahun, existData.Tahun),
+		}
+	}
+
+	if err := s.repo.DraftValidasiKpi(req); err != nil {
+		return data, err
+	}
+
+	approvalList := make([]dto.ApprovalUser, len(req.ApprovalListValidasi))
+	for i, a := range req.ApprovalListValidasi {
+		approvalList[i] = dto.ApprovalUser{Userid: a.Userid, Nama: a.Nama, Posisi: a.Posisi}
+	}
+
+	data = dto.DraftValidasiKpiResponse{
 		IdPengajuan: req.IdPengajuan,
 		Triwulan:    req.Triwulan,
 		Tahun:       req.Tahun,
@@ -521,7 +593,11 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 func (s *validasiKpiService) GetExcelValidasiKpi(
 	req *dto.GetExcelValidasiKpiRequest,
 ) ([]byte, string, error) {
-	exportData, err := s.buildValidasiKpiExportData(req.IdPengajuan)
+	indikatorDB, err := s.repo.GetIndikatorPencapaian()
+	if err != nil {
+		return nil, "", err
+	}
+	exportData, err := s.buildValidasiKpiExportData(req.IdPengajuan, indikatorDB)
 	if err != nil {
 		return nil, "", err
 	}
@@ -532,7 +608,11 @@ func (s *validasiKpiService) GetExcelValidasiKpi(
 func (s *validasiKpiService) GetPdfValidasiKpi(
 	req *dto.GetPdfValidasiKpiRequest,
 ) ([]byte, string, error) {
-	exportData, err := s.buildValidasiKpiExportData(req.IdPengajuan)
+	indikatorDB, err := s.repo.GetIndikatorPencapaian()
+	if err != nil {
+		return nil, "", err
+	}
+	exportData, err := s.buildValidasiKpiExportData(req.IdPengajuan, indikatorDB)
 	if err != nil {
 		return nil, "", err
 	}
@@ -540,7 +620,7 @@ func (s *validasiKpiService) GetPdfValidasiKpi(
 }
 
 // buildValidasiKpiExportData mengambil data dari DB dan mengubahnya ke ValidasiKpiExportData.
-func (s *validasiKpiService) buildValidasiKpiExportData(idPengajuan string) (*dto.ValidasiKpiExportData, error) {
+func (s *validasiKpiService) buildValidasiKpiExportData(idPengajuan string, indikatorDB []*model.IndikatorPencapaian) (*dto.ValidasiKpiExportData, error) {
 	dataDB, err := s.repo.GetDetailValidasiKpi(&dto.GetDetailValidasiKpiRequest{IdPengajuan: idPengajuan})
 	if err != nil {
 		return nil, err
@@ -597,6 +677,14 @@ func (s *validasiKpiService) buildValidasiKpiExportData(idPengajuan string) (*dt
 		rows = []dto.ValidasiKpiExportRow{}
 	}
 
+	indikator := make([]dto.IndikatorPencapaian, 0, len(indikatorDB))
+	for _, item := range indikatorDB {
+		indikator = append(indikator, dto.IndikatorPencapaian{
+			Warna: item.IndikatorWarna,
+			Value: item.IndikatorValue,
+		})
+	}
+
 	return &dto.ValidasiKpiExportData{
 		NamaDivisi:      dataDB.KostlTx,
 		Triwulan:        dataDB.Triwulan,
@@ -605,6 +693,7 @@ func (s *validasiKpiService) buildValidasiKpiExportData(idPengajuan string) (*dt
 		TotalPencapaian: dataDB.TotalPencapaian,
 		IsDraft:         isDraft,
 		Rows:            rows,
+		Indikator:       indikator,
 	}, nil
 }
 

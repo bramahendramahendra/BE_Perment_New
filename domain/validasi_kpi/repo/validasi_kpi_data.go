@@ -48,6 +48,11 @@ const (
 	// =============================================================================
 
 	// Use func : GetExistDataKpi
+	queryGetIndikatorPencapaian = `
+		SELECT indikator_warna, indikator_value
+		FROM indikator_pencapaian
+		ORDER BY indikator_value DESC`
+
 	queryGetExistDataKpi = `
 		SELECT a.tahun, a.triwulan, a.kostl, a.kostl_tx, a.status, b.status_desc,
 		       IFNULL(a.entry_user_validasi, '') entry_user_validasi,
@@ -195,6 +200,23 @@ const (
 	queryUpdateKpiInputValidasi = `
 		UPDATE data_kpi
 		SET status                        = 6,
+		    entry_user_validasi           = ?,
+		    entry_name_validasi           = ?,
+		    entry_time_validasi           = ?,
+		    approval_posisi               = ?,
+		    approval_list_validasi        = ?,
+		    total_bobot                   = ?,
+		    total_pencapaian              = ?,
+		    lampiran_validasi             = ?,
+		    total_bobot_pengurang         = ?,
+		    total_pencapaian_post         = ?,
+		    qualifier_overall_validasi    = ?
+		WHERE id_pengajuan = ?`
+
+	// Use func : DraftValidasiKpi
+	queryUpdateKpiDraftValidasi = `
+		UPDATE data_kpi
+		SET status                        = 90,
 		    entry_user_validasi           = ?,
 		    entry_name_validasi           = ?,
 		    entry_time_validasi           = ?,
@@ -367,6 +389,85 @@ func (r *validasiKpiRepo) InputValidasiKpi(req *dto.InputValidasiKpiRequest) err
 
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("gagal commit transaksi input validasi: %w", err)
+	}
+	return nil
+}
+
+// =============================================================================
+// DRAFT VALIDASI
+// =============================================================================
+
+// DraftValidasiKpi digunakan oleh endpoint POST /validasi-kpi/draft.
+func (r *validasiKpiRepo) DraftValidasiKpi(req *dto.DraftValidasiKpiRequest) error {
+	approvalPosisi := ""
+	if len(req.ApprovalListValidasi) > 0 {
+		approvalPosisi = req.ApprovalListValidasi[0].Userid
+	}
+
+	approvalListBytes, err := json.Marshal(req.ApprovalListValidasi)
+	if err != nil {
+		return fmt.Errorf("gagal serialize approval_list: %w", err)
+	}
+
+	lampiranJSON, err := json.Marshal(req.LampiranValidasi)
+	if err != nil {
+		return fmt.Errorf("gagal marshal lampiran_validasi: %w", err)
+	}
+
+	qualifierJSON, err := json.Marshal(req.DataValidasiQualifierOverall)
+	if err != nil {
+		return fmt.Errorf("gagal marshal data_validasi_qualifier_overall: %w", err)
+	}
+
+	tx := r.db.Begin()
+	if tx.Error != nil {
+		return fmt.Errorf("gagal memulai transaksi: %w", tx.Error)
+	}
+
+	if err := tx.Exec(queryUpdateKpiDraftValidasi,
+		req.EntryUserValidasi,
+		req.EntryNameValidasi,
+		req.EntryTimeValidasi,
+		approvalPosisi,
+		approvalListBytes,
+		req.TotalBobot,
+		req.TotalPencapaian,
+		lampiranJSON,
+		req.TotalBobotPengurang,
+		req.TotalPencapaianPost,
+		qualifierJSON,
+		req.IdPengajuan,
+	).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("gagal update data_kpi draft validasi: %w", err)
+	}
+
+	for _, kpi := range req.Kpi {
+		for _, sub := range kpi.KpiSubDetail {
+			if err := tx.Exec(queryUpdateSubDetailValidasi,
+				sub.TargetTriwulan,
+				sub.TargetKuantitatifTriwulan,
+				sub.RealisasiValidated,
+				sub.RealisasiKuantitatifValidated,
+				sub.IdSumber,
+				sub.Pencapaian,
+				sub.Skor,
+				sub.ValidasiKeterangan,
+				sub.PencapaianQualifierValidated,
+				sub.PencapaianPostQualifierValidated,
+				sub.TargetQualifier,
+				req.IdPengajuan,
+				kpi.IdDetail,
+				sub.IdSubDetail,
+			).Error; err != nil {
+				tx.Rollback()
+				return fmt.Errorf("gagal update sub detail '%s': %w", sub.IdSubDetail, err)
+			}
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("gagal commit transaksi draft validasi: %w", err)
 	}
 	return nil
 }
@@ -1044,6 +1145,23 @@ func (r *validasiKpiRepo) GetCatatanTolakan(idPengajuan string) (string, error) 
 		return "", err
 	}
 	return string(val), nil
+}
+
+// =============================================================================
+// GET EXIST
+// =============================================================================
+
+// =============================================================================
+// GET INDIKATOR
+// =============================================================================
+
+// GetIndikatorPencapaian mengambil semua indikator warna dari tabel indikator_pencapaian, diurutkan descending.
+func (r *validasiKpiRepo) GetIndikatorPencapaian() ([]*model.IndikatorPencapaian, error) {
+	var result []*model.IndikatorPencapaian
+	if err := r.db.Raw(queryGetIndikatorPencapaian).Scan(&result).Error; err != nil {
+		return nil, fmt.Errorf("gagal mengambil indikator pencapaian: %w", err)
+	}
+	return result, nil
 }
 
 // =============================================================================

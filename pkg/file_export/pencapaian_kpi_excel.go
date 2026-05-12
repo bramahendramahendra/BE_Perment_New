@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"strings"
 
-	dto "permen_api/domain/validasi_kpi/dto"
+	dto "permen_api/domain/pencapaian_kpi/dto"
 
 	"github.com/xuri/excelize/v2"
 )
 
-// GenerateValidasiKpiExcel membuat file Excel dari ValidasiKpiExportData.
-func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, string, error) {
+// GeneratePencapaianKpiExcel membuat file Excel dari PencapaianKpiExportData.
+func GeneratePencapaianKpiExcel(exportData *dto.PencapaianKpiExportData) ([]byte, string, error) {
 	const sheetName = "Pencapaian KPI"
 
 	ef, err := NewExcelFile(sheetName)
@@ -22,7 +22,6 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 
 	f := ef.File()
 
-	// Lebar kolom
 	colWidths := map[string]float64{
 		"A": 6,
 		"B": 35,
@@ -41,8 +40,6 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 			return nil, "", fmt.Errorf("gagal set lebar kolom %s: %w", col, err)
 		}
 	}
-
-	// --- Style definitions ---
 
 	titleStyle, err := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Bold: true, Size: 12, Color: "1F497D"},
@@ -175,7 +172,7 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 	}
 
 	// --- Baris 1: Judul ---
-	title := buildTitle(exportData)
+	title := buildPencapaianTitle(exportData)
 	if err := f.MergeCell(sheetName, "A1", "K1"); err != nil {
 		return nil, "", err
 	}
@@ -230,10 +227,8 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 		}
 	}
 
-	// --- Baris data ---
-	// Kolom kiri (B, C) pakai left-align; kolom indikator (I, J, K) pakai warna persen
-	leftAlignCols := map[int]bool{2: true, 3: true} // kolom B=2, C=3 (1-based)
-	indicatorCols := map[int]bool{9: true, 10: true, 11: true} // I=9, J=10, K=11
+	leftAlignCols := map[int]bool{2: true, 3: true}
+	indicatorCols := map[int]bool{9: true, 10: true, 11: true}
 
 	for i, row := range exportData.Rows {
 		rowNum := 5 + i
@@ -263,7 +258,7 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 			var styleID int
 			switch {
 			case indicatorCols[colNum]:
-				styleID = indicatorStyleID(val.(string), exportData.Indikator, indicatorGreenStyle, indicatorYellowStyle, indicatorRedStyle, dataStyle)
+				styleID = pencapaianIndicatorStyleID(val.(string), exportData.Indikator, indicatorGreenStyle, indicatorYellowStyle, indicatorRedStyle, dataStyle)
 			case leftAlignCols[colNum]:
 				styleID = dataLeftStyle
 			default:
@@ -321,9 +316,7 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 	return fileBytes, filename, nil
 }
 
-// indicatorStyleID mengembalikan style warna berdasarkan nilai persen dan indikator dari DB.
-// Logika: iterasi indikator (descending by value), warna terakhir yang memenuhi pct <= value dipakai.
-func indicatorStyleID(val string, indikator []dto.IndikatorPencapaian, greenStyle, yellowStyle, redStyle, defaultStyle int) int {
+func pencapaianIndicatorStyleID(val string, indikator []dto.IndikatorPencapaian, greenStyle, yellowStyle, redStyle, defaultStyle int) int {
 	trimmed := strings.TrimSpace(val)
 	if trimmed == "" || trimmed == "-" {
 		return defaultStyle
@@ -348,7 +341,7 @@ func indicatorStyleID(val string, indikator []dto.IndikatorPencapaian, greenStyl
 	return styleID
 }
 
-func buildTitle(exportData *dto.ValidasiKpiExportData) string {
+func buildPencapaianTitle(exportData *dto.PencapaianKpiExportData) string {
 	prefix := ""
 	if exportData.IsDraft {
 		prefix = "Draft "

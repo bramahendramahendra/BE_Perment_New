@@ -5,26 +5,24 @@ import (
 	"fmt"
 	"strings"
 
-	dto "permen_api/domain/validasi_kpi/dto"
+	dto "permen_api/domain/pencapaian_kpi/dto"
 
 	"github.com/jung-kurt/gofpdf"
 )
 
-// GenerateValidasiKpiPDF membuat file PDF dari ValidasiKpiExportData.
-func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, string, error) {
+// GeneratePencapaianKpiPDF membuat file PDF dari PencapaianKpiExportData.
+func GeneratePencapaianKpiPDF(exportData *dto.PencapaianKpiExportData) ([]byte, string, error) {
 	pdf := gofpdf.New("L", "mm", "A4", "")
 	pdf.SetMargins(10, 10, 10)
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.AddPage()
 
-	// Warna palette
 	headerBgR, headerBgG, headerBgB := 31, 73, 125
 	headerFgR, headerFgG, headerFgB := 255, 255, 255
 	rowGreenR, rowGreenG, rowGreenB := 226, 240, 217
 	textR, textG, textB := 0, 0, 0
 
-	// Judul
-	title := buildPdfTitle(exportData)
+	title := buildPencapaianPdfTitle(exportData)
 	subtitle := fmt.Sprintf("Tahun %s - TW %s", exportData.Tahun, exportData.TriwulanNum)
 
 	pdf.SetFont("Arial", "B", 11)
@@ -48,14 +46,12 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 		"Pencapaian Qualifier KPI",
 		"Pencapaian KPI Post Qualifier",
 	}
-	// Total 277mm = 297 - 10*2 margin (A4 landscape)
 	colWidths := []float64{8, 52, 26, 13, 25, 26, 25, 26, 24, 26, 26}
 	colAligns := []string{"C", "L", "L", "C", "C", "C", "C", "C", "C", "C", "C"}
 	lineHeight := 5.5
 	headerHeight := 12.0
 
 	leftMargin, topMargin, _, _ := pdf.GetMargins()
-	// Batas Y sebelum footer: tinggi halaman landscape 210mm
 	pageBreakY := 210.0 - topMargin - 22.0
 
 	drawTableHeader := func() {
@@ -70,10 +66,8 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 			for j := 0; j < i; j++ {
 				x += colWidths[j]
 			}
-			// Background + border
 			pdf.SetXY(x, hy)
 			pdf.CellFormat(colWidths[i], headerHeight, "", "1", 0, "C", true, 0, "")
-			// Teks — offset Y agar center vertikal (headerHeight/lineHeight ≈ 2 baris maks)
 			textH := lineHeight * float64(len(pdf.SplitLines([]byte(h), colWidths[i]-2)))
 			if textH < lineHeight {
 				textH = lineHeight
@@ -108,7 +102,6 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 			row.PencapaianPostQualifier,
 		}
 
-		// Hitung jumlah baris teks per kolom untuk menentukan rowHeight
 		maxLines := 1
 		for i, v := range values {
 			n := len(pdf.SplitLines([]byte(v), colWidths[i]-2))
@@ -119,7 +112,7 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 				maxLines = n
 			}
 		}
-		rowHeight := lineHeight*float64(maxLines) + 3 // +3mm padding atas-bawah
+		rowHeight := lineHeight*float64(maxLines) + 3
 		if rowHeight < lineHeight+3 {
 			rowHeight = lineHeight + 3
 		}
@@ -142,13 +135,11 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 			for j := 0; j < i; j++ {
 				x += colWidths[j]
 			}
-			// Border + background selebar rowHeight
 			pdf.SetXY(x, ry)
 			pdf.CellFormat(colWidths[i], rowHeight, "", "1", 0, colAligns[i], true, 0, "")
 
-			// Kolom 8,9,10 = Pencapaian, Pencapaian Qualifier KPI, Pencapaian KPI Post Qualifier
 			if i == 8 || i == 9 || i == 10 {
-				drawIndicatorCell(pdf, x, ry, colWidths[i], rowHeight, lineHeight, v,
+				drawPencapaianIndicatorCell(pdf, x, ry, colWidths[i], rowHeight, lineHeight, v,
 					exportData.Indikator,
 					textR, textG, textB,
 					rowGreenR, rowGreenG, rowGreenB)
@@ -169,8 +160,7 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 		pdf.SetXY(rx, ry+rowHeight)
 	}
 
-	// Footer langsung setelah tabel
-	footerR, footerG, footerB := 31, 73, 125 // biru sama dengan header (#1F497D)
+	footerR, footerG, footerB := 31, 73, 125
 	pdf.Ln(6)
 	pdf.SetTextColor(footerR, footerG, footerB)
 	pdf.SetFont("Arial", "B", 10)
@@ -196,12 +186,10 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 	return buf.Bytes(), filename, nil
 }
 
-// drawIndicatorCell menggambar lingkaran indikator warna + teks persen di dalam sel.
-// Warna ditentukan dari indikator DB (logika: last match wins, data descending).
-// Tidak ada lingkaran untuk nilai "-" atau kosong.
-func drawIndicatorCell(pdf *gofpdf.Fpdf, x, y, w, h, lineH float64, val string, indikator []dto.IndikatorPencapaian, tr, tg, tb, restoreR, restoreG, restoreB int) {
+// drawPencapaianIndicatorCell menggambar lingkaran indikator warna + teks persen di dalam sel.
+func drawPencapaianIndicatorCell(pdf *gofpdf.Fpdf, x, y, w, h, lineH float64, val string, indikator []dto.IndikatorPencapaian, tr, tg, tb, restoreR, restoreG, restoreB int) {
 	const circleR = 2.0
-	const circlePad = 3.5 // jarak dari tepi kiri ke center lingkaran
+	const circlePad = 3.5
 
 	trimmed := strings.TrimSpace(val)
 	hasCircle := trimmed != "" && trimmed != "-"
@@ -211,17 +199,16 @@ func drawIndicatorCell(pdf *gofpdf.Fpdf, x, y, w, h, lineH float64, val string, 
 		var pct float64
 		fmt.Sscanf(pctStr, "%f", &pct)
 
-		// Warna default merah, last match wins (indikator sudah descending dari DB)
-		cr, cg, cb := 195, 0, 2 // merah #C30002
+		cr, cg, cb := 195, 0, 2
 		for _, item := range indikator {
 			if pct <= item.Value {
 				switch item.Warna {
 				case "hijau":
-					cr, cg, cb = 114, 173, 74 // #72AD4A
+					cr, cg, cb = 114, 173, 74
 				case "kuning":
-					cr, cg, cb = 249, 195, 1 // #F9C301
+					cr, cg, cb = 249, 195, 1
 				case "merah":
-					cr, cg, cb = 195, 0, 2 // #C30002
+					cr, cg, cb = 195, 0, 2
 				}
 			}
 		}
@@ -233,7 +220,6 @@ func drawIndicatorCell(pdf *gofpdf.Fpdf, x, y, w, h, lineH float64, val string, 
 		pdf.Circle(cx, cy, circleR, "F")
 	}
 
-	// Teks di sisa lebar sel, center vertikal
 	textX := x
 	textW := w
 	if hasCircle {
@@ -252,12 +238,11 @@ func drawIndicatorCell(pdf *gofpdf.Fpdf, x, y, w, h, lineH float64, val string, 
 	pdf.SetXY(textX, y+offsetY)
 	pdf.MultiCell(textW, lineH, trimmed, "", "R", false)
 
-	// Kembalikan fill color ke warna baris agar sel berikutnya tidak ikut berubah
 	pdf.SetFillColor(restoreR, restoreG, restoreB)
 	pdf.SetDrawColor(200, 200, 200)
 }
 
-func buildPdfTitle(exportData *dto.ValidasiKpiExportData) string {
+func buildPencapaianPdfTitle(exportData *dto.PencapaianKpiExportData) string {
 	prefix := ""
 	if exportData.IsDraft {
 		prefix = "Draft "

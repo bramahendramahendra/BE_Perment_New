@@ -14,15 +14,16 @@ import (
 //
 // Daftar endpoint:
 //
+//	POST /validasi-kpi/draft                      → DraftValidasi                   (application/json) — simpan sebagai draft (status 90)
 //	POST /validasi-kpi/input                      → InputValidasi                   (application/json) — validate + create + revision
 //	POST /validasi-kpi/approve                    → ApproveValidasi                 (application/json)
 //	POST /validasi-kpi/reject                     → RejectValidasi                  (application/json)
 //	POST /validasi-kpi/batal                      → ValidasiBatal                   (application/json)
+//	POST /validasi-kpi/get-all-validasi           → GetAllValidasi                  (application/json)
 //	POST /validasi-kpi/get-all-approval           → GetAllApprovalValidasi          (application/json)
 //	POST /validasi-kpi/get-all-tolakan            → GetAllTolakanValidasi           (application/json)
 //	POST /validasi-kpi/get-all-daftar-penyusunan  → GetAllDaftarPenyusunanValidasi  (application/json)
 //	POST /validasi-kpi/get-all-daftar-approval    → GetAllDaftarApprovalValidasi    (application/json)
-//	POST /validasi-kpi/get-all-validasi           → GetAllValidasi                  (application/json)
 //	POST /validasi-kpi/get-detail                 → GetDetailValidasiKpi            (application/json)
 //	POST /validasi-kpi/get-excel                  → GetExcelValidasiKpi             (application/json) — download Excel
 //	POST /validasi-kpi/get-pdf                    → GetPdfValidasiKpi               (application/json) — download PDF
@@ -32,6 +33,7 @@ func ValidasiKpiRoutes(r *gin.RouterGroup) {
 	validasiKpiHandler := handler.NewValidasiKpiHandler(validasiKpiService)
 
 	validasiKpiGroup := r.Group("validasi-kpi")
+	validasiKpiGroup.POST("/draft", validasiKpiHandler.DraftValidasiKpi)
 	validasiKpiGroup.POST("/input", validasiKpiHandler.InputValidasiKpi)
 	validasiKpiGroup.POST("/approve", validasiKpiHandler.ApproveValidasiKpi)
 	validasiKpiGroup.POST("/reject", validasiKpiHandler.RejectValidasiKpi)

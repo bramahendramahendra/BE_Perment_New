@@ -195,6 +195,45 @@ type InputValidasiKpiRequest struct {
 	EntryTimeValidasi string `json:"entry_time_validasi"`
 }
 
+// DraftValidasiKpiRequest adalah request untuk endpoint POST /validasi-kpi/draft.
+type DraftValidasiKpiRequest struct {
+	IdPengajuan                  string                         `json:"id_pengajuan"                    validate:"required"`
+	Kostl                        string                         `json:"kostl"                   validate:"required"`
+	Triwulan                     string                         `json:"triwulan"                validate:"required"`
+	Tahun                        string                         `json:"tahun"                   validate:"required"`
+	ApprovalListValidasi         []ApprovalUserDetail           `json:"approval_list_validasi"          validate:"required"`
+	TotalBobot                   string                         `json:"total_bobot"                     validate:"required"`
+	TotalPencapaian              string                         `json:"total_pencapaian"                validate:"required"`
+	TotalBobotPengurang          string                         `json:"total_bobot_pengurang"           validate:"required"`
+	TotalPencapaianPost          string                         `json:"total_pencapaian_post"           validate:"required"`
+	Kpi                          []DataKpiDetail                `json:"kpi"                             validate:"required"`
+	DataValidasiQualifierOverall []DataValidasiQualifierOverall `json:"data_validasi_qualifier_overall" validate:"required"`
+	LampiranValidasi             []string                       `json:"lampiran_validasi"`
+
+	// Di-populate dari header "userq" oleh handler, tidak dari body
+	EntryUserValidasi string `json:"entry_user_validasi"`
+	EntryNameValidasi string `json:"entry_name_validasi"`
+	EntryTimeValidasi string `json:"entry_time_validasi"`
+}
+
+// DraftValidasiKpiResponse adalah response untuk endpoint POST /validasi-kpi/draft.
+type DraftValidasiKpiResponse struct {
+	IdPengajuan                  string                         `json:"id_pengajuan"`
+	Divisi                       Divisi                         `json:"divisi"`
+	Triwulan                     string                         `json:"triwulan"`
+	Tahun                        string                         `json:"tahun"`
+	EntryValidasi                EntryUserValidasi              `json:"entry_validasi"`
+	ApprovalPosisi               string                         `json:"approval_posisi"`
+	ApprovalListValidasi         []ApprovalUser                 `json:"approval_list_validasi"`
+	TotalBobot                   string                         `json:"total_bobot"`
+	TotalPencapaian              string                         `json:"total_pencapaian"`
+	TotalBobotPengurang          interface{}                    `json:"total_bobot_pengurang"`
+	TotalPencapaianPost          interface{}                    `json:"total_pencapaian_post"`
+	KpiList                      []DataKpiDetail                `json:"kpi"                             validate:"required"`
+	DataValidasiQualifierOverall []DataValidasiQualifierOverall `json:"data_validasi_qualifier_overall" validate:"required"`
+	LampiranValidasi             []string                       `json:"lampiran_validasi"`
+}
+
 // ApproveValidasiKpiRequest adalah request untuk endpoint POST /validasi-kpi/approve.
 type ApproveValidasiKpiRequest struct {
 	IdPengajuan string  `json:"id_pengajuan" validate:"required"`
@@ -393,6 +432,12 @@ type ValidasiKpiExportRow struct {
 	PencapaianPostQualifier string
 }
 
+// IndikatorPencapaian adalah satu baris dari tabel indikator_pencapaian.
+type IndikatorPencapaian struct {
+	Warna string
+	Value float64
+}
+
 // ValidasiKpiExportData adalah data agregat untuk generate file export (PDF/Excel).
 type ValidasiKpiExportData struct {
 	NamaDivisi      string
@@ -402,6 +447,7 @@ type ValidasiKpiExportData struct {
 	TotalPencapaian string
 	IsDraft         bool
 	Rows            []ValidasiKpiExportRow
+	Indikator       []IndikatorPencapaian
 }
 
 // GetDetailValidasiKpiResponse adalah response untuk endpoint POST /validasi-kpi/get-detail.

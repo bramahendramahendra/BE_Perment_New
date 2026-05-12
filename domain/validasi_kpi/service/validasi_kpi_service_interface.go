@@ -16,6 +16,11 @@ type (
 			req *dto.InputValidasiKpiRequest,
 		) (data dto.InputValidasiKpiResponse, err error)
 
+		// DraftValidasiKpi digunakan oleh endpoint POST /validasi-kpi/draft.
+		DraftValidasiKpi(
+			req *dto.DraftValidasiKpiRequest,
+		) (data dto.DraftValidasiKpiResponse, err error)
+
 		// =============================================================================
 		// APPROVAL
 		// =============================================================================

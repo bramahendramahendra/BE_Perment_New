@@ -18,6 +18,11 @@ type (
 			req *dto.InputValidasiKpiRequest,
 		) error
 
+		// DraftValidasiKpi digunakan oleh endpoint POST /validasi-kpi/draft.
+		DraftValidasiKpi(
+			req *dto.DraftValidasiKpiRequest,
+		) error
+
 		// =============================================================================
 		// APPROVAL
 		// =============================================================================
@@ -89,6 +94,9 @@ type (
 
 		// GetExistDataKpi digunakan oleh service untuk mengambil header KPI berdasarkan id_pengajuan.
 		GetExistDataKpi(idPengajuan string) (*model.DataKpiExist, error)
+
+		// GetIndikatorPencapaian mengambil semua indikator warna dari tabel indikator_pencapaian.
+		GetIndikatorPencapaian() ([]*model.IndikatorPencapaian, error)
 	}
 
 	validasiKpiRepo struct {
