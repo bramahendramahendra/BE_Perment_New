@@ -83,39 +83,42 @@ type DataKpiDetail struct {
 }
 
 type DataKpiSubdetail struct {
-	IdSubDetail                      string      `json:"id_sub_detail"`
-	IdSubKpi                         string      `json:"id_sub_kpi"`
-	SubKpi                           string      `json:"sub_kpi"`
-	Otomatis                         string      `json:"otomatis"`
-	Polarisasi                       string      `json:"polarisasi"`
-	IdPolarisasi                     string      `json:"id_polarisasi"`
-	Capping                          string      `json:"capping"`
-	Bobot                            float64     `json:"bobot"`
-	Glossary                         string      `json:"glossary"`
-	TargetTriwulan                   string      `json:"target_triwulan"`
-	TargetKuantitatifTriwulan        float64     `json:"target_kuantitatif_triwulan"`
-	TargetTahunan                    string      `json:"target_tahunan"`
-	TargetKuantitatifTahunan         float64     `json:"target_kuantitatif_tahunan"`
-	TerdapatQualifier                string      `json:"terdapat_qualifier"`
-	Qualifier                        string      `json:"qualifier"`
-	DeskripsiQualifier               string      `json:"deskripsi_qualifier"`
-	TargetQualifier                  string      `json:"target_qualifier"`
-	IdKeteranganProject              string      `json:"id_keterangan_project"`
-	KeteranganProject                string      `json:"keterangan_project"`
-	Realisasi                        string      `json:"realisasi"`
-	RealisasiKuantitatif             float64     `json:"realisasi_kuantitatif"`
-	RealisasiQualifier               string      `json:"realisasi_qualifier"`
-	RealisasiKuantitatifQualifier    string      `json:"realisasi_kuantitatif_qualifier"`
-	RealisasiKeterangan              string      `json:"realisasi_keterangan"`
-	RealisasiValidated               string      `json:"realisasi_validated"`
-	RealisasiKuantitatifValidated    float64     `json:"realisasi_kuantitatif_validated"`
-	IdSumber                         string      `json:"id_sumber"`
-	Sumber                           string      `json:"sumber"`
-	ValidasiKeterangan               string      `json:"validasi_keterangan"`
-	Pencapaian                       float64     `json:"pencapaian"`
-	Skor                             float64     `json:"skor"`
-	PencapaianQualifierValidated     interface{} `json:"pencapaian_qualifier_validated"`
-	PencapaianPostQualifierValidated interface{} `json:"pencapaian_post_qualifier_validated"`
+	IdSubDetail                      string  `json:"id_sub_detail"`
+	IdSubKpi                         string  `json:"id_sub_kpi"`
+	SubKpi                           string  `json:"sub_kpi"`
+	Otomatis                         string  `json:"otomatis"`
+	Polarisasi                       string  `json:"polarisasi"`
+	IdPolarisasi                     string  `json:"id_polarisasi"`
+	Capping                          string  `json:"capping"`
+	Bobot                            float64 `json:"bobot"`
+	Glossary                         string  `json:"glossary"`
+	TargetTriwulan                   string  `json:"target_triwulan"`
+	TargetKuantitatifTriwulan        float64 `json:"target_kuantitatif_triwulan"`
+	TargetTahunan                    string  `json:"target_tahunan"`
+	TargetKuantitatifTahunan         float64 `json:"target_kuantitatif_tahunan"`
+	TerdapatQualifier                string  `json:"terdapat_qualifier"`
+	Qualifier                        string  `json:"qualifier"`
+	DeskripsiQualifier               string  `json:"deskripsi_qualifier"`
+	TargetQualifier                  string  `json:"target_qualifier"`
+	IdKeteranganProject              string  `json:"id_keterangan_project"`
+	KeteranganProject                string  `json:"keterangan_project"`
+	Realisasi                        string  `json:"realisasi"`
+	RealisasiKuantitatif             float64 `json:"realisasi_kuantitatif"`
+	RealisasiQualifier               string  `json:"realisasi_qualifier"`
+	RealisasiKuantitatifQualifier    string  `json:"realisasi_kuantitatif_qualifier"`
+	RealisasiKeterangan              string  `json:"realisasi_keterangan"`
+	RealisasiValidated               string  `json:"realisasi_validated"`
+	RealisasiKuantitatifValidated    float64 `json:"realisasi_kuantitatif_validated"`
+	IdSumber                         string  `json:"id_sumber"`
+	Sumber                           string  `json:"sumber"`
+	ValidasiKeterangan               string  `json:"validasi_keterangan"`
+	Pencapaian                       float64 `json:"pencapaian"`
+	IndikatorPencapaian              string  `json:"indikator_pencapaian"`
+	Skor                             float64 `json:"skor"`
+	PencapaianQualifierValidated     float64 `json:"pencapaian_qualifier_validated"`
+	IndikatorPencapaianQualifier     string  `json:"indikator_pencapaian_qualifier"`
+	PencapaianPostQualifierValidated float64 `json:"pencapaian_post_qualifier_validated"`
+	IndikatorPencapaianPostQualifier string  `json:"indikator_pencapaian_post_qualifier"`
 }
 
 type DataResult struct {
@@ -214,6 +217,8 @@ type GetDetailPencapaianKpiResponse struct {
 	EntryRealisasi           EntryUserRealisasi             `json:"entry_realisasi"`
 	EntryValidasi            EntryUserValidasi              `json:"entry_validasi"`
 	ApprovalPosisi           string                         `json:"approval_posisi"`
+	ApprovalListPenyusunan   []ApprovalUserDetail           `json:"approval_list_penyusunan"`
+	ApprovalListRealisasi    []ApprovalUserDetail           `json:"approval_list_realisasi"`
 	ApprovalListValidasi     []ApprovalUserDetail           `json:"approval_list_validasi"`
 	Catatan                  []CatatanDetail                `json:"catatan"`
 	TotalBobot               string                         `json:"total_bobot"`

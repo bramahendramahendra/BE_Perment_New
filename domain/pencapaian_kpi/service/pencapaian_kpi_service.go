@@ -46,6 +46,11 @@ func (s *pencapaianKpiService) GetAllPencapaianKpi(
 func (s *pencapaianKpiService) GetDetailPencapaianKpi(
 	req *dto.GetDetailPencapaianKpiRequest,
 ) (data *dto.GetDetailPencapaianKpiResponse, err error) {
+	indikatorDB, err := s.repo.GetIndikatorPencapaian()
+	if err != nil {
+		return nil, err
+	}
+
 	dataDB, err := s.repo.GetDetailPencapaianKpi(req)
 	if err != nil {
 		return nil, err
@@ -54,6 +59,26 @@ func (s *pencapaianKpiService) GetDetailPencapaianKpi(
 		return nil, &customErrors.BadRequestError{
 			Message: fmt.Sprintf("id_pengajuan '%s' tidak ditemukan", req.IdPengajuan),
 		}
+	}
+
+	var approvalListPenyusunan []dto.ApprovalUserDetail
+	if dataDB.ApprovalList != "" && dataDB.ApprovalList != "null" {
+		if err = json.Unmarshal([]byte(dataDB.ApprovalList), &approvalListPenyusunan); err != nil {
+			return nil, fmt.Errorf("gagal parse approval_list_penyusunan: %w", err)
+		}
+	}
+	if approvalListPenyusunan == nil {
+		approvalListPenyusunan = []dto.ApprovalUserDetail{}
+	}
+
+	var approvalListRealisasi []dto.ApprovalUserDetail
+	if dataDB.ApprovalListRealisasi != "" && dataDB.ApprovalListRealisasi != "null" {
+		if err = json.Unmarshal([]byte(dataDB.ApprovalListRealisasi), &approvalListRealisasi); err != nil {
+			return nil, fmt.Errorf("gagal parse approval_list_realisasi: %w", err)
+		}
+	}
+	if approvalListRealisasi == nil {
+		approvalListRealisasi = []dto.ApprovalUserDetail{}
 	}
 
 	var approvalListValidasi []dto.ApprovalUserDetail
@@ -129,9 +154,12 @@ func (s *pencapaianKpiService) GetDetailPencapaianKpi(
 				Sumber:                           sub.Sumber,
 				ValidasiKeterangan:               sub.ValidasiKeterangan,
 				Pencapaian:                       sub.Pencapaian,
+				IndikatorPencapaian:              resolveIndikator(sub.Pencapaian, indikatorDB),
 				Skor:                             sub.Skor,
 				PencapaianQualifierValidated:     sub.PencapaianQualifierValidated,
+				IndikatorPencapaianQualifier:     resolveIndikator(sub.PencapaianQualifierValidated, indikatorDB),
 				PencapaianPostQualifierValidated: sub.PencapaianPostQualifierValidated,
+				IndikatorPencapaianPostQualifier: resolveIndikator(sub.PencapaianPostQualifierValidated, indikatorDB),
 			}
 		}
 		kpiList[i] = dto.DataKpiDetail{
@@ -210,6 +238,8 @@ func (s *pencapaianKpiService) GetDetailPencapaianKpi(
 			EntryTimeValidasi: dataDB.EntryTimeValidasi,
 		},
 		ApprovalPosisi:           dataDB.ApprovalPosisi,
+		ApprovalListPenyusunan:   approvalListPenyusunan,
+		ApprovalListRealisasi:    approvalListRealisasi,
 		ApprovalListValidasi:     approvalListValidasi,
 		Catatan:                  catatanList,
 		TotalBobot:               dataDB.TotalBobot,
@@ -341,4 +371,16 @@ func (s *pencapaianKpiService) buildPencapaianKpiExportData(idPengajuan string, 
 		Rows:            rows,
 		Indikator:       indikator,
 	}, nil
+}
+
+// resolveIndikator menentukan warna indikator berdasarkan nilai pct dan daftar indikator dari DB.
+// Logika: iterasi descending by value, last match wins. Default "merah" jika tidak ada match.
+func resolveIndikator(pct float64, indikator []*model.IndikatorPencapaian) string {
+	warna := "merah"
+	for _, item := range indikator {
+		if pct <= item.IndikatorValue {
+			warna = item.IndikatorWarna
+		}
+	}
+	return warna
 }
