@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"permen_api/config"
 	"time"
 
 	"gorm.io/gorm"
@@ -70,7 +71,7 @@ func New(db *gorm.DB, debug bool) EdmClient {
 		httpClient: &http.Client{
 			Timeout: defaultTimeout,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: config.ENV.ReleaseMode != "production"},
 			},
 		},
 		debug:       debug,

@@ -12,6 +12,7 @@ import (
 	"permen_api/errors"
 
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type AuthHandler struct {
@@ -30,6 +31,9 @@ func (a *AuthHandler) AuthToken(c *gin.Context) {
 		Hilfm  string `json:"hilfm" validate:"required,numeric"`
 		Kostl  string `json:"costCenter" validate:"required,alphanum"`
 	}
+
+	const maxBodySize = 1 << 20 // 1MB
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodySize)
 
 	var reqData req
 

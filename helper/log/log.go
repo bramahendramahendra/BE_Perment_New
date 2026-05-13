@@ -28,9 +28,13 @@ func SetLogData(c *gin.Context, logType, context, scope, message string, stacktr
 	endTime := time_helper.GetEndTime(startTime)
 	logType = strings.ToLower(logType)
 
+	host := c.Request.Host
+	if strings.ContainsAny(host, "\r\n") {
+		host = "invalid-host"
+	}
 	incomingReqData := &global_dto.IncomingRequestData{
 		Method:   c.Request.Method,
-		Endpoint: c.Request.Host + c.Request.RequestURI,
+		Endpoint: host + c.Request.RequestURI,
 	}
 	logData := global_dto.LogData{
 		IncomingRequestData: incomingReqData,
