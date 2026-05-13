@@ -14,22 +14,19 @@ func Cors() gin.HandlerFunc {
 		origin := c.Request.Header.Get("Origin")
 
 		// Check if the origin is in the allowed list
-		var allowOrigin string
+		// Use the whitelisted value directly (not the user-supplied origin)
+		var matchedOrigin string
 		for _, allowedOrigin := range allowedOrigins {
 			if origin == allowedOrigin {
-				allowOrigin = origin
+				matchedOrigin = allowedOrigin
 				break
 			}
 		}
 
-		// Set CORS headers
-		if allowOrigin != "" {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+		// Set CORS headers only for allowed origins
+		if matchedOrigin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", matchedOrigin)
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		} else {
-			// For non-credentialed requests, you can still allow other origins
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-			// But explicitly don't allow credentials for wildcard origins
 		}
 
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")

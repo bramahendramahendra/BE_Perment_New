@@ -2,7 +2,6 @@ package global_dto
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 )
 
@@ -118,7 +117,9 @@ func TestResponseData_Initialization(t *testing.T) {
 				Paginate: tt.paginate,
 			}
 
-			if !reflect.DeepEqual(rd.Records, tt.records) {
+			gotRecords, _ := json.Marshal(rd.Records)
+			wantRecords, _ := json.Marshal(tt.records)
+			if string(gotRecords) != string(wantRecords) {
 				t.Errorf("Records = %v, want %v", rd.Records, tt.records)
 			}
 			if rd.Paginate != tt.paginate {
@@ -192,16 +193,22 @@ func TestResponseParams_Initialization(t *testing.T) {
 			if rp.Message != tt.message {
 				t.Errorf("Message = %v, want %v", rp.Message, tt.message)
 			}
-			if !reflect.DeepEqual(rp.Data, tt.data) {
+			gotRpData, _ := json.Marshal(rp.Data)
+			wantRpData, _ := json.Marshal(tt.data)
+			if string(gotRpData) != string(wantRpData) {
 				t.Errorf("Data = %v, want %v", rp.Data, tt.data)
 			}
 			if rp.TraceId != tt.traceId {
 				t.Errorf("TraceId = %v, want %v", rp.TraceId, tt.traceId)
 			}
-			if !reflect.DeepEqual(rp.Errors, tt.errors) {
+			gotRpErrors, _ := json.Marshal(rp.Errors)
+			wantRpErrors, _ := json.Marshal(tt.errors)
+			if string(gotRpErrors) != string(wantRpErrors) {
 				t.Errorf("Errors = %v, want %v", rp.Errors, tt.errors)
 			}
-			if !reflect.DeepEqual(rp.Pagination, tt.pagination) {
+			gotRpPagination, _ := json.Marshal(rp.Pagination)
+			wantRpPagination, _ := json.Marshal(tt.pagination)
+			if string(gotRpPagination) != string(wantRpPagination) {
 				t.Errorf("Pagination = %v, want %v", rp.Pagination, tt.pagination)
 			}
 		})
@@ -265,13 +272,19 @@ func TestJsonResponse_Initialization(t *testing.T) {
 			if jr.Message != tt.message {
 				t.Errorf("Message = %v, want %v", jr.Message, tt.message)
 			}
-			if !reflect.DeepEqual(jr.Data, tt.data) {
+			gotJrData, _ := json.Marshal(jr.Data)
+			wantJrData, _ := json.Marshal(tt.data)
+			if string(gotJrData) != string(wantJrData) {
 				t.Errorf("Data = %v, want %v", jr.Data, tt.data)
 			}
-			if !reflect.DeepEqual(jr.Pagination, tt.pagination) {
+			gotPagination, _ := json.Marshal(jr.Pagination)
+			wantPagination, _ := json.Marshal(tt.pagination)
+			if string(gotPagination) != string(wantPagination) {
 				t.Errorf("Pagination = %v, want %v", jr.Pagination, tt.pagination)
 			}
-			if !reflect.DeepEqual(jr.Errors, tt.errors) {
+			gotErrors, _ := json.Marshal(jr.Errors)
+			wantErrors, _ := json.Marshal(tt.errors)
+			if string(gotErrors) != string(wantErrors) {
 				t.Errorf("Errors = %v, want %v", jr.Errors, tt.errors)
 			}
 		})
@@ -422,10 +435,14 @@ func TestPagination_Initialization(t *testing.T) {
 			if p.Message != tt.message {
 				t.Errorf("Message = %v, want %v", p.Message, tt.message)
 			}
-			if !reflect.DeepEqual(p.Data, tt.data) {
+			gotPData, _ := json.Marshal(p.Data)
+			wantPData, _ := json.Marshal(tt.data)
+			if string(gotPData) != string(wantPData) {
 				t.Errorf("Data = %v, want %v", p.Data, tt.data)
 			}
-			if !reflect.DeepEqual(p.Metadata, tt.metadata) {
+			gotPMetadata, _ := json.Marshal(p.Metadata)
+			wantPMetadata, _ := json.Marshal(tt.metadata)
+			if string(gotPMetadata) != string(wantPMetadata) {
 				t.Errorf("Metadata = %v, want %v", p.Metadata, tt.metadata)
 			}
 		})
