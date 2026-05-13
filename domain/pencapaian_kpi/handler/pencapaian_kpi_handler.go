@@ -26,6 +26,7 @@ func NewPencapaianKpiHandler(service service.PencapaianKpiServiceInterface) *Pen
 // =============================================================================
 
 // GetAllPencapaianKpi handles POST /pencapaian-kpi/get-all-pencapaian
+// Menerima application/json dengan JSON biasa.
 func (h *PencapaianKpiHandler) GetAllPencapaianKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllPencapaianKpiRequest](c)
 	if err != nil {
@@ -63,6 +64,7 @@ func (h *PencapaianKpiHandler) GetAllPencapaianKpi(c *gin.Context) {
 // =============================================================================
 
 // GetDetailPencapaianKpi handles POST /pencapaian-kpi/get-detail
+// Menerima application/json dengan JSON biasa.
 func (h *PencapaianKpiHandler) GetDetailPencapaianKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetDetailPencapaianKpiRequest](c)
 	if err != nil {
@@ -94,6 +96,7 @@ func (h *PencapaianKpiHandler) GetDetailPencapaianKpi(c *gin.Context) {
 // =============================================================================
 
 // GetExcelPencapaianKpi handles POST /pencapaian-kpi/get-excel
+// Menerima application/json dengan JSON biasa.
 func (h *PencapaianKpiHandler) GetExcelPencapaianKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetExcelPencapaianKpiRequest](c)
 	if err != nil {
@@ -116,6 +119,7 @@ func (h *PencapaianKpiHandler) GetExcelPencapaianKpi(c *gin.Context) {
 }
 
 // GetPdfPencapaianKpi handles POST /pencapaian-kpi/get-pdf
+// Menerima application/json dengan JSON biasa.
 func (h *PencapaianKpiHandler) GetPdfPencapaianKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetPdfPencapaianKpiRequest](c)
 	if err != nil {

@@ -98,10 +98,10 @@ func (s *validasiKpiService) DraftValidasiKpi(
 		return data, &customErrors.BadRequestError{Message: err.Error()}
 	}
 
-	// Validasi: status harus 5 = Realisasi Disetujui / 7 = Validasi Ditolak / 91 = Validasi Batal
-	if existData.Status != 5 && existData.Status != 7 && existData.Status != 91 {
+	// Validasi: status harus 5 = Realisasi Disetujui / 7 = Validasi Ditolak / 90 = Draft Validasi / 91 = Validasi Batal
+	if existData.Status != 5 && existData.Status != 7 && existData.Status != 90 && existData.Status != 91 {
 		return data, &customErrors.BadRequestError{
-			Message: fmt.Sprintf("pengajuan '%s' tidak dapat disimpan sebagai draft, status saat ini '%s'", req.IdPengajuan, existData.StatusDesc),
+			Message: fmt.Sprintf("pengajuan '%s' tidak dapat direvisi, status saat ini '%s'", req.IdPengajuan, existData.StatusDesc),
 		}
 	}
 
@@ -517,10 +517,27 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 				IdSubDetail:                      sub.IdSubDetail,
 				IdSubKpi:                         sub.IdKpi,
 				SubKpi:                           sub.Kpi,
+				Otomatis:                         sub.Otomatis,
+				IdPolarisasi:                     sub.IdPolarisasi,
+				Polarisasi:                       sub.Polarisasi,
+				Capping:                          sub.Capping,
 				Bobot:                            sub.Bobot,
+				Glossary:                         sub.DeskripsiGlossary,
 				TargetTriwulan:                   sub.TargetTriwulan,
 				TargetKuantitatifTriwulan:        sub.TargetKuantitatifTriwulan,
+				TargetTahunan:                    sub.TargetTahunan,
+				TargetKuantitatifTahunan:         sub.TargetKuantitatifTahunan,
+				TerdapatQualifier:                sub.IdQualifier,
+				Qualifier:                        sub.ItemQualifier,
+				DeskripsiQualifier:               sub.DeskripsiQualifier,
 				TargetQualifier:                  sub.TargetQualifier,
+				IdKeteranganProject:              sub.IdKeteranganProject,
+				KeteranganProject:                sub.KeteranganProject,
+				Realisasi:                        sub.Realisasi,
+				RealisasiKuantitatif:             sub.RealisasiKuantitatif,
+				RealisasiQualifier:               sub.RealisasiQualifier,
+				RealisasiKuantitatifQualifier:    sub.RealisasiKuantitatifQualifier,
+				RealisasiKeterangan:              sub.RealisasiKeterangan,
 				RealisasiValidated:               sub.RealisasiValidated,
 				RealisasiKuantitatifValidated:    sub.RealisasiKuantitatifValidated,
 				IdSumber:                         sub.IdSumber,
@@ -533,12 +550,50 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 			}
 		}
 		kpiList[i] = dto.DataKpiDetail{
-			IdDetail:     kpi.IdDetail,
-			IdKpi:        kpi.IdKpi,
-			Kpi:          kpi.Kpi,
-			Rumus:        kpi.Rumus,
-			TotalSubKpi:  kpi.TotalSubKpi,
-			KpiSubDetail: subList,
+			IdDetail:            kpi.IdDetail,
+			IdKpi:               kpi.IdKpi,
+			Kpi:                 kpi.Kpi,
+			Rumus:               kpi.Rumus,
+			IdPerspektif:        kpi.IdPersfektif,
+			Persfektif:          kpi.Perspektif,
+			IdKeteranganProject: kpi.IdKeteranganProject,
+			KeteranganProject:   kpi.KeteranganProject,
+			LinkDokumenSumber:   kpi.LampiranFile,
+			TotalSubKpi:         kpi.TotalSubKpi,
+			KpiSubDetail:        subList,
+		}
+	}
+
+	resultList := make([]dto.DataResult, len(dataDB.ResultList))
+	for i, v := range dataDB.ResultList {
+		resultList[i] = dto.DataResult{
+			IdDetailResult:   v.IdDetailResult,
+			NamaResult:       v.NamaResult,
+			DeskripsiResult:  v.DeskripsiResult,
+			RealisasiResult:  v.RealisasiResult,
+			LampiranEvidence: v.LampiranEvidence,
+		}
+	}
+
+	processList := make([]dto.DataProcess, len(dataDB.ProcessList))
+	for i, v := range dataDB.ProcessList {
+		processList[i] = dto.DataProcess{
+			IdDetailProcess:  v.IdDetailMethod,
+			NamaProcess:      v.NamaMethod,
+			DeskripsiProcess: v.DeskripsiMethod,
+			RealisasiProcess: v.RealisasiMethod,
+			LampiranEvidence: v.LampiranEvidence,
+		}
+	}
+
+	contextList := make([]dto.DataContext, len(dataDB.ContextList))
+	for i, v := range dataDB.ContextList {
+		contextList[i] = dto.DataContext{
+			IdDetailContext:  v.IdDetailChallenge,
+			NamaContext:      v.NamaChallenge,
+			DeskripsiContext: v.DeskripsiChallenge,
+			RealisasiContext: v.RealisasiChallenge,
+			LampiranEvidence: v.LampiranEvidence,
 		}
 	}
 
@@ -579,6 +634,12 @@ func (s *validasiKpiService) GetDetailValidasiKpi(
 		LampiranValidasi:         lampiranValidasi,
 		TotalKpi:                 dataDB.TotalKpi,
 		KpiList:                  kpiList,
+		TotalResult:              dataDB.TotalResult,
+		ResultList:               resultList,
+		TotalProcess:             dataDB.TotalProcess,
+		ProcessList:              processList,
+		TotalContext:             dataDB.TotalContext,
+		ContextList:              contextList,
 		QualifierOverallValidasi: qualifierOverall,
 	}
 

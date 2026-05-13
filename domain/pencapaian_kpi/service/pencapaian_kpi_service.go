@@ -27,8 +27,8 @@ func (s *pencapaianKpiService) GetAllPencapaianKpi(
 	for _, v := range dataDB {
 		data = append(data, &dto.GetAllPencapaianKpiResponse{
 			IdPengajuan: v.IdPengajuan,
-			Tahun:       v.Tahun,
 			Triwulan:    v.Triwulan,
+			Tahun:       v.Tahun,
 			KostlTx:     v.KostlTx,
 			OrgehTx:     v.OrgehTx,
 			StatusDesc:  v.StatusDesc,
@@ -139,6 +139,8 @@ func (s *pencapaianKpiService) GetDetailPencapaianKpi(
 				TargetKuantitatifTriwulan:        sub.TargetKuantitatifTriwulan,
 				TargetTahunan:                    sub.TargetTahunan,
 				TargetKuantitatifTahunan:         sub.TargetKuantitatifTahunan,
+				TerdapatQualifier:                sub.IdQualifier,
+				Qualifier:                        sub.ItemQualifier,
 				DeskripsiQualifier:               sub.DeskripsiQualifier,
 				TargetQualifier:                  sub.TargetQualifier,
 				IdKeteranganProject:              sub.IdKeteranganProject,

@@ -404,7 +404,7 @@ func (h *ValidasiKpiHandler) GetAllDaftarApprovalValidasiKpi(c *gin.Context) {
 }
 
 // =============================================================================
-// GET DETAIL VALIDASI
+// GET DETAIL
 // =============================================================================
 
 // GetDetailValidasiKpi handles POST /validasi-kpi/get-detail
@@ -440,6 +440,7 @@ func (h *ValidasiKpiHandler) GetDetailValidasiKpi(c *gin.Context) {
 // =============================================================================
 
 // GetExcelValidasiKpi handles POST /validasi-kpi/get-excel.
+// Menerima application/json dengan JSON biasa.
 func (h *ValidasiKpiHandler) GetExcelValidasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetExcelValidasiKpiRequest](c)
 	if err != nil {
@@ -462,6 +463,7 @@ func (h *ValidasiKpiHandler) GetExcelValidasiKpi(c *gin.Context) {
 }
 
 // GetPdfValidasiKpi handles POST /validasi-kpi/get-pdf.
+// Menerima application/json dengan JSON biasa.
 func (h *ValidasiKpiHandler) GetPdfValidasiKpi(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetPdfValidasiKpiRequest](c)
 	if err != nil {
