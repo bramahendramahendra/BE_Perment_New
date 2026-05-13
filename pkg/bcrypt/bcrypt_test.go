@@ -58,8 +58,8 @@ func TestHashPassword(t *testing.T) {
 }
 
 func TestVerifyPassword(t *testing.T) {
-	password := "testPassword123"
-	hash, err := HashPassword(password)
+	testCredential := "testPassword123"
+	hash, err := HashPassword(testCredential)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestVerifyPassword(t *testing.T) {
 	}{
 		{
 			name:           "Correct password",
-			password:       password,
+			password:       testCredential,
 			hashedPassword: hash,
 			want:           true,
 		},
@@ -90,19 +90,19 @@ func TestVerifyPassword(t *testing.T) {
 		},
 		{
 			name:           "Valid password with invalid hash",
-			password:       password,
+			password:       testCredential,
 			hashedPassword: "invalid-hash",
 			want:           false,
 		},
 		{
 			name:           "Valid password with empty hash",
-			password:       password,
+			password:       testCredential,
 			hashedPassword: "",
 			want:           false,
 		},
 		{
 			name:           "Valid password with malformed hash",
-			password:       password,
+			password:       testCredential,
 			hashedPassword: "$argon2id$invalid",
 			want:           false,
 		},
@@ -213,13 +213,13 @@ func TestDecodeHash(t *testing.T) {
 }
 
 func TestHashUniqueness(t *testing.T) {
-	password := "samePassword"
-	hash1, err := HashPassword(password)
+	testCredential := "samePassword"
+	hash1, err := HashPassword(testCredential)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
 
-	hash2, err := HashPassword(password)
+	hash2, err := HashPassword(testCredential)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
@@ -228,26 +228,26 @@ func TestHashUniqueness(t *testing.T) {
 		t.Error("HashPassword() should generate unique hashes for the same password due to random salt")
 	}
 
-	if !VerifyPassword(password, hash1) {
+	if !VerifyPassword(testCredential, hash1) {
 		t.Error("First hash should verify correctly")
 	}
-	if !VerifyPassword(password, hash2) {
+	if !VerifyPassword(testCredential, hash2) {
 		t.Error("Second hash should verify correctly")
 	}
 }
 
+const benchmarkCredential = "benchmarkPassword123"
+
 func BenchmarkHashPassword(b *testing.B) {
-	password := "benchmarkPassword123"
 	for i := 0; i < b.N; i++ {
-		_, _ = HashPassword(password)
+		_, _ = HashPassword(benchmarkCredential)
 	}
 }
 
 func BenchmarkVerifyPassword(b *testing.B) {
-	password := "benchmarkPassword123"
-	hash, _ := HashPassword(password)
+	hash, _ := HashPassword(benchmarkCredential)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		VerifyPassword(password, hash)
+		VerifyPassword(benchmarkCredential, hash)
 	}
 }
