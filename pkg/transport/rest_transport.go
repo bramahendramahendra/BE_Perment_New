@@ -183,7 +183,11 @@ func (c *RestClient) Do(method, path string, opts *RequestOptions) ([]byte, int,
 
 	// Log request to database if enabled
 	if opts != nil && opts.EnableLog && opts.DbCon != nil && logID != "" {
-		reqHeaderBytes, _ := json.Marshal(req.Header)
+		safeHeader := req.Header.Clone()
+		if safeHeader.Get("Authorization") != "" {
+			safeHeader.Set("Authorization", "[REDACTED]")
+		}
+		reqHeaderBytes, _ := json.Marshal(safeHeader)
 		if err := log_helper.LogExternalCall(opts.DbCon, logID, reqHeaderBytes, reqBodyRaw, opts.IsESB, true); err != nil {
 			if c.Debug {
 				fmt.Printf("[DEBUG] Failed to log request: %v\n", err)
@@ -229,7 +233,11 @@ func (c *RestClient) Do(method, path string, opts *RequestOptions) ([]byte, int,
 
 	// Log response to database if enabled
 	if opts != nil && opts.EnableLog && opts.DbCon != nil && logID != "" {
-		respHeaderBytes, _ := json.Marshal(resp.Header)
+		safeRespHeader := resp.Header.Clone()
+		if safeRespHeader.Get("Authorization") != "" {
+			safeRespHeader.Set("Authorization", "[REDACTED]")
+		}
+		respHeaderBytes, _ := json.Marshal(safeRespHeader)
 		if err := log_helper.LogExternalCallWithResponse(opts.DbCon, logID, resp.StatusCode, respHeaderBytes, respBody, opts.IsESB); err != nil {
 			if c.Debug {
 				fmt.Printf("[DEBUG] Failed to log response: %v\n", err)
