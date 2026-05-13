@@ -84,6 +84,13 @@ func BasicAuthMiddleware(config BasicAuthConfig) gin.HandlerFunc {
 			return
 		}
 
+		// Limit header size to prevent resource exhaustion
+		const maxAuthHeaderSize = 8192
+		if len(authHeader) > maxAuthHeaderSize {
+			handleAuthFailure(c, config, scope, "Authorization header too large")
+			return
+		}
+
 		// Validate header format
 		if !strings.HasPrefix(authHeader, "Basic ") {
 			handleAuthFailure(c, config, scope, "Invalid Authorization header format")
@@ -99,6 +106,11 @@ func BasicAuthMiddleware(config BasicAuthConfig) gin.HandlerFunc {
 		}
 
 		// Parse username:password
+		const maxDecodedCredentialSize = 512
+		if len(decodedBytes) > maxDecodedCredentialSize {
+			handleAuthFailure(c, config, scope, "Credentials size exceeds maximum allowed")
+			return
+		}
 		credentials := string(decodedBytes)
 		colonIndex := strings.Index(credentials, ":")
 		if colonIndex == -1 {

@@ -50,7 +50,12 @@ var (
 	}
 )
 
+const maxClaimsSize = 50
+
 func CreateClaims(data map[string]any) {
+	if len(data) > maxClaimsSize {
+		data = map[string]any{}
+	}
 	jwtClaims := jwt.MapClaims{}
 	for key, value := range data {
 		jwtClaims[key] = value

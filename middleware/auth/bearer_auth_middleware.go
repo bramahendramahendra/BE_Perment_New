@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"permen_api/errors"
 	error_helper "permen_api/helper/error"
 	log_helper "permen_api/helper/log"
@@ -20,6 +21,10 @@ func jwtVerifyWrapper(token string) (*map[string]interface{}, error) {
 	}
 
 	// Convert jwt.MapClaims to map[string]interface{}
+	const maxClaimsSize = 50
+	if len(*claims) > maxClaimsSize {
+		return nil, fmt.Errorf("token claims exceed maximum allowed size")
+	}
 	result := make(map[string]interface{})
 	for k, v := range *claims {
 		result[k] = v
@@ -28,6 +33,10 @@ func jwtVerifyWrapper(token string) (*map[string]interface{}, error) {
 }
 
 func jwtFillClaimsWrapper(claims map[string]interface{}) map[string]string {
+	const maxClaimsSize = 50
+	if len(claims) > maxClaimsSize {
+		return map[string]string{}
+	}
 	// Convert map[string]interface{} back to jwtLib.MapClaims
 	jwtClaims := make(jwtLib.MapClaims)
 	for k, v := range claims {
