@@ -69,7 +69,9 @@ func newMockServer(responseBody any, statusCode int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
-		json.NewEncoder(w).Encode(responseBody)
+		if err := json.NewEncoder(w).Encode(responseBody); err != nil {
+			http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		}
 	}))
 }
 

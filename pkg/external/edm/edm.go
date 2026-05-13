@@ -164,18 +164,22 @@ func (c *edmClient) GetDataKPI(tahun, triwulan, idKPI string) (any, error) {
 // getOrRefreshToken mengecek usia token di DB; refresh jika sudah >= tokenTTLHours jam.
 func (c *edmClient) getOrRefreshToken() (string, error) {
 	var count int64
-	c.db.RawScan(
+	if err := c.db.RawScan(
 		"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?",
 		&count,
 		tokenTTLHours,
-	)
+	); err != nil {
+		return "", fmt.Errorf("gagal cek usia token: %w", err)
+	}
 
 	if count > 0 {
 		return c.GetToken()
 	}
 
 	var token string
-	c.db.RawScan("SELECT token FROM param_token_edm LIMIT 1", &token)
+	if err := c.db.RawScan("SELECT token FROM param_token_edm LIMIT 1", &token); err != nil {
+		return "", fmt.Errorf("gagal ambil token dari DB: %w", err)
+	}
 	if token == "" {
 		return c.GetToken()
 	}

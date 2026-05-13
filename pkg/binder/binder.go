@@ -382,7 +382,9 @@ func setFieldFromInterface(fieldVal reflect.Value, value interface{}) error {
 			sliceType := fieldVal.Type()
 			newSlice := reflect.MakeSlice(sliceType, len(slice), len(slice))
 			for i, item := range slice {
-				setFieldFromInterface(newSlice.Index(i), item)
+				if err := setFieldFromInterface(newSlice.Index(i), item); err != nil {
+					return err
+				}
 			}
 			fieldVal.Set(newSlice)
 		}
@@ -393,19 +395,25 @@ func setFieldFromInterface(fieldVal reflect.Value, value interface{}) error {
 			for k, v := range mapVal {
 				keyVal := reflect.ValueOf(k)
 				valVal := reflect.New(mapType.Elem()).Elem()
-				setFieldFromInterface(valVal, v)
+				if err := setFieldFromInterface(valVal, v); err != nil {
+					return err
+				}
 				newMap.SetMapIndex(keyVal, valVal)
 			}
 			fieldVal.Set(newMap)
 		}
 	case reflect.Struct:
 		if mapVal, ok := value.(map[string]interface{}); ok {
-			mapJSONToStruct(mapVal, fieldVal.Addr().Interface())
+			if err := mapJSONToStruct(mapVal, fieldVal.Addr().Interface()); err != nil {
+				return err
+			}
 		}
 	case reflect.Ptr:
 		if value != nil {
 			ptrVal := reflect.New(fieldVal.Type().Elem())
-			setFieldFromInterface(ptrVal.Elem(), value)
+			if err := setFieldFromInterface(ptrVal.Elem(), value); err != nil {
+				return err
+			}
 			fieldVal.Set(ptrVal)
 		}
 	}

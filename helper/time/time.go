@@ -17,7 +17,7 @@ func GetTimeWithFormat() string {
 func GetEndTime(timeString string) string {
 	now, err := time.ParseInLocation(config.FormatTime, timeString, config.Location)
 	if err != nil {
-		panic("failed to parsing time string format, " + err.Error())
+		return GetTimeWithFormat()
 	}
 
 	duration := time.Since(now)

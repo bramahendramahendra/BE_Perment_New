@@ -216,7 +216,7 @@ func GenerateExternalId(prefix string) string {
 	b := make([]byte, 6)
 	_, err := cryptoRand.Read(b)
 	if err != nil {
-		panic(err) // in production, better handle error properly
+		return prefix + hex.EncodeToString([]byte(fmt.Sprintf("%d", time.Now().UnixNano()))[:6])
 	}
 
 	randomPart := hex.EncodeToString(b) // always 12 hex chars

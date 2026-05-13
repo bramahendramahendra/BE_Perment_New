@@ -92,7 +92,11 @@ func GetUserInfo(c *gin.Context, requiredHeaders ...string) (pernr, name, hilfm,
 
 	// Parse user header only after validation
 	if headerCtx.UserQ != "" {
-		pernr, name, _ = helper.ParseUserHeader(headerCtx.UserQ)
+		var parseErr error
+		pernr, name, parseErr = helper.ParseUserHeader(headerCtx.UserQ)
+		if parseErr != nil {
+			return "", "", "", "", "", "", parseErr
+		}
 	}
 
 	return pernr, name, headerCtx.Hilfm, headerCtx.Branch, headerCtx.Orgeh, headerCtx.Kostl, nil
@@ -107,7 +111,11 @@ func GetApproverInfo(c *gin.Context, requiredHeaders ...string) (pernr, name, hi
 
 	// Parse user header only after validation
 	if headerCtx.UserQ != "" {
-		pernr, name, _ = helper.ParseUserHeader(headerCtx.UserQ)
+		var parseErr error
+		pernr, name, parseErr = helper.ParseUserHeader(headerCtx.UserQ)
+		if parseErr != nil {
+			return "", "", "", "", "", "", parseErr
+		}
 	}
 
 	return pernr, name, headerCtx.Hilfm, headerCtx.Branch, headerCtx.Orgeh, headerCtx.StellTX, nil

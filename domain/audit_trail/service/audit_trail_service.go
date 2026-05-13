@@ -1,6 +1,8 @@
 package service
 
 import (
+	"log"
+
 	dto "permen_api/domain/audit_trail/dto"
 	model "permen_api/domain/audit_trail/model"
 )
@@ -21,6 +23,7 @@ func (s *auditTrailService) SaveAuditTrail(req *dto.AuditTrailRequest) {
 		Errordesc: req.ErrSis,
 	}
 
-	// Fire-and-forget: error tidak di-propagate (mengikuti logika bisnis BE_Perment_Old)
-	_ = s.repo.InsertAuditTrail(data)
+	if err := s.repo.InsertAuditTrail(data); err != nil {
+		log.Printf("audit trail insert failed: %v", err)
+	}
 }

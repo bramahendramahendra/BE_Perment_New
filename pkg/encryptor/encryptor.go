@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 )
 
 // Encryptor represents the encryption service
@@ -176,7 +177,7 @@ var globalEncryptor *Encryptor
 func init() {
 	enc, err := NewEncryptor(defaultKey)
 	if err != nil {
-		panic(fmt.Sprintf("failed to initialize global encryptor: %v", err))
+		log.Fatalf("failed to initialize global encryptor: %v", err)
 	}
 	globalEncryptor = enc
 }

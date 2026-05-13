@@ -155,8 +155,13 @@ func createMultipartContext(fields map[string]string, files map[string][]byte) (
 	}
 
 	for filename, content := range files {
-		fw, _ := mw.CreateFormFile(filename, filename+".txt")
-		fw.Write(content)
+		fw, err := mw.CreateFormFile(filename, filename+".txt")
+		if err != nil {
+			continue
+		}
+		if _, err := fw.Write(content); err != nil {
+			continue
+		}
 	}
 
 	mw.Close()
@@ -183,8 +188,13 @@ func createMultipartJSONContext(requestField, jsonStr, fileField string, fileCon
 
 	// Tulis file jika ada
 	if fileContent != nil {
-		fw, _ := mw.CreateFormFile(fileField, "test_file.xlsx")
-		fw.Write(fileContent)
+		fw, err := mw.CreateFormFile(fileField, "test_file.xlsx")
+		if err == nil {
+			if _, werr := fw.Write(fileContent); werr != nil {
+				mw.Close()
+				return nil, nil
+			}
+		}
 	}
 
 	mw.Close()

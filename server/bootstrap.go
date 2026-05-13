@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"log"
 	"permen_api/config"
 	error_helper "permen_api/helper/error"
 	"permen_api/pkg/database"
@@ -41,7 +42,7 @@ func Initialized() *gin.Engine {
 
 	if err := ginEngine.SetTrustedProxies(trustedProxies); err != nil {
 		errData := error_helper.SetError(nil, "Proxy Configuration", err.Error(), error_helper.GetStackTrace(1), nil)
-		panic(errData)
+		log.Fatalf("failed to set trusted proxies: %v", errData)
 	}
 
 	routes.Router(ginEngine)
@@ -54,7 +55,7 @@ func InitializedDB() {
 	err := dbManager.Register(config.Db.Database, config.Db)
 	if err != nil {
 		errData := error_helper.SetError(nil, "DB Initialization", err.Error(), error_helper.GetStackTrace(1), nil)
-		panic(errData)
+		log.Fatalf("failed to initialize database: %v", errData)
 	}
 
 	database.DB = dbManager.GetDatabase(config.Db.Database)
@@ -65,7 +66,7 @@ func initializedRedis() {
 	redisManager := redis.New()
 	if err := redisManager.Register(redisName, config.Redis); err != nil {
 		errData := error_helper.SetError(nil, "Redis Initialization", err.Error(), error_helper.GetStackTrace(1), nil)
-		panic(errData)
+		log.Fatalf("failed to initialize redis: %v", errData)
 	}
 	redis.Client = redisManager.GetRedis(redisName)
 }
@@ -79,7 +80,7 @@ func initializedMinio() {
 	err := minio.New(config.Minio)
 	if err != nil {
 		errData := error_helper.SetError(nil, "Minio Initialization", err.Error(), error_helper.GetStackTrace(1), nil)
-		panic(errData)
+		log.Fatalf("failed to initialize minio: %v", errData)
 	}
 }
 

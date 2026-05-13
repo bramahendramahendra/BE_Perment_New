@@ -36,8 +36,7 @@ func SetErrorData(c *gin.Context, context, scope, message, stacktrace string, da
 
 	jsonData, err := json.Marshal(errData)
 	if err != nil {
-		errData := SetError(c, "Error Helper", "failed to set error data, (convert struct to json)", GetStackTrace(1), data)
-		panic(errData)
+		return fmt.Sprintf(`{"message":"failed to set error data","scope":"%s"}`, scope)
 	}
 
 	return string(jsonData)
@@ -47,8 +46,7 @@ func GetErrorData(c *gin.Context, err string) *global_dto.ErrorData {
 	var errData global_dto.ErrorData
 
 	if err := json.Unmarshal([]byte(err), &errData); err != nil {
-		errData := SetError(c, "Error Helper", "failed to get eror data (convert json to struct)", GetStackTrace(1), nil)
-		panic(errData)
+		return &global_dto.ErrorData{Message: "failed to get error data"}
 	}
 
 	return &errData

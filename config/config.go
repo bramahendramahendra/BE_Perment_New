@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/spf13/viper"
@@ -150,8 +150,7 @@ func initEnv() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		errMessage := fmt.Sprintf("Error reading Env file : %v", err)
-		panic(errMessage)
+		log.Fatalf("error reading env file: %v", err)
 	}
 
 	ENV = &Env{
@@ -170,8 +169,7 @@ func initConfig(releaseMode string) {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		errMessage := fmt.Sprintf("Error reading config file : %v", err)
-		panic(errMessage)
+		log.Fatalf("error reading config file: %v", err)
 	}
 
 	Db = &DatabaseConfig{
@@ -283,7 +281,7 @@ func initConfig(releaseMode string) {
 func initTimeConfig() {
 	loc, err := time.LoadLocation(General.Timezone)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to load location: %s", err.Error()))
+		log.Fatalf("failed to load location: %s", err.Error())
 	}
 
 	Location = loc
