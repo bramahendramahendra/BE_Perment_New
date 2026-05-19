@@ -144,7 +144,7 @@ const (
 			COALESCE(NULLIF(a.realisasi_kuantitatif, ''), 0)  realisasi_kuantitatif,
 			IFNULL(a.realisasi_keterangan, '')                realisasi_keterangan,
 			IFNULL(a.realisasi_validated, '')                 realisasi_validated,
-			COALESCE(NULLIF(a.realisasi_kuantitatif_validated, ''), 0) realisasi_kuantitatif_validated,
+			COALESCE(NULLIF(NULLIF(a.realisasi_kuantitatif_validated, ''), '-'), 0) realisasi_kuantitatif_validated,
 			IFNULL(a.id_sumber, '')                           id_sumber,
 			IFNULL(s.sumber, '')                              sumber,
 			COALESCE(NULLIF(a.pencapaian, ''), 0)             pencapaian,

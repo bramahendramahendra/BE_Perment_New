@@ -34,6 +34,8 @@ Backend service untuk aplikasi **Penyusunan KPI** BRI, dibangun menggunakan Go +
 │   ├── master_tahun/
 │   ├── master_triwulan/
 │   ├── penyusunan_kpi/
+│   ├── master_sumber/
+│   ├── pencapaian_kpi/
 │   ├── realisasi_kpi/
 │   ├── sample/
 │   ├── template/
@@ -86,6 +88,152 @@ go run main.go
 ```
 
 Server berjalan di port yang dikonfigurasi (default: `8006`).
+
+---
+
+## Deployment
+
+Repository: `https://bitbucket.bri.co.id/scm/pt/perment-api-v2.git`
+
+### Branch Convention
+
+Kedua environment (development dan production) menggunakan branch yang sama: **`main`**.
+
+Perbedaan environment ditentukan oleh nilai `RELEASE_MODE` di file `.env` pada masing-masing server.
+
+| Server      | Branch | `RELEASE_MODE` | File Config              |
+|-------------|--------|----------------|--------------------------|
+| Development | `main` | `dev`          | `config/config_dev.json` |
+| Production  | `main` | `prod`         | `config/config_prod.json`|
+
+---
+
+### Langkah Push ke Bitbucket
+
+1. **Pastikan berada di branch `main`**
+
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
+2. **Merge perubahan dari branch fitur**
+
+   ```bash
+   git merge feature/<nama-fitur>
+   ```
+
+3. **Push ke Bitbucket**
+
+   ```bash
+   git push origin main
+   ```
+
+---
+
+### Deploy ke Server Development
+
+#### Pertama kali (clone)
+
+1. Clone repository ke server development:
+
+   ```bash
+   git clone https://bitbucket.bri.co.id/scm/pt/perment-api-v2.git
+   cd perment-api-v2
+   ```
+
+2. Buat file `.env` di root project:
+
+   ```env
+   APP_NAME=permen_api
+   APP_AUTHOR=BRI
+   APP_VERSION=1.0.0
+   APP_HOST=0.0.0.0
+   APP_PORT=8006
+   RELEASE_MODE=dev
+   ```
+
+3. Pastikan file `config/config_dev.json` sudah tersedia dan konfigurasinya sesuai server development (database, minio, dll).
+
+4. Build dan jalankan:
+
+   ```bash
+   go build -o perment-api main.go
+   ./perment-api
+   ```
+
+   Atau jika menggunakan process manager:
+   ```bash
+   systemctl restart perment-api
+   ```
+
+#### Update berikutnya
+
+```bash
+git pull origin main
+go build -o perment-api main.go
+systemctl restart perment-api
+```
+
+---
+
+### Deploy ke Server Production
+
+> **Perhatian:** Pastikan semua perubahan sudah diuji di server development sebelum deploy ke production.
+
+#### Pertama kali (clone)
+
+1. Clone repository ke server production:
+
+   ```bash
+   git clone https://bitbucket.bri.co.id/scm/pt/perment-api-v2.git
+   cd perment-api-v2
+   ```
+
+2. Buat file `.env` di root project:
+
+   ```env
+   APP_NAME=permen_api
+   APP_AUTHOR=BRI
+   APP_VERSION=1.0.0
+   APP_HOST=0.0.0.0
+   APP_PORT=8006
+   RELEASE_MODE=prod
+   ```
+
+3. Pastikan file `config/config_prod.json` sudah tersedia dan konfigurasinya sesuai server production (database, minio, dll).
+
+4. Build dan jalankan:
+
+   ```bash
+   go build -o perment-api main.go
+   ./perment-api
+   ```
+
+   Atau jika menggunakan process manager:
+   ```bash
+   systemctl restart perment-api
+   ```
+
+#### Update berikutnya
+
+```bash
+git pull origin main
+go build -o perment-api main.go
+systemctl restart perment-api
+```
+
+---
+
+### Catatan Deployment
+
+- File `.env` dan `config/*.json` **tidak** di-commit ke repository — pastikan sudah tersedia di masing-masing server sebelum menjalankan aplikasi.
+- Cek log aplikasi setelah deploy untuk memastikan tidak ada error startup:
+  ```bash
+  journalctl -u perment-api -f
+  # atau
+  tail -f /path/to/app.log
+  ```
 
 ---
 
@@ -165,6 +313,17 @@ Base URL: `http://localhost:8006/api`
 
 ---
 
+### Pencapaian KPI *(Protected)*
+
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| POST | `/pencapaian-kpi/get-all-pencapaian` | Daftar semua pencapaian KPI |
+| POST | `/pencapaian-kpi/get-detail` | Detail pencapaian KPI |
+| POST | `/pencapaian-kpi/get-excel` | Download pencapaian KPI format Excel |
+| POST | `/pencapaian-kpi/get-pdf` | Download pencapaian KPI format PDF |
+
+---
+
 ### EDM *(Protected)*
 
 | Method | Endpoint | Keterangan |
@@ -185,4 +344,5 @@ Base URL: `http://localhost:8006/api`
 | POST | `/master-status/get-all` | Semua status | ✅
 | POST | `/master-process/get-all` | Daftar process | ✅
 | POST | `/master-context/get-all` | Daftar context | ✅
+| POST | `/master-sumber/get-all` | Daftar sumber KPI | ✅
 | POST | `/user/get-all` | Daftar user | ✅
