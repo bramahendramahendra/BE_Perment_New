@@ -43,7 +43,7 @@ type RedisConfig struct {
 }
 type ESBConfig struct {
 	Username                   string
-	Password                   string
+	PunyaESB                   string
 	SubbfixTellerId            string
 	ServiceIDNPWP              string
 	ServiceIDInquiryCASAVA     string
@@ -69,9 +69,9 @@ type EMaterai struct {
 }
 
 type BRIGateConfig struct {
-	EMaterai EMaterai
-	Username string
-	Password string
+	EMaterai     EMaterai
+	Username     string
+	PunyaBRIGate string
 }
 
 type GeneralConfig struct {
@@ -187,7 +187,7 @@ func initConfig(releaseMode string) {
 
 	EsbConf = &ESBConfig{
 		Username:                   viper.GetString("ESBConf.Username"),
-		Password:                   viper.GetString("ESBConf.Password"),
+		PunyaESB:                   viper.GetString("ESBConf.PunyaESB"),
 		SubbfixTellerId:            viper.GetString("ESBConf.SubfixTellerId"),
 		ServiceIDNPWP:              viper.GetString("ESBConf.ServiceIdNpwp"),
 		ServiceIDInquiryCASAVA:     viper.GetString("ESBConf.ServiceIdInquiryCASAVA"),
@@ -251,8 +251,8 @@ func initConfig(releaseMode string) {
 			Kopur:          viper.GetInt("BRIGateConf.EMaterai.Kopur"),
 			JenisIdentitas: viper.GetString("BRIGateConf.EMaterai.JenisIdentitas"),
 		},
-		Username: viper.GetString("BRIgateConf.Username"),
-		Password: viper.GetString("BRIgateConf.Password"),
+		Username:     viper.GetString("BRIgateConf.Username"),
+		PunyaBRIGate: viper.GetString("BRIgateConf.PunyaBRIGate"),
 	}
 
 	// Minio Setup

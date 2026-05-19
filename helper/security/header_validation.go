@@ -3,6 +3,7 @@ package security
 import (
 	"fmt"
 	"permen_api/helper"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,16 @@ import (
 const (
 	// MaxHeaderSize defines the maximum allowed size for security-sensitive headers
 	MaxHeaderSize = 5024 // 1KB limit per header
+
+	// MaxJWTTokenSize defines the maximum allowed size for a JWT bearer token.
+	// A well-formed JWT (header.payload.signature) is well under 2 KB.
+	// This limit prevents resource exhaustion in cryptographic verification.
+	MaxJWTTokenSize = 2048
+
+	// JWT segment limits to cap parser/verification work.
+	maxJWTHeaderSegmentSize    = 512
+	maxJWTPayloadSegmentSize   = 1024
+	maxJWTSignatureSegmentSize = 768
 
 	// Header name constants for consistency and security
 	AuthorizationHeader = "Authorization"
@@ -21,6 +32,8 @@ const (
 	StellTXHeader       = "stellTX"
 	KostlHeader         = "costCenter"
 )
+
+var jwtTokenPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$`)
 
 // SecureHeaderContext holds validated header information to prevent resource exhaustion
 type SecureHeaderContext struct {
@@ -131,36 +144,10 @@ type AuthenticationResult struct {
 
 // ValidateAuthentication performs comprehensive authentication validation including header security
 func ValidateAuthentication(c *gin.Context, jwtVerifyFunc func(string) (*map[string]interface{}, error), fillClaimsFunc func(map[string]interface{}) map[string]string) (*AuthenticationResult, error) {
-	// Step 1: Validate Authorization header
-	authHeader := c.GetHeader(AuthorizationHeader)
-
-	// Security: Validate Authorization header size
-	if len(authHeader) > MaxHeaderSize {
-		return nil, fmt.Errorf("authorization header exceeds maximum size")
-	}
-
-	if authHeader == "" {
-		return nil, fmt.Errorf("authorization header is empty")
-	}
-
-	// Security: Validate header content
-	if strings.Contains(authHeader, "\n") || strings.Contains(authHeader, "\r") {
-		return nil, fmt.Errorf("authorization header contains invalid characters")
-	}
-
-	// Validate Bearer token format
-	if !strings.HasPrefix(authHeader, "Bearer ") {
-		return nil, fmt.Errorf("invalid authorization header format")
-	}
-
-	// Extract token
-	token := strings.TrimPrefix(authHeader, "Bearer ")
-	if token == "" {
-		return nil, fmt.Errorf("bearer token is empty")
-	}
-
-	if len(token) > MaxHeaderSize-7 { // -7 for "Bearer "
-		return nil, fmt.Errorf("bearer token exceeds maximum size")
+	// Step 1: Extract and sanitize bearer token before verifier usage.
+	token, err := extractAndValidateBearerToken(c)
+	if err != nil {
+		return nil, err
 	}
 
 	// Step 2: Verify JWT token
@@ -208,4 +195,49 @@ func ValidateAuthentication(c *gin.Context, jwtVerifyFunc func(string) (*map[str
 		UserqHeader:  userqHeader,
 		HeadersToSet: headersToSet,
 	}, nil
+}
+
+// extractAndValidateBearerToken performs strict pre-verification checks so
+// untrusted header input cannot force expensive JWT verification work.
+func extractAndValidateBearerToken(c *gin.Context) (string, error) {
+	authHeader := c.GetHeader(AuthorizationHeader)
+
+	if authHeader == "" {
+		return "", fmt.Errorf("authorization header is empty")
+	}
+	if len(authHeader) > MaxHeaderSize {
+		return "", fmt.Errorf("authorization header exceeds maximum size")
+	}
+	if strings.ContainsAny(authHeader, "\n\r") {
+		return "", fmt.Errorf("authorization header contains invalid characters")
+	}
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return "", fmt.Errorf("invalid authorization header format")
+	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	if token == "" {
+		return "", fmt.Errorf("bearer token is empty")
+	}
+	if len(token) > MaxJWTTokenSize {
+		return "", fmt.Errorf("bearer token exceeds maximum size")
+	}
+	if strings.ContainsAny(token, " \t\n\r") {
+		return "", fmt.Errorf("bearer token contains invalid whitespace")
+	}
+
+	// Require compact JWT syntax and base64url-safe characters only.
+	if !jwtTokenPattern.MatchString(token) {
+		return "", fmt.Errorf("invalid bearer token format")
+	}
+
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return "", fmt.Errorf("invalid bearer token segments")
+	}
+	if len(parts[0]) > maxJWTHeaderSegmentSize || len(parts[1]) > maxJWTPayloadSegmentSize || len(parts[2]) > maxJWTSignatureSegmentSize {
+		return "", fmt.Errorf("bearer token exceeds maximum size")
+	}
+
+	return token, nil
 }

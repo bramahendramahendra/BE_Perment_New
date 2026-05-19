@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"bytes"
 	"crypto/subtle"
 	"encoding/base64"
 	"permen_api/errors"
@@ -99,6 +100,16 @@ func BasicAuthMiddleware(config BasicAuthConfig) gin.HandlerFunc {
 
 		// Decode base64 credentials
 		encodedCredentials := strings.TrimPrefix(authHeader, "Basic ")
+
+		// Limit encoded size BEFORE decoding to prevent resource exhaustion.
+		// base64 expands by ~4/3, so cap encoded input to avoid large allocations.
+		// maxDecodedCredentialSize=512 => maxEncodedCredentialSize=ceil(512*4/3)+4≈692
+		const maxEncodedCredentialSize = 692
+		if len(encodedCredentials) > maxEncodedCredentialSize {
+			handleAuthFailure(c, config, scope, "Credentials size exceeds maximum allowed")
+			return
+		}
+
 		decodedBytes, err := base64.StdEncoding.DecodeString(encodedCredentials)
 		if err != nil {
 			handleAuthFailure(c, config, scope, "Invalid base64 encoding")
@@ -111,15 +122,21 @@ func BasicAuthMiddleware(config BasicAuthConfig) gin.HandlerFunc {
 			handleAuthFailure(c, config, scope, "Credentials size exceeds maximum allowed")
 			return
 		}
-		credentials := string(decodedBytes)
-		colonIndex := strings.Index(credentials, ":")
-		if colonIndex == -1 {
+		colonIndex := bytes.IndexByte(decodedBytes, ':')
+		if colonIndex <= 0 || colonIndex >= len(decodedBytes)-1 {
 			handleAuthFailure(c, config, scope, "Invalid credentials format")
 			return
 		}
 
-		username := credentials[:colonIndex]
-		password := credentials[colonIndex+1:]
+		const maxUsernameSize = 128
+		const maxPasswordSize = 256
+		if colonIndex > maxUsernameSize || len(decodedBytes)-colonIndex-1 > maxPasswordSize {
+			handleAuthFailure(c, config, scope, "Credentials size exceeds maximum allowed")
+			return
+		}
+
+		username := string(decodedBytes[:colonIndex])
+		password := string(decodedBytes[colonIndex+1:])
 
 		// Validate credentials are not empty
 		if username == "" || password == "" {
@@ -148,9 +165,15 @@ func BasicAuthMiddleware(config BasicAuthConfig) gin.HandlerFunc {
 // handleAuthFailure handles authentication failures consistently.
 func handleAuthFailure(c *gin.Context, config BasicAuthConfig, scope, reason string) {
 	if config.LogFailedAttempts {
+		userAgent := c.GetHeader("User-Agent")
+		const maxUserAgentLogSize = 512
+		if len(userAgent) > maxUserAgentLogSize {
+			userAgent = userAgent[:maxUserAgentLogSize]
+		}
+
 		log_helper.SetLog(c, "warn", scope, reason, error_helper.GetStackTrace(1), map[string]interface{}{
 			"ip":         c.ClientIP(),
-			"user_agent": c.GetHeader("User-Agent"),
+			"user_agent": userAgent,
 			"path":       c.Request.URL.Path,
 		})
 	}

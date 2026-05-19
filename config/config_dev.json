@@ -19,7 +19,7 @@
 	"RestClientTO": 29,
 	"ESBConf": {
 		"Username": "britax",
-		"Password": "BR!t4XP@ss2023",
+		"PunyaESB": "BR!t4XP@ss2023",
 		"SubfixTellerId": "891",
 		"ServiceIdNpwp": "000K7",
 		"ServiceIdFunTransBRIFaktur": "00015",
@@ -29,7 +29,7 @@
 	},
 	"BRIgateConf": {
 		"Username": "britax",
-		"Password": "BR!t4XP@ss2023",
+		"PunyaBRIGate": "BR!t4XP@ss2023",
 		"EMaterai": {
 			"NoDoc": "00001",
 			"EndpointUpload": "/apiEMeterai/1.0/uploadDokumenAsync",

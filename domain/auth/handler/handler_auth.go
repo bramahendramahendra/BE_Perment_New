@@ -5,14 +5,16 @@ import (
 	global_dto "permen_api/dto"
 	"permen_api/helper"
 	response_helper "permen_api/helper/response"
+	binder "permen_api/pkg/binder"
 	"permen_api/pkg/jwt"
 	"permen_api/validation"
 
 	// error_helper "permen_api/helper/error"
 	"permen_api/errors"
 
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
@@ -35,9 +37,15 @@ func (a *AuthHandler) AuthToken(c *gin.Context) {
 	const maxBodySize = 1 << 20 // 1MB
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBodySize)
 
-	var reqData req
+	// var reqData req
 
-	if err := c.ShouldBindJSON(&reqData); err != nil {
+	// if err := c.ShouldBindJSON(&reqData); err != nil {
+	// 	c.Error(&errors.BadRequestError{Message: err.Error()})
+	// 	return
+	// }
+
+	reqData, err := binder.BindJSON[req](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}

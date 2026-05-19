@@ -46,6 +46,7 @@ func (h *TemplateHandler) GetFormatPenyusunanKpi(c *gin.Context) {
 	}
 
 	file_export.SetExcelDownloadHeaders(c, filename)
+	c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }
 
@@ -70,6 +71,7 @@ func (h *TemplateHandler) GetRevisionPenyusunanKpi(c *gin.Context) {
 	}
 
 	file_export.SetExcelDownloadHeaders(c, filename)
+	c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }
 
@@ -98,6 +100,7 @@ func (h *TemplateHandler) GetFormatRealisasiKpi(c *gin.Context) {
 	}
 
 	file_export.SetExcelDownloadHeaders(c, filename)
+	c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }
 
@@ -122,5 +125,6 @@ func (h *TemplateHandler) GetRevisionRealisasiKpi(c *gin.Context) {
 	}
 
 	file_export.SetExcelDownloadHeaders(c, filename)
+	c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes)
 }

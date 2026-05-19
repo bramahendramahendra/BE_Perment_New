@@ -17,10 +17,10 @@ const (
 
 func (s *userIntegrationService) InquiryAccountCASAVA(c *gin.Context, accountNumber string) (data globalDTO.InquryCASAVAResponse, err error) {
 	usernameESB := config.EsbConf.Username
-	passwordESB := config.EsbConf.Password
+	punyaESB := config.EsbConf.PunyaESB
 
 	headerRequest := map[string]string{
-		"Authorization": "Basic " + helper.BuildBasicAuthCreds(usernameESB, passwordESB),
+		"Authorization": "Basic " + helper.BuildBasicAuthCreds(usernameESB, punyaESB),
 	}
 
 	req := globalDTO.InquiryCASAVARequest{

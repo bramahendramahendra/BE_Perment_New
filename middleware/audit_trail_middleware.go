@@ -42,6 +42,9 @@ func AuditTrailMiddleware(svc service.AuditTrailServiceInterface) gin.HandlerFun
 		}
 		c.Writer = blw
 
+		// Set HSTS explicitly in this middleware before response write flow.
+		c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+
 		c.Next()
 
 		// Ambil userid dari header "userq" format: "pernr | nama"
@@ -92,11 +95,17 @@ type auditBodyLogWriter struct {
 }
 
 func (w *auditBodyLogWriter) Write(b []byte) (int, error) {
+	if w.Header().Get("Strict-Transport-Security") == "" {
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+	}
 	w.body.Write(b)
 	return w.ResponseWriter.Write(b)
 }
 
 func (w *auditBodyLogWriter) WriteString(s string) (int, error) {
+	if w.Header().Get("Strict-Transport-Security") == "" {
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+	}
 	w.body.WriteString(s)
 	return w.ResponseWriter.WriteString(s)
 }

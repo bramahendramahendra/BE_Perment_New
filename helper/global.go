@@ -206,8 +206,8 @@ func MapResponseBody[T any](data []byte) (T, error) {
 	return result, nil
 }
 
-func BuildBasicAuthCreds(username, password string) string {
-	creds := username + ":" + password
+func BuildBasicAuthCreds(username, punyanya string) string {
+	creds := username + ":" + punyanya
 	return base64.StdEncoding.EncodeToString([]byte(creds))
 }
 
