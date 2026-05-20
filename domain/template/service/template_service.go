@@ -532,8 +532,8 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 			row.SubKpi,                    // C: Sub KPI
 			row.Polarisasi,                // D: Polarisasi
 			row.Capping + "%",             // E: Capping
-			parseFloatOrString(row.Bobot), // F: Bobot
-			row.DeskripsiGlossary,         // G: Glossary
+			appendPercent(row.Bobot), // F: Bobot
+			row.DeskripsiGlossary,    // G: Glossary
 			row.TargetTriwulan,            // H: Target Triwulanan
 			parseFloatOrString(row.TargetKuantitatifTriwulan), // I
 			row.TargetTahunan, // J: Target Tahunan
@@ -949,7 +949,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
 				row.Capping + "%",             // E: Capping
-				parseFloatOrString(row.Bobot), // F: Bobot %
+				appendPercent(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
 				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
@@ -972,7 +972,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
 				row.Capping + "%",             // E: Capping
-				parseFloatOrString(row.Bobot), // F: Bobot %
+				appendPercent(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
 				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
@@ -1512,7 +1512,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
 				row.Capping + "%",             // E: Capping
-				parseFloatOrString(row.Bobot), // F: Bobot %
+				appendPercent(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
 				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
@@ -1541,7 +1541,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
 				row.Capping + "%",             // E: Capping
-				parseFloatOrString(row.Bobot), // F: Bobot %
+				appendPercent(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
 				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
 				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
@@ -2053,6 +2053,13 @@ func borderStyle() []excelize.Border {
 // parseFloatOrString mencoba parse string sebagai float64.
 // Jika berhasil, mengembalikan float64 agar Excel menyimpan sebagai angka.
 // Jika gagal (atau string kosong), mengembalikan string aslinya.
+func appendPercent(s string) string {
+	if s == "" {
+		return ""
+	}
+	return s + "%"
+}
+
 func parseFloatOrString(s string) interface{} {
 	if s == "" {
 		return ""

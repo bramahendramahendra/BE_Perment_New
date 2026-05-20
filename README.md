@@ -225,14 +225,163 @@ systemctl restart perment-api
 
 ---
 
+### Konfigurasi systemd (Process Manager)
+
+Buat file service agar aplikasi otomatis berjalan saat server reboot dan auto-restart jika crash.
+
+```bash
+sudo nano /etc/systemd/system/perment-api.service
+```
+
+Isi file:
+
+```ini
+[Unit]
+Description=Perment API Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/path/to/perment-api-v2
+ExecStart=/path/to/perment-api-v2/perment-api
+Restart=on-failure
+RestartSec=5s
+EnvironmentFile=/path/to/perment-api-v2/.env
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Aktifkan dan jalankan service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable perment-api
+sudo systemctl start perment-api
+
+# Cek status
+sudo systemctl status perment-api
+```
+
+---
+
+### Konfigurasi Nginx
+
+Nginx berfungsi sebagai **reverse proxy** yang meneruskan request dari luar ke aplikasi Go yang berjalan di port `8006`.
+
+#### Install Nginx (jika belum ada)
+
+```bash
+sudo apt install nginx        # Ubuntu/Debian
+# atau
+sudo yum install nginx        # CentOS/RHEL
+```
+
+#### Konfigurasi Server Development
+
+Buat file konfigurasi Nginx:
+
+```bash
+sudo nano /etc/nginx/conf.d/perment-api-dev.conf
+```
+
+Isi file:
+
+```nginx
+server {
+    listen 80;
+    server_name dev-perment-api.bri.co.id;  # sesuaikan dengan domain/IP server dev
+
+    # Ukuran maksimal upload (untuk upload file Excel)
+    client_max_body_size 20M;
+
+    # Timeout untuk request yang lama (generate PDF/Excel)
+    proxy_read_timeout 120s;
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 120s;
+
+    location /api {
+        proxy_pass         http://127.0.0.1:8006;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+#### Konfigurasi Server Production
+
+```bash
+sudo nano /etc/nginx/conf.d/perment-api-prod.conf
+```
+
+Isi file:
+
+```nginx
+server {
+    listen 80;
+    server_name perment-api.bri.co.id;  # sesuaikan dengan domain production
+
+    # Redirect HTTP ke HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name perment-api.bri.co.id;  # sesuaikan dengan domain production
+
+    # Sertifikat SSL (sesuaikan path)
+    ssl_certificate     /etc/ssl/certs/perment-api.crt;
+    ssl_certificate_key /etc/ssl/private/perment-api.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    # Ukuran maksimal upload (untuk upload file Excel)
+    client_max_body_size 20M;
+
+    # Timeout untuk request yang lama (generate PDF/Excel)
+    proxy_read_timeout 120s;
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 120s;
+
+    location /api {
+        proxy_pass         http://127.0.0.1:8006;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+#### Aktifkan dan Reload Nginx
+
+```bash
+# Test konfigurasi (pastikan tidak ada error syntax)
+sudo nginx -t
+
+# Reload Nginx
+sudo systemctl reload nginx
+```
+
+---
+
 ### Catatan Deployment
 
 - File `.env` dan `config/*.json` **tidak** di-commit ke repository — pastikan sudah tersedia di masing-masing server sebelum menjalankan aplikasi.
+- Sesuaikan `server_name` di konfigurasi Nginx dengan domain atau IP yang digunakan di masing-masing server.
+- Sesuaikan path sertifikat SSL di konfigurasi production dengan sertifikat yang diterbitkan oleh tim infrastruktur BRI.
 - Cek log aplikasi setelah deploy untuk memastikan tidak ada error startup:
   ```bash
   journalctl -u perment-api -f
-  # atau
-  tail -f /path/to/app.log
+  ```
+- Cek log Nginx jika ada masalah koneksi:
+  ```bash
+  sudo tail -f /var/log/nginx/error.log
   ```
 
 ---

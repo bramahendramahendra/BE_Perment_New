@@ -199,10 +199,16 @@ func parseInternal(
 		if colF == "" {
 			return nil, nil, fmt.Errorf("baris %d, Kolom F (Bobot %%): tidak boleh kosong", displayRow)
 		}
-		bobot, errBobot := excel.ParseFloat(colF)
+		if !strings.HasSuffix(colF, "%") {
+			return nil, nil, fmt.Errorf(
+				"baris %d, Kolom F (Bobot %%): harus menggunakan simbol persen, contoh: '25%%', nilai saat ini: '%s'",
+				displayRow, colF,
+			)
+		}
+		bobot, errBobot := excel.ParseFloat(strings.TrimSuffix(colF, "%"))
 		if errBobot != nil {
 			return nil, nil, fmt.Errorf(
-				"baris %d, Kolom F (Bobot %%): harus berupa angka 2 desimal tanpa simbol persen, nilai saat ini: '%s'",
+				"baris %d, Kolom F (Bobot %%): harus berupa angka 2 desimal dengan simbol persen, contoh: '25%%', nilai saat ini: '%s'",
 				displayRow, colF,
 			)
 		}
