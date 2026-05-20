@@ -19,6 +19,7 @@ func (s *masterSumberService) GetAllMasterSumber() (data []dto.MasterSumberRespo
 		data = append(data, dto.MasterSumberResponse{
 			IdSumber: v.IdSumber,
 			Sumber:   v.Sumber,
+			Edm:      v.Edm,
 		})
 	}
 

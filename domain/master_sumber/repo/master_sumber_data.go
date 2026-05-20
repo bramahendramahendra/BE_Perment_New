@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	GetAllMasterSumberQuery = `SELECT id_sumber, sumber FROM mst_sumber`
+	GetAllMasterSumberQuery = `SELECT id_sumber, sumber, edm FROM mst_sumber order by id_sumber DESC`
 )
 
 // =============================================================================

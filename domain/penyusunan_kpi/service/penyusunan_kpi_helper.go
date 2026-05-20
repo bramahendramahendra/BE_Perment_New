@@ -52,7 +52,7 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 		for j := range rows {
 			subRow := &kpiSubDetails[i][j]
 
-			idKpi, kpiFromDB, rumusMstKpi, err := s.repo.LookupKpiMaster(subRow.SubKPI)
+			idKpi, kpiFromDB, _, err := s.repo.LookupKpiMaster(subRow.SubKPI)
 			if err != nil {
 				return fmt.Errorf(
 					"KPI ke-%d, Sub KPI ke-%d ('%s'): gagal lookup master KPI: %w",
@@ -77,25 +77,6 @@ func (s *penyusunanKpiService) resolveMasterLookup(
 				}
 			}
 			subRow.IdPolarisasi = idPolarisasi
-
-			if subRow.IdSubKpi != "0" {
-				polarisasiMaster := "Maximize"
-				if rumusMstKpi == "0" {
-					polarisasiMaster = "Minimize"
-				}
-				if idPolarisasi != rumusMstKpi {
-					return &customErrors.BadRequestError{
-						Message: fmt.Sprintf(
-							"KPI ke-%d, Sub KPI ke-%d ('%s'): polarisasi tidak sesuai master. "+
-								"Excel: '%s' (id=%s), master KPI: '%s' (id=%s). "+
-								"Periksa kembali kolom D pada file Excel",
-							i+1, j+1, subRow.SubKPI,
-							subRow.Polarisasi, idPolarisasi,
-							polarisasiMaster, rumusMstKpi,
-						),
-					}
-				}
-			}
 		}
 	}
 	return nil
