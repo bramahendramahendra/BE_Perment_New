@@ -2,406 +2,176 @@ package edm
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// =============================================================================
-// Mock DBQuerier
-// =============================================================================
-
-type mockDB struct {
-	// rawResults memetakan query prefix ke nilai yang akan di-scan ke dest.
-	rawResults map[string]any
-	rawErr     error
-	execErr    error
-
-	capturedExecQuery string
-	capturedExecArgs  []any
+// mockDBQuerier implementasi DBQuerier untuk testing.
+type mockDBQuerier struct {
+	scanResult any
+	scanErr    error
 }
 
-func (m *mockDB) RawScan(query string, dest any, args ...any) error {
-	if m.rawErr != nil {
-		return m.rawErr
+func (m *mockDBQuerier) RawScan(_ string, dest any, _ ...any) error {
+	if m.scanErr != nil {
+		return m.scanErr
 	}
-	val, ok := m.rawResults[query]
-	if !ok {
-		return nil
-	}
-	switch d := dest.(type) {
-	case *int64:
-		if v, ok := val.(int64); ok {
-			*d = v
-		}
-	case *string:
-		if v, ok := val.(string); ok {
-			*d = v
-		}
-	case *paramRow:
-		if v, ok := val.(paramRow); ok {
-			*d = v
-		}
+	if m.scanResult != nil {
+		b, _ := json.Marshal(m.scanResult)
+		_ = json.Unmarshal(b, dest)
 	}
 	return nil
 }
 
-func (m *mockDB) Exec(query string, args ...any) error {
-	m.capturedExecQuery = query
-	m.capturedExecArgs = args
-	return m.execErr
-}
-
-// =============================================================================
-// Helper: buat edmClient dengan mock DB dan mock HTTP server
-// =============================================================================
-
-func newTestClient(db DBQuerier, httpClient *http.Client) *edmClient {
+func newTestClient(db DBQuerier, serverURL string) *edmClient {
 	return &edmClient{
 		db:         db,
-		httpClient: httpClient,
+		httpClient: &http.Client{},
 		debug:      false,
 	}
 }
 
-func newMockServer(responseBody any, statusCode int) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func TestGetKpi_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		assert.Equal(t, datahubChannel, r.Header.Get("X-DATAHUB-CHANNEL"))
+		assert.Equal(t, datahubPersonalNumber, r.Header.Get("X-DATAHUB-PERSONAL-NUMBER"))
+		assert.NotEmpty(t, r.Header.Get("Authorization"))
+
+		resp := customerhubResponse{
+			StatusCode:      200,
+			ErrorCode:       "000",
+			ResponseCode:    "00",
+			ResponseMessage: "Success",
+			Data: []KpiItem{
+				{ID: "014002002001002", AliasName: "Pendapatan Bunga", Amount: 17550444967},
+				{ID: "014002003003000", AliasName: "%Rate FTP KPR", Amount: 0.541},
+			},
+		}
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(statusCode)
-		if err := json.NewEncoder(w).Encode(responseBody); err != nil {
-			http.Error(w, "failed to encode response", http.StatusInternalServerError)
-		}
+		json.NewEncoder(w).Encode(resp)
 	}))
-}
+	defer server.Close()
 
-// =============================================================================
-// TestGetToken
-// =============================================================================
-
-func TestGetToken_Success(t *testing.T) {
-	srv := newMockServer(map[string]any{
-		"access_token": "token-abc123",
-	}, http.StatusOK)
-	defer srv.Close()
-
-	db := &mockDB{
-		rawResults: map[string]any{
-			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
-				Userid:   "client-id",
-				Userpass: "client-secret",
-				Userurl:  srv.URL,
-			},
+	db := &mockDBQuerier{
+		scanResult: paramRow{
+			Userid:   "cekadmin",
+			Userpass: "cekadmin",
+			Userurl:  server.URL,
 		},
 	}
 
-	c := newTestClient(db, srv.Client())
-	token, err := c.GetToken()
+	client := newTestClient(db, server.URL)
+	result, err := client.GetKpi("2025-02")
 
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if token != "token-abc123" {
-		t.Errorf("expected token 'token-abc123', got: %s", token)
-	}
-	if db.capturedExecQuery == "" {
-		t.Error("expected Exec dipanggil untuk menyimpan token, tapi tidak dipanggil")
-	}
+	require.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, "014002002001002", result[0].ID)
+	assert.Equal(t, "Pendapatan Bunga", result[0].AliasName)
+	assert.InDelta(t, 17550444967.0, result[0].Amount, 0.01)
+	assert.Equal(t, "014002003003000", result[1].ID)
+	assert.InDelta(t, 0.541, result[1].Amount, 0.001)
 }
 
-func TestGetToken_ParamDBError(t *testing.T) {
-	db := &mockDB{rawErr: errors.New("db connection refused")}
-	c := newTestClient(db, http.DefaultClient)
-
-	_, err := c.GetToken()
-
-	if err == nil {
-		t.Fatal("expected error, got nil")
+func TestGetKpi_DBError(t *testing.T) {
+	db := &mockDBQuerier{
+		scanErr: assert.AnError,
 	}
-	if !errors.Is(err, db.rawErr) {
-		t.Errorf("expected error wrapping db error, got: %v", err)
-	}
+
+	client := newTestClient(db, "")
+	result, err := client.GetKpi("2025-02")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "gagal ambil param")
+	assert.Nil(t, result)
 }
 
-func TestGetToken_EDMReturnError(t *testing.T) {
-	srv := newMockServer(map[string]any{
-		"error": "invalid_client",
-	}, http.StatusOK)
-	defer srv.Close()
-
-	db := &mockDB{
-		rawResults: map[string]any{
-			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
-				Userid: "x", Userpass: "y", Userurl: srv.URL,
-			},
-		},
-	}
-
-	c := newTestClient(db, srv.Client())
-	_, err := c.GetToken()
-
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-}
-
-func TestGetToken_MissingAccessToken(t *testing.T) {
-	srv := newMockServer(map[string]any{
-		"message": "ok",
-	}, http.StatusOK)
-	defer srv.Close()
-
-	db := &mockDB{
-		rawResults: map[string]any{
-			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
-				Userid: "x", Userpass: "y", Userurl: srv.URL,
-			},
-		},
-	}
-
-	c := newTestClient(db, srv.Client())
-	_, err := c.GetToken()
-
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-}
-
-func TestGetToken_SaveToDB_Error(t *testing.T) {
-	srv := newMockServer(map[string]any{
-		"access_token": "token-xyz",
-	}, http.StatusOK)
-	defer srv.Close()
-
-	db := &mockDB{
-		rawResults: map[string]any{
-			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
-				Userid: "x", Userpass: "y", Userurl: srv.URL,
-			},
-		},
-		execErr: errors.New("db write error"),
-	}
-
-	c := newTestClient(db, srv.Client())
-	_, err := c.GetToken()
-
-	if err == nil {
-		t.Fatal("expected error saat simpan token, got nil")
-	}
-}
-
-// =============================================================================
-// TestGetDataKPI
-// =============================================================================
-
-func TestGetDataKPI_Success(t *testing.T) {
-	srv := newMockServer(map[string]any{
-		"success": true,
-		"data": []any{
-			map[string]any{"id_kpi": "KPI-001", "nilai": 95.5},
-		},
-	}, http.StatusOK)
-	defer srv.Close()
-
-	db := &mockDB{
-		rawResults: map[string]any{
-			// token masih valid (count = 0 expired)
-			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
-			// token dari cache
-			"SELECT token FROM param_token_edm LIMIT 1": "cached-token",
-			// param GetDataKPI
-			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
-				Userid: "x", Userpass: "y", Userurl: srv.URL,
-			},
-		},
-	}
-
-	c := newTestClient(db, srv.Client())
-	data, err := c.GetDataKPI("2024", "1", "KPI-001")
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if data == nil {
-		t.Error("expected data, got nil")
-	}
-}
-
-func TestGetDataKPI_SuccessFalse(t *testing.T) {
-	srv := newMockServer(map[string]any{
-		"success": false,
-		"message": "data tidak ditemukan",
-	}, http.StatusOK)
-	defer srv.Close()
-
-	db := &mockDB{
-		rawResults: map[string]any{
-			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
-			"SELECT token FROM param_token_edm LIMIT 1": "cached-token",
-			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
-				Userid: "x", Userpass: "y", Userurl: srv.URL,
-			},
-		},
-	}
-
-	c := newTestClient(db, srv.Client())
-	_, err := c.GetDataKPI("2024", "1", "KPI-001")
-
-	if err == nil {
-		t.Fatal("expected error karena success=false, got nil")
-	}
-}
-
-func TestGetDataKPI_EmptyData(t *testing.T) {
-	srv := newMockServer(map[string]any{
-		"success": true,
-		"data":    []any{},
-	}, http.StatusOK)
-	defer srv.Close()
-
-	db := &mockDB{
-		rawResults: map[string]any{
-			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
-			"SELECT token FROM param_token_edm LIMIT 1": "cached-token",
-			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
-				Userid: "x", Userpass: "y", Userurl: srv.URL,
-			},
-		},
-	}
-
-	c := newTestClient(db, srv.Client())
-	_, err := c.GetDataKPI("2024", "1", "KPI-001")
-
-	if err == nil {
-		t.Fatal("expected error karena data kosong, got nil")
-	}
-}
-
-func TestGetDataKPI_TokenExpired_RefreshSuccess(t *testing.T) {
-	// Server untuk GetToken
-	tokenSrv := newMockServer(map[string]any{
-		"access_token": "new-token",
-	}, http.StatusOK)
-	defer tokenSrv.Close()
-
-	// Server untuk GetDataKPI
-	dataSrv := newMockServer(map[string]any{
-		"success": true,
-		"data":    []any{map[string]any{"id": "KPI-001"}},
-	}, http.StatusOK)
-	defer dataSrv.Close()
-
-	callCount := 0
-	db := &mockDB{
-		rawResults: map[string]any{
-			// token expired
-			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(1),
-		},
-	}
-
-	// Override RawScan agar param bisa dibedakan antara GetToken dan GetDataKPI
-	db.rawResults["SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?"] = paramRow{}
-
-	// Kita pakai custom mock yang bisa membedakan urutan panggilan
-	customDB := &sequentialMockDB{
-		paramResponses: []paramRow{
-			{Userid: "id", Userpass: "secret", Userurl: tokenSrv.URL}, // GetToken
-			{Userid: "id", Userpass: "secret", Userurl: dataSrv.URL},  // GetDataKPI
-		},
-		expiredCount: int64(1),
-	}
-	_ = callCount
-
-	c := newTestClient(customDB, tokenSrv.Client())
-	c.httpClient = &http.Client{} // pakai default agar bisa hit keduanya
-
-	data, err := c.GetDataKPI("2024", "1", "KPI-001")
-
-	if err != nil {
-		t.Fatalf("expected no error setelah token refresh, got: %v", err)
-	}
-	if data == nil {
-		t.Error("expected data, got nil")
-	}
-}
-
-// =============================================================================
-// TestGetOrRefreshToken
-// =============================================================================
-
-func TestGetOrRefreshToken_UseCachedToken(t *testing.T) {
-	db := &mockDB{
-		rawResults: map[string]any{
-			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
-			"SELECT token FROM param_token_edm LIMIT 1": "cached-token-xyz",
-		},
-	}
-
-	c := newTestClient(db, http.DefaultClient)
-	token, err := c.getOrRefreshToken()
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if token != "cached-token-xyz" {
-		t.Errorf("expected cached token, got: %s", token)
-	}
-}
-
-func TestGetOrRefreshToken_EmptyCache_Refresh(t *testing.T) {
-	srv := newMockServer(map[string]any{
-		"access_token": "refreshed-token",
-	}, http.StatusOK)
-	defer srv.Close()
-
-	db := &mockDB{
-		rawResults: map[string]any{
-			"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?": int64(0),
-			"SELECT token FROM param_token_edm LIMIT 1": "",
-			"SELECT userid, userpass, userurl FROM mst_param WHERE vendor = ?": paramRow{
-				Userid: "id", Userpass: "secret", Userurl: srv.URL,
-			},
-		},
-	}
-
-	c := newTestClient(db, srv.Client())
-	token, err := c.getOrRefreshToken()
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if token != "refreshed-token" {
-		t.Errorf("expected 'refreshed-token', got: %s", token)
-	}
-}
-
-// =============================================================================
-// sequentialMockDB — helper untuk test yang butuh urutan panggilan berbeda
-// =============================================================================
-
-type sequentialMockDB struct {
-	paramResponses []paramRow
-	paramCallIdx   int
-	expiredCount   int64
-	execErr        error
-}
-
-func (s *sequentialMockDB) RawScan(query string, dest any, args ...any) error {
-	switch d := dest.(type) {
-	case *int64:
-		*d = s.expiredCount
-	case *string:
-		// token cache kosong — paksa refresh
-		*d = ""
-	case *paramRow:
-		if s.paramCallIdx < len(s.paramResponses) {
-			*d = s.paramResponses[s.paramCallIdx]
-			s.paramCallIdx++
+func TestGetKpi_APIResponseCodeFail(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := customerhubResponse{
+			StatusCode:      400,
+			ErrorCode:       "001",
+			ResponseCode:    "01",
+			ResponseMessage: "Bad Request",
+			Data:            nil,
 		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	db := &mockDBQuerier{
+		scanResult: paramRow{
+			Userid:   "cekadmin",
+			Userpass: "cekadmin",
+			Userurl:  server.URL,
+		},
 	}
-	return nil
+
+	client := newTestClient(db, server.URL)
+	result, err := client.GetKpi("2025-02")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Customerhub GetKpi gagal")
+	assert.Nil(t, result)
 }
 
-func (s *sequentialMockDB) Exec(query string, args ...any) error {
-	return s.execErr
+func TestGetKpi_InvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("invalid json"))
+	}))
+	defer server.Close()
+
+	db := &mockDBQuerier{
+		scanResult: paramRow{
+			Userid:   "cekadmin",
+			Userpass: "cekadmin",
+			Userurl:  server.URL,
+		},
+	}
+
+	client := newTestClient(db, server.URL)
+	result, err := client.GetKpi("2025-02")
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "gagal decode response")
+	assert.Nil(t, result)
+}
+
+func TestBasicAuth(t *testing.T) {
+	encoded := basicAuth("cekadmin", "cekadmin")
+	assert.Equal(t, "Y2VrYWRtaW46Y2VrYWRtaW4=", encoded)
+}
+
+func TestGetKpi_EmptyData(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := customerhubResponse{
+			StatusCode:      200,
+			ResponseCode:    "00",
+			ResponseMessage: "Success",
+			Data:            []KpiItem{},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	db := &mockDBQuerier{
+		scanResult: paramRow{
+			Userid:   "cekadmin",
+			Userpass: "cekadmin",
+			Userurl:  server.URL,
+		},
+	}
+
+	client := newTestClient(db, server.URL)
+	result, err := client.GetKpi("2025-02")
+
+	require.NoError(t, err)
+	assert.Empty(t, result)
 }

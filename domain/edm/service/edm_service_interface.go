@@ -9,7 +9,7 @@ import (
 
 type (
 	EdmServiceInterface interface {
-		GetRealisasi(req *dto.GetRealisasiRequest) (data interface{}, err error)
+		GetKpi(req *dto.GetKpiRequest) (data interface{}, err error)
 	}
 
 	edmService struct {
@@ -19,6 +19,6 @@ type (
 
 func NewEdmService(db *gorm.DB) *edmService {
 	return &edmService{
-		edm: edm.New(db, false), // debug: false
+		edm: edm.New(db, false),
 	}
 }

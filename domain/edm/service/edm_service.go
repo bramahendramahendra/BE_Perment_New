@@ -4,6 +4,6 @@ import (
 	dto "permen_api/domain/edm/dto"
 )
 
-func (s *edmService) GetRealisasi(req *dto.GetRealisasiRequest) (interface{}, error) {
-	return s.edm.GetDataKPI(req.Tahun, req.Triwulan, req.IdKpi)
+func (s *edmService) GetKpi(req *dto.GetKpiRequest) (interface{}, error) {
+	return s.edm.GetKpi(req.Periode)
 }

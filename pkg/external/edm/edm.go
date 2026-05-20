@@ -3,6 +3,7 @@ package edm
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,36 +14,47 @@ import (
 )
 
 const (
-	vendorGetToken   = "GetToken"
-	vendorGetDataKPI = "GetDataKPI"
-	tokenTTLHours    = 11
-	defaultTimeout   = 30 * time.Second
+	vendorGetKpi   = "GetKpi"
+	defaultTimeout = 30 * time.Second
+
+	datahubChannel        = "DATAHUB"
+	datahubPersonalNumber = "00000000"
 )
 
 // DBQuerier abstraksi operasi DB yang dibutuhkan EdmClient.
-// Memudahkan unit testing tanpa koneksi database nyata.
 type DBQuerier interface {
 	RawScan(query string, dest any, args ...any) error
-	Exec(query string, args ...any) error
 }
 
 type (
+	KpiItem struct {
+		ID        string  `json:"id"`
+		AliasName string  `json:"aliasName"`
+		Amount    float64 `json:"amount"`
+	}
+
 	EdmClient interface {
-		GetToken() (string, error)
-		GetDataKPI(tahun, triwulan, idKPI string) (any, error)
+		GetKpi(periode string) ([]KpiItem, error)
 	}
 
 	edmClient struct {
-		db          DBQuerier
-		httpClient  *http.Client
-		debug       bool
-		useFallback bool
+		db         DBQuerier
+		httpClient *http.Client
+		debug      bool
 	}
 
 	paramRow struct {
 		Userid   string
 		Userpass string
 		Userurl  string
+	}
+
+	customerhubResponse struct {
+		StatusCode      int       `json:"statusCode"`
+		ErrorCode       string    `json:"errorCode"`
+		ResponseCode    string    `json:"responseCode"`
+		ResponseMessage string    `json:"responseMessage"`
+		Data            []KpiItem `json:"data"`
 	}
 )
 
@@ -55,16 +67,6 @@ func (g *gormQuerier) RawScan(query string, dest any, args ...any) error {
 	return g.db.Raw(query, args...).Scan(dest).Error
 }
 
-func (g *gormQuerier) Exec(query string, args ...any) error {
-	return g.db.Exec(query, args...).Error
-}
-
-// DUMMY MODE — ubah nilai konstanta di bawah untuk mengaktifkan/menonaktifkan data dummy.
-// true  = pakai data dummy (gunakan saat EDM external sedang dalam perbaikan/pengembangan)
-// false = call EDM API beneran (gunakan saat EDM external sudah siap)
-// const useFallback = false
-const useFallback = true
-
 func New(db *gorm.DB, debug bool) EdmClient {
 	return &edmClient{
 		db: &gormQuerier{db: db},
@@ -74,117 +76,31 @@ func New(db *gorm.DB, debug bool) EdmClient {
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: config.ENV.ReleaseMode != "production"},
 			},
 		},
-		debug:       debug,
-		useFallback: useFallback, // dikontrol oleh konstanta di atas
+		debug: debug,
 	}
 }
 
-// GetToken mengambil token baru dari EDM dan menyimpannya ke param_token_edm.
-func (c *edmClient) GetToken() (string, error) {
-	// [DUMMY] kembalikan token dummy jika fallback aktif
-	if c.useFallback {
-		return "dummy-token", nil
-	}
-	param, err := c.getParam(vendorGetToken)
+// GetKpi mengambil data KPI dari Customerhub API berdasarkan periode.
+func (c *edmClient) GetKpi(periode string) ([]KpiItem, error) {
+	param, err := c.getParam(vendorGetKpi)
 	if err != nil {
-		return "", fmt.Errorf("gagal ambil param %s: %w", vendorGetToken, err)
+		return nil, fmt.Errorf("gagal ambil param %s: %w", vendorGetKpi, err)
 	}
 
 	body := map[string]any{
-		"client_id":     param.Userid,
-		"client_secret": param.Userpass,
-		"grant_type":    "client_credentials",
+		"periode": periode,
 	}
 
-	result, err := c.post(param.Userurl, "", body)
+	result, err := c.post(param.Userurl, param.Userid, param.Userpass, body)
 	if err != nil {
-		return "", fmt.Errorf("gagal request GetToken ke EDM: %w", err)
+		return nil, fmt.Errorf("gagal request GetKpi ke Customerhub: %w", err)
 	}
 
-	if result["error"] != nil {
-		return "", fmt.Errorf("EDM token error: %v", result["error"])
+	if result.ResponseCode != "00" {
+		return nil, fmt.Errorf("Customerhub GetKpi gagal: %s", result.ResponseMessage)
 	}
 
-	token, ok := result["access_token"].(string)
-	if !ok || token == "" {
-		return "", fmt.Errorf("access_token tidak ditemukan dalam response EDM")
-	}
-
-	if err := c.db.Exec("UPDATE param_token_edm SET token = ?, insert_date = NOW()", token); err != nil {
-		return "", fmt.Errorf("gagal simpan token EDM: %w", err)
-	}
-
-	if c.debug {
-		fmt.Printf("[DEBUG] EDM GetToken: token berhasil diperbarui\n")
-	}
-
-	return token, nil
-}
-
-// GetDataKPI mengambil data KPI dari EDM berdasarkan tahun, triwulan, dan ID KPI.
-func (c *edmClient) GetDataKPI(tahun, triwulan, idKPI string) (any, error) {
-	// [DUMMY] kembalikan data dummy jika fallback aktif
-	if c.useFallback {
-		return dummyDataKPI(), nil
-	}
-	token, err := c.getOrRefreshToken()
-	if err != nil {
-		return nil, err
-	}
-
-	param, err := c.getParam(vendorGetDataKPI)
-	if err != nil {
-		return nil, fmt.Errorf("gagal ambil param %s: %w", vendorGetDataKPI, err)
-	}
-
-	body := map[string]any{
-		"TAHUN":   tahun,
-		"KUARTAL": triwulan,
-		"ID_KPI":  idKPI,
-	}
-
-	result, err := c.post(param.Userurl, token, body)
-	if err != nil {
-		return nil, fmt.Errorf("gagal request GetDataKPI ke EDM: %w", err)
-	}
-
-	success, _ := result["success"].(bool)
-	if !success {
-		return nil, fmt.Errorf("EDM GetDataKPI mengembalikan success=false")
-	}
-
-	dataArr, ok := result["data"].([]any)
-	if !ok || len(dataArr) == 0 {
-		return nil, fmt.Errorf("data EDM kosong atau tidak valid")
-	}
-
-	return dataArr[0], nil
-}
-
-// getOrRefreshToken mengecek usia token di DB; refresh jika sudah >= tokenTTLHours jam.
-func (c *edmClient) getOrRefreshToken() (string, error) {
-	var count int64
-	if err := c.db.RawScan(
-		"SELECT COUNT(*) FROM param_token_edm WHERE TIMESTAMPDIFF(HOUR, insert_date, NOW()) >= ?",
-		&count,
-		tokenTTLHours,
-	); err != nil {
-		return "", fmt.Errorf("gagal cek usia token: %w", err)
-	}
-
-	if count > 0 {
-		return c.GetToken()
-	}
-
-	var token string
-	if err := c.db.RawScan("SELECT token FROM param_token_edm LIMIT 1", &token); err != nil {
-		return "", fmt.Errorf("gagal ambil token dari DB: %w", err)
-	}
-	if token == "" {
-		return c.GetToken()
-	}
-
-	return token, nil
+	return result.Data, nil
 }
 
 // getParam mengambil kredensial dan URL endpoint dari tabel mst_param berdasarkan vendor.
@@ -198,21 +114,22 @@ func (c *edmClient) getParam(vendor string) (paramRow, error) {
 	return row, err
 }
 
-// post melakukan HTTP POST ke url dengan JSON body dan optional Bearer token.
-func (c *edmClient) post(url, token string, body map[string]any) (map[string]any, error) {
+// post melakukan HTTP POST ke url dengan JSON body dan Basic Auth.
+func (c *edmClient) post(url, username, password string, body map[string]any) (*customerhubResponse, error) {
 	bodyBytes, _ := json.Marshal(body)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return nil, err
 	}
+
 	req.Header.Set("Content-Type", "application/json")
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
+	req.Header.Set("X-DATAHUB-CHANNEL", datahubChannel)
+	req.Header.Set("X-DATAHUB-PERSONAL-NUMBER", datahubPersonalNumber)
+	req.Header.Set("Authorization", "Basic "+basicAuth(username, password))
 
 	if c.debug {
-		fmt.Printf("[DEBUG] EDM POST %s\n", url)
+		fmt.Printf("[DEBUG] Customerhub POST %s\n", url)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -221,22 +138,18 @@ func (c *edmClient) post(url, token string, body map[string]any) (map[string]any
 	}
 	defer resp.Body.Close()
 
-	var result map[string]any
+	var result customerhubResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("gagal decode response EDM: %w", err)
+		return nil, fmt.Errorf("gagal decode response Customerhub: %w", err)
 	}
 
 	if c.debug {
-		fmt.Printf("[DEBUG] EDM response status: %d\n", resp.StatusCode)
+		fmt.Printf("[DEBUG] Customerhub response status: %d\n", resp.StatusCode)
 	}
 
-	return result, nil
+	return &result, nil
 }
 
-// dummyDataKPI mengembalikan data KPI statis untuk keperluan pengembangan
-// saat server EDM external sedang dalam perbaikan.
-func dummyDataKPI() any {
-	return map[string]any{
-		"NILAI": 1234567.89,
-	}
+func basicAuth(username, password string) string {
+	return base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 }
