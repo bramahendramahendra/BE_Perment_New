@@ -8,6 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// EdmRoutes mendaftarkan semua endpoint untuk domain Edm.
+// Endpoint ini berada di bawah protected route (memerlukan Bearer Auth).
+//
+// Daftar endpoint:
+//
+//	POST /edm/kpi → GetKpi  (application/json)
 func EdmRoutes(r *gin.RouterGroup) {
 	edmService := service.NewEdmService(db.DB)
 	edmHandler := handler.NewEdmHandler(edmService)
