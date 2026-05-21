@@ -21,7 +21,7 @@ var (
 
 func Initialized() *gin.Engine {
 	InitializedDB()
-	// initializedRedis()
+	initializedRedis()
 	initializedLogger()
 	initializedMinio()
 	initializedRestClient()

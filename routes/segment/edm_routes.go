@@ -4,6 +4,7 @@ import (
 	handler "permen_api/domain/edm/handler"
 	service "permen_api/domain/edm/service"
 	db "permen_api/pkg/database"
+	"permen_api/pkg/redis"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,7 +16,7 @@ import (
 //
 //	POST /edm/kpi → GetKpi  (application/json)
 func EdmRoutes(r *gin.RouterGroup) {
-	edmService := service.NewEdmService(db.DB)
+	edmService := service.NewEdmService(db.DB, redis.Client)
 	edmHandler := handler.NewEdmHandler(edmService)
 
 	edmGroup := r.Group("edm")

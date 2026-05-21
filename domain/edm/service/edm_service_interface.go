@@ -4,6 +4,7 @@ import (
 	dto "permen_api/domain/edm/dto"
 	edm "permen_api/pkg/external/edm"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -13,12 +14,14 @@ type (
 	}
 
 	edmService struct {
-		edm edm.EdmClient
+		edm   edm.EdmClient
+		redis *redis.Client
 	}
 )
 
-func NewEdmService(db *gorm.DB) *edmService {
+func NewEdmService(db *gorm.DB, redisClient *redis.Client) *edmService {
 	return &edmService{
-		edm: edm.New(db, false),
+		edm:   edm.New(db, false),
+		redis: redisClient,
 	}
 }

@@ -58,9 +58,9 @@
 	},
 
 	"RedisLocal": {
-		"Host": "127.0.0.1",
+		"Host": "172.18.135.224",
 		"Port": "6379",
-		"Password": "P@ssw0rd",
+		"Password": "",
 		"Db": 0,
 		"PoolSize": 10,
 		"MinIdleConns": 5
