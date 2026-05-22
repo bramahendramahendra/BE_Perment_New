@@ -20,7 +20,7 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 	// Warna palette
 	headerBgR, headerBgG, headerBgB := 31, 73, 125
 	headerFgR, headerFgG, headerFgB := 255, 255, 255
-	rowGreenR, rowGreenG, rowGreenB := 226, 240, 217
+	rowGreenR, rowGreenG, rowGreenB := 255, 255, 255
 	textR, textG, textB := 0, 0, 0
 
 	// Judul
@@ -196,51 +196,35 @@ func GenerateValidasiKpiPDF(exportData *dto.ValidasiKpiExportData) ([]byte, stri
 	return buf.Bytes(), filename, nil
 }
 
-// drawIndicatorCell menggambar lingkaran indikator warna + teks persen di dalam sel.
+// drawIndicatorCell menggambar teks persen dengan warna font sesuai indikator.
 // Warna ditentukan dari indikator DB (logika: last match wins, data descending).
-// Tidak ada lingkaran untuk nilai "-" atau kosong.
 func drawIndicatorCell(pdf *gofpdf.Fpdf, x, y, w, h, lineH float64, val string, indikator []dto.IndikatorPencapaian, tr, tg, tb, restoreR, restoreG, restoreB int) {
-	const circleR = 2.0
-	const circlePad = 3.5 // jarak dari tepi kiri ke center lingkaran
-
 	trimmed := strings.TrimSpace(val)
-	hasCircle := trimmed != "" && trimmed != "-"
+	hasValue := trimmed != "" && trimmed != "-"
 
-	if hasCircle {
+	fontR, fontG, fontB := tr, tg, tb
+	if hasValue {
 		pctStr := strings.TrimSuffix(trimmed, "%")
 		var pct float64
 		fmt.Sscanf(pctStr, "%f", &pct)
 
 		// Warna default merah, last match wins (indikator sudah descending dari DB)
-		cr, cg, cb := 195, 0, 2 // merah #C30002
+		fontR, fontG, fontB = 195, 0, 2 // merah #C30002
 		for _, item := range indikator {
 			if pct <= item.Value {
 				switch item.Warna {
 				case "hijau":
-					cr, cg, cb = 114, 173, 74 // #72AD4A
+					fontR, fontG, fontB = 114, 173, 74 // #72AD4A
 				case "kuning":
-					cr, cg, cb = 249, 195, 1 // #F9C301
+					fontR, fontG, fontB = 249, 195, 1 // #F9C301
 				case "merah":
-					cr, cg, cb = 195, 0, 2 // #C30002
+					fontR, fontG, fontB = 195, 0, 2 // #C30002
 				}
 			}
 		}
-
-		cx := x + circlePad
-		cy := y + h/2
-		pdf.SetFillColor(cr, cg, cb)
-		pdf.SetDrawColor(0, 0, 0)
-		pdf.Circle(cx, cy, circleR, "F")
 	}
 
-	// Teks di sisa lebar sel, center vertikal
-	textX := x
-	textW := w
-	if hasCircle {
-		textX = x + circlePad*2 + circleR
-		textW = w - (circlePad*2 + circleR)
-	}
-	nLines := len(pdf.SplitLines([]byte(trimmed), textW-1))
+	nLines := len(pdf.SplitLines([]byte(trimmed), w-1))
 	if nLines < 1 {
 		nLines = 1
 	}
@@ -248,11 +232,12 @@ func drawIndicatorCell(pdf *gofpdf.Fpdf, x, y, w, h, lineH float64, val string, 
 	if offsetY < 0 {
 		offsetY = 0
 	}
-	pdf.SetTextColor(tr, tg, tb)
-	pdf.SetXY(textX, y+offsetY)
-	pdf.MultiCell(textW, lineH, trimmed, "", "R", false)
+	pdf.SetTextColor(fontR, fontG, fontB)
+	pdf.SetXY(x, y+offsetY)
+	pdf.MultiCell(w, lineH, trimmed, "", "C", false)
 
-	// Kembalikan fill color ke warna baris agar sel berikutnya tidak ikut berubah
+	// Kembalikan warna teks dan fill color ke warna baris
+	pdf.SetTextColor(tr, tg, tb)
 	pdf.SetFillColor(restoreR, restoreG, restoreB)
 	pdf.SetDrawColor(200, 200, 200)
 }

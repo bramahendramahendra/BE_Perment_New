@@ -91,6 +91,75 @@ Server berjalan di port yang dikonfigurasi (default: `8006`).
 
 ---
 
+## Redis
+
+Aplikasi menggunakan Redis sebagai cache. Pastikan Redis sudah berjalan sebelum menjalankan server.
+
+### Cek Status Redis
+
+```bash
+sudo systemctl status redis-server
+```
+
+### Start Redis
+
+```bash
+sudo systemctl start redis-server
+```
+
+### Verifikasi Redis Berjalan
+
+```bash
+redis-cli ping
+# Output: PONG
+```
+
+---
+
+### Troubleshooting Redis
+
+#### Error: `stop-writes-on-bgsave-error`
+
+```
+failed to initialize redis: MISCONF Redis is configured to save RDB snapshots,
+but it is currently not able to persist on disk.
+```
+
+Penyebab: Redis gagal menyimpan snapshot RDB ke disk karena **permission denied** pada folder `/var/lib/redis`.
+
+**Solusi — perbaiki permission:**
+
+```bash
+sudo chown -R redis:redis /var/lib/redis
+sudo chmod 770 /var/lib/redis
+sudo systemctl restart redis-server
+```
+
+Verifikasi berhasil:
+
+```bash
+redis-cli ping
+# Output: PONG
+```
+
+**Solusi alternatif (development only)** — nonaktifkan pengecekan RDB error tanpa restart:
+
+```bash
+redis-cli config set stop-writes-on-bgsave-error no
+```
+
+> Solusi alternatif ini hanya untuk environment development. Untuk production, gunakan solusi perbaikan permission di atas.
+
+#### Cek Log Redis
+
+Jika masalah masih terjadi, lihat detail error di log Redis:
+
+```bash
+sudo tail -50 /var/log/redis/redis-server.log
+```
+
+---
+
 ## Deployment
 
 Repository: `https://bitbucket.bri.co.id/scm/pt/perment-api-v2.git`
