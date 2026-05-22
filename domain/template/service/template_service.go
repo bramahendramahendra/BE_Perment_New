@@ -3,10 +3,10 @@ package service
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
 
 	dto "permen_api/domain/template/dto"
+	"permen_api/domain/template/utils"
 	"permen_api/errors"
 
 	"github.com/xuri/excelize/v2"
@@ -104,7 +104,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 			Vertical:   "center",
 			WrapText:   true,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style row1: %v", err)}
@@ -123,7 +123,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 			Vertical:   "center",
 			WrapText:   true,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style header: %v", err)}
@@ -131,7 +131,7 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 
 	// Buat style untuk data cell (row 3 dst) — border tipis
 	styleData, err := f.NewStyle(&excelize.Style{
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 		Alignment: &excelize.Alignment{
 			Vertical: "top",
 			WrapText: true,
@@ -215,9 +215,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		Operator:         "greaterThan",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Kolom No. harus berupa angka bulat positif."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Kolom No. harus berupa angka bulat positif."),
 		Sqref:            sqrefDataRange("A"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom A: %v", err)}
@@ -230,9 +230,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Polarisasi: %v", err)}
 	}
 	dvPolarisasi.ShowErrorMessage = true
-	dvPolarisasi.ErrorStyle = strPtr("stop")
-	dvPolarisasi.ErrorTitle = strPtr("Input Tidak Valid")
-	dvPolarisasi.Error = strPtr("Pilih salah satu: Maximize atau Minimize.")
+	dvPolarisasi.ErrorStyle = utils.StrPtr("stop")
+	dvPolarisasi.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvPolarisasi.Error = utils.StrPtr("Pilih salah satu: Maximize atau Minimize.")
 	if err := f.AddDataValidation(sheetName, dvPolarisasi); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Polarisasi: %v", err)}
 	}
@@ -244,9 +244,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Capping: %v", err)}
 	}
 	dvCapping.ShowErrorMessage = true
-	dvCapping.ErrorStyle = strPtr("stop")
-	dvCapping.ErrorTitle = strPtr("Input Tidak Valid")
-	dvCapping.Error = strPtr("Pilih salah satu: 100% atau 110%.")
+	dvCapping.ErrorStyle = utils.StrPtr("stop")
+	dvCapping.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvCapping.Error = utils.StrPtr("Pilih salah satu: 100% atau 110%.")
 	if err := f.AddDataValidation(sheetName, dvCapping); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Capping: %v", err)}
 	}
@@ -258,9 +258,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		Formula1:         "0",
 		Formula2:         "100",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
 		Sqref:            sqrefDataRange("F"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom F: %v", err)}
@@ -272,9 +272,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Target Kuantitatif Triwulanan harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Target Kuantitatif Triwulanan harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("I"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom I: %v", err)}
@@ -286,9 +286,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Target Kuantitatif Tahunan harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Target Kuantitatif Tahunan harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("K"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom K: %v", err)}
@@ -301,9 +301,9 @@ func (s *templateService) GenerateFormatPenyusunanKpi(req *dto.FormatPenyusunanK
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Terdapat Qualifier: %v", err)}
 	}
 	dvQualifier.ShowErrorMessage = true
-	dvQualifier.ErrorStyle = strPtr("stop")
-	dvQualifier.ErrorTitle = strPtr("Input Tidak Valid")
-	dvQualifier.Error = strPtr("Pilih salah satu: Ya atau Tidak.")
+	dvQualifier.ErrorStyle = utils.StrPtr("stop")
+	dvQualifier.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvQualifier.Error = utils.StrPtr("Pilih salah satu: Ya atau Tidak.")
 	if err := f.AddDataValidation(sheetName, dvQualifier); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Terdapat Qualifier: %v", err)}
 	}
@@ -435,7 +435,7 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 			Vertical:   "center",
 			WrapText:   true,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style row1: %v", err)}
@@ -454,7 +454,7 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 			Vertical:   "center",
 			WrapText:   true,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style header: %v", err)}
@@ -462,7 +462,7 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 
 	// Buat style untuk data cell (row 3 dst) — border tipis
 	styleData, err := f.NewStyle(&excelize.Style{
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 		Alignment: &excelize.Alignment{
 			Vertical: "top",
 			WrapText: true,
@@ -532,12 +532,12 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 			row.SubKpi,                    // C: Sub KPI
 			row.Polarisasi,                // D: Polarisasi
 			row.Capping + "%",             // E: Capping
-			appendPercent(row.Bobot), // F: Bobot
+			utils.AppendPercent(row.Bobot), // F: Bobot
 			row.DeskripsiGlossary,    // G: Glossary
 			row.TargetTriwulan,            // H: Target Triwulanan
-			parseFloatOrString(row.TargetKuantitatifTriwulan), // I
+			utils.ParseFloatOrString(row.TargetKuantitatifTriwulan), // I
 			row.TargetTahunan, // J: Target Tahunan
-			parseFloatOrString(row.TargetKuantitatifTahunan), // K
+			utils.ParseFloatOrString(row.TargetKuantitatifTahunan), // K
 			row.TerdapatQualifier,                            // L: Ya/Tidak (dikonversi di repo)
 			row.ItemQualifier,                                // M: Qualifier
 			row.DeskripsiQualifier,                           // N: Deskripsi Qualifier
@@ -599,9 +599,9 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 		Operator:         "greaterThan",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Kolom No. harus berupa angka bulat positif."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Kolom No. harus berupa angka bulat positif."),
 		Sqref:            sqrefDataRange("A"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom A: %v", err)}
@@ -614,9 +614,9 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Polarisasi: %v", err)}
 	}
 	dvPolarisasi.ShowErrorMessage = true
-	dvPolarisasi.ErrorStyle = strPtr("stop")
-	dvPolarisasi.ErrorTitle = strPtr("Input Tidak Valid")
-	dvPolarisasi.Error = strPtr("Pilih salah satu: Maximize atau Minimize.")
+	dvPolarisasi.ErrorStyle = utils.StrPtr("stop")
+	dvPolarisasi.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvPolarisasi.Error = utils.StrPtr("Pilih salah satu: Maximize atau Minimize.")
 	if err := f.AddDataValidation(sheetName, dvPolarisasi); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Polarisasi: %v", err)}
 	}
@@ -628,9 +628,9 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Capping: %v", err)}
 	}
 	dvCapping.ShowErrorMessage = true
-	dvCapping.ErrorStyle = strPtr("stop")
-	dvCapping.ErrorTitle = strPtr("Input Tidak Valid")
-	dvCapping.Error = strPtr("Pilih salah satu: 100% atau 110%.")
+	dvCapping.ErrorStyle = utils.StrPtr("stop")
+	dvCapping.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvCapping.Error = utils.StrPtr("Pilih salah satu: 100% atau 110%.")
 	if err := f.AddDataValidation(sheetName, dvCapping); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Capping: %v", err)}
 	}
@@ -642,9 +642,9 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 		Formula1:         "0",
 		Formula2:         "100",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
 		Sqref:            sqrefDataRange("F"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom F: %v", err)}
@@ -656,9 +656,9 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Target Kuantitatif Triwulanan harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Target Kuantitatif Triwulanan harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("I"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom I: %v", err)}
@@ -670,9 +670,9 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Target Kuantitatif Tahunan harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Target Kuantitatif Tahunan harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("K"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom K: %v", err)}
@@ -685,9 +685,9 @@ func (s *templateService) GenerateRevisionPenyusunanKpi(req *dto.RevisionPenyusu
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Terdapat Qualifier: %v", err)}
 	}
 	dvQualifier.ShowErrorMessage = true
-	dvQualifier.ErrorStyle = strPtr("stop")
-	dvQualifier.ErrorTitle = strPtr("Input Tidak Valid")
-	dvQualifier.Error = strPtr("Pilih salah satu: Ya atau Tidak.")
+	dvQualifier.ErrorStyle = utils.StrPtr("stop")
+	dvQualifier.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvQualifier.Error = utils.StrPtr("Pilih salah satu: Ya atau Tidak.")
 	if err := f.AddDataValidation(sheetName, dvQualifier); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Terdapat Qualifier: %v", err)}
 	}
@@ -852,7 +852,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 			Vertical:   "center",
 			WrapText:   true,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style header: %v", err)}
@@ -862,7 +862,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		Protection: &excelize.Protection{
 			Locked: true,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 		Alignment: &excelize.Alignment{
 			Vertical: "top",
 			WrapText: true,
@@ -882,7 +882,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 			Color:   []string{"FFFF00"},
 			Pattern: 1,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 		Alignment: &excelize.Alignment{
 			Vertical: "top",
 			WrapText: true,
@@ -949,10 +949,10 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
 				row.Capping + "%",             // E: Capping
-				appendPercent(row.Bobot), // F: Bobot %
+				utils.AppendPercent(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
-				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
-				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
+				utils.RealisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
+				utils.RealisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
 				"", "", "", "",      // J–M: kosong (diisi user)
 				"",                  // N: Link Dokumen Sumber (diisi user)
 				row.NamaResult,      // O: Result
@@ -972,10 +972,10 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
 				row.Capping + "%",             // E: Capping
-				appendPercent(row.Bobot), // F: Bobot %
+				utils.AppendPercent(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
-				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
-				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
+				utils.RealisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
+				utils.RealisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
 				"", "", "", "", // J–M: kosong (diisi user)
 				"",             // N: Link Dokumen Sumber (diisi user)
 			}
@@ -1047,13 +1047,13 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 			Color:   []string{"FFFF00"},
 			Pattern: 1,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style legenda kuning: %v", err)}
 	}
 	styleTextLegend, err := f.NewStyle(&excelize.Style{
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 		Alignment: &excelize.Alignment{
 			Vertical: "center",
 			WrapText: true,
@@ -1086,7 +1086,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 			Color:   []string{"FF0000"},
 			Pattern: 1,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style legenda merah: %v", err)}
@@ -1119,9 +1119,9 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		Operator:         "greaterThan",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Kolom No harus berupa angka bulat positif."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Kolom No harus berupa angka bulat positif."),
 		Sqref:            sqrefDataRange("A"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom A: %v", err)}
@@ -1134,9 +1134,9 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Polarisasi: %v", err)}
 	}
 	dvPolarisasi.ShowErrorMessage = true
-	dvPolarisasi.ErrorStyle = strPtr("stop")
-	dvPolarisasi.ErrorTitle = strPtr("Input Tidak Valid")
-	dvPolarisasi.Error = strPtr("Pilih salah satu: Maximize atau Minimize.")
+	dvPolarisasi.ErrorStyle = utils.StrPtr("stop")
+	dvPolarisasi.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvPolarisasi.Error = utils.StrPtr("Pilih salah satu: Maximize atau Minimize.")
 	if err := f.AddDataValidation(sheetName, dvPolarisasi); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Polarisasi: %v", err)}
 	}
@@ -1148,9 +1148,9 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Capping: %v", err)}
 	}
 	dvCapping.ShowErrorMessage = true
-	dvCapping.ErrorStyle = strPtr("stop")
-	dvCapping.ErrorTitle = strPtr("Input Tidak Valid")
-	dvCapping.Error = strPtr("Pilih salah satu: 100% atau 110%.")
+	dvCapping.ErrorStyle = utils.StrPtr("stop")
+	dvCapping.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvCapping.Error = utils.StrPtr("Pilih salah satu: 100% atau 110%.")
 	if err := f.AddDataValidation(sheetName, dvCapping); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Capping: %v", err)}
 	}
@@ -1162,9 +1162,9 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		Formula1:         "0",
 		Formula2:         "100",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
 		Sqref:            sqrefDataRange("F"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom F: %v", err)}
@@ -1176,9 +1176,9 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Realisasi Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Realisasi Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("K"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom K: %v", err)}
@@ -1190,9 +1190,9 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Realisasi Qualifier Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Realisasi Qualifier Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("M"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom M: %v", err)}
@@ -1277,7 +1277,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 			Protection: &excelize.Protection{
 				Locked: false,
 			},
-			Border: borderStyle(),
+			Border: utils.BorderStyle(),
 			Alignment: &excelize.Alignment{
 				Vertical: "top",
 				WrapText: true,
@@ -1297,7 +1297,7 @@ func (s *templateService) GenerateFormatRealisasiKpi(req *dto.FormatRealisasiKpi
 				Color:   []string{"FF0000"},
 				Pattern: 1,
 			},
-			Border: borderStyle(),
+			Border: utils.BorderStyle(),
 			Alignment: &excelize.Alignment{
 				Vertical:   "top",
 				Horizontal: "center",
@@ -1415,7 +1415,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 			Vertical:   "center",
 			WrapText:   true,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style header: %v", err)}
@@ -1425,7 +1425,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		Protection: &excelize.Protection{
 			Locked: true,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 		Alignment: &excelize.Alignment{
 			Vertical: "top",
 			WrapText: true,
@@ -1445,7 +1445,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 			Color:   []string{"FFFF00"},
 			Pattern: 1,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 		Alignment: &excelize.Alignment{
 			Vertical: "top",
 			WrapText: true,
@@ -1512,12 +1512,12 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
 				row.Capping + "%",             // E: Capping
-				appendPercent(row.Bobot), // F: Bobot %
+				utils.AppendPercent(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
-				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
-				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
+				utils.RealisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
+				utils.RealisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
 				row.Realisasi,                                  // J: Realisasi (pre-filled)
-				parseFloatOrString(row.RealisasiKuantitatif),  // K: Realisasi Kuantitatif (pre-filled)
+				utils.ParseFloatOrString(row.RealisasiKuantitatif),  // K: Realisasi Kuantitatif (pre-filled)
 				row.RealisasiQualifier,                         // L: Realisasi Qualifier (pre-filled, diproses per-baris)
 				row.RealisasiKuantitatifQualifier,              // M: Realisasi Qualifier Kuantitatif (pre-filled)
 				row.LinkDokumenSumber,                          // N: Link Dokumen Sumber (pre-filled)
@@ -1541,12 +1541,12 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 				row.SubKpi,                    // C: Sub KPI
 				row.Polarisasi,                // D: Polarisasi
 				row.Capping + "%",             // E: Capping
-				appendPercent(row.Bobot), // F: Bobot %
+				utils.AppendPercent(row.Bobot), // F: Bobot %
 				row.TargetTriwulan,            // G: Target Triwulanan
-				realisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
-				realisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
+				utils.RealisasiQualifierOrDash(row.ItemQualifier),   // H: Qualifier
+				utils.RealisasiQualifierOrDash(row.TargetQualifier), // I: Target Qualifier
 				row.Realisasi,                                  // J: Realisasi (pre-filled)
-				parseFloatOrString(row.RealisasiKuantitatif),  // K: Realisasi Kuantitatif (pre-filled)
+				utils.ParseFloatOrString(row.RealisasiKuantitatif),  // K: Realisasi Kuantitatif (pre-filled)
 				row.RealisasiQualifier,                         // L: Realisasi Qualifier (pre-filled, diproses per-baris)
 				row.RealisasiKuantitatifQualifier,              // M: Realisasi Qualifier Kuantitatif (pre-filled)
 				row.LinkDokumenSumber,                          // N: Link Dokumen Sumber (pre-filled)
@@ -1619,13 +1619,13 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 			Color:   []string{"FFFF00"},
 			Pattern: 1,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style legenda kuning: %v", err)}
 	}
 	styleTextLegend, err := f.NewStyle(&excelize.Style{
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 		Alignment: &excelize.Alignment{
 			Vertical: "center",
 			WrapText: true,
@@ -1657,7 +1657,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 			Color:   []string{"FF0000"},
 			Pattern: 1,
 		},
-		Border: borderStyle(),
+		Border: utils.BorderStyle(),
 	})
 	if err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style legenda merah: %v", err)}
@@ -1689,9 +1689,9 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		Operator:         "greaterThan",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Kolom No harus berupa angka bulat positif."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Kolom No harus berupa angka bulat positif."),
 		Sqref:            sqrefDataRange("A"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom A: %v", err)}
@@ -1703,9 +1703,9 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Polarisasi: %v", err)}
 	}
 	dvPolarisasi.ShowErrorMessage = true
-	dvPolarisasi.ErrorStyle = strPtr("stop")
-	dvPolarisasi.ErrorTitle = strPtr("Input Tidak Valid")
-	dvPolarisasi.Error = strPtr("Pilih salah satu: Maximize atau Minimize.")
+	dvPolarisasi.ErrorStyle = utils.StrPtr("stop")
+	dvPolarisasi.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvPolarisasi.Error = utils.StrPtr("Pilih salah satu: Maximize atau Minimize.")
 	if err := f.AddDataValidation(sheetName, dvPolarisasi); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Polarisasi: %v", err)}
 	}
@@ -1716,9 +1716,9 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal set dropdown Capping: %v", err)}
 	}
 	dvCapping.ShowErrorMessage = true
-	dvCapping.ErrorStyle = strPtr("stop")
-	dvCapping.ErrorTitle = strPtr("Input Tidak Valid")
-	dvCapping.Error = strPtr("Pilih salah satu: 100% atau 110%.")
+	dvCapping.ErrorStyle = utils.StrPtr("stop")
+	dvCapping.ErrorTitle = utils.StrPtr("Input Tidak Valid")
+	dvCapping.Error = utils.StrPtr("Pilih salah satu: 100% atau 110%.")
 	if err := f.AddDataValidation(sheetName, dvCapping); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi Capping: %v", err)}
 	}
@@ -1729,9 +1729,9 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		Formula1:         "0",
 		Formula2:         "100",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Bobot % harus berupa angka antara 0 sampai 100 (maks. 2 angka di belakang koma, tanpa simbol %)."),
 		Sqref:            sqrefDataRange("F"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom F: %v", err)}
@@ -1742,9 +1742,9 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Realisasi Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Realisasi Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("K"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom K: %v", err)}
@@ -1756,9 +1756,9 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 		Operator:         "greaterThanOrEqual",
 		Formula1:         "0",
 		ShowErrorMessage: true,
-		ErrorStyle:       strPtr("stop"),
-		ErrorTitle:       strPtr("Input Tidak Valid"),
-		Error:            strPtr("Realisasi Qualifier Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
+		ErrorStyle:       utils.StrPtr("stop"),
+		ErrorTitle:       utils.StrPtr("Input Tidak Valid"),
+		Error:            utils.StrPtr("Realisasi Qualifier Kuantitatif harus berupa angka (maks. 2 angka di belakang koma)."),
 		Sqref:            sqrefDataRange("M"),
 	}); err != nil {
 		return nil, "", &errors.InternalServerError{Message: fmt.Sprintf("gagal tambah validasi kolom M: %v", err)}
@@ -1832,7 +1832,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 			Protection: &excelize.Protection{
 				Locked: false,
 			},
-			Border: borderStyle(),
+			Border: utils.BorderStyle(),
 			Alignment: &excelize.Alignment{
 				Vertical: "top",
 				WrapText: true,
@@ -1851,7 +1851,7 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 				Color:   []string{"FF0000"},
 				Pattern: 1,
 			},
-			Border: borderStyle(),
+			Border: utils.BorderStyle(),
 			Alignment: &excelize.Alignment{
 				Vertical:   "top",
 				Horizontal: "center",
@@ -1918,155 +1918,3 @@ func (s *templateService) GenerateRevisionRealisasiKpi(req *dto.RevisionRealisas
 	return buf.Bytes(), filename, nil
 }
 
-// realisasiQualifierOrDash mengembalikan nilai string, atau "-" jika kosong.
-func realisasiQualifierOrDash(s string) string {
-	if s == "" {
-		return "-"
-	}
-	return s
-}
-
-// =============================================================================
-// generateSheetKpi — sheet kedua berisi daftar KPI dan Polarisasi dari DB
-// =============================================================================
-
-// generateSheetKpi membuat sheet "KPI" pada file Excel yang diberikan.
-// Kolom A1: KPI, Kolom B1: Polarisasi.
-// Data diambil dari mst_kpi LEFT JOIN mst_polarisasi.
-// Jika polarisasi tidak ditemukan di mst_polarisasi, kolom B dikosongkan.
-func (s *templateService) generateSheetKpi(f *excelize.File) error {
-	const kpiSheetName = "KPI"
-
-	// Tambahkan sheet baru "KPI"
-	if _, err := f.NewSheet(kpiSheetName); err != nil {
-		return &errors.InternalServerError{Message: fmt.Sprintf("gagal buat sheet KPI: %v", err)}
-	}
-
-	// Ambil data dari DB
-	kpiRows, err := s.repo.GetKpiWithPolarisasi()
-	if err != nil {
-		return &errors.InternalServerError{Message: fmt.Sprintf("gagal ambil data mst_kpi: %v", err)}
-	}
-
-	// Style header sheet KPI — background biru muda + bold
-	styleHeader, err := f.NewStyle(&excelize.Style{
-		Font: &excelize.Font{Bold: true},
-		Fill: excelize.Fill{
-			Type:    "pattern",
-			Color:   []string{"BDD7EE"},
-			Pattern: 1,
-		},
-		Alignment: &excelize.Alignment{
-			Horizontal: "center",
-			Vertical:   "center",
-			WrapText:   true,
-		},
-		Border: borderStyle(),
-	})
-	if err != nil {
-		return &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style header sheet KPI: %v", err)}
-	}
-
-	// Style data sheet KPI — border tipis
-	styleData, err := f.NewStyle(&excelize.Style{
-		Border: borderStyle(),
-		Alignment: &excelize.Alignment{
-			Vertical: "top",
-			WrapText: true,
-		},
-	})
-	if err != nil {
-		return &errors.InternalServerError{Message: fmt.Sprintf("gagal buat style data sheet KPI: %v", err)}
-	}
-
-	// -------------------------------------------------------------------------
-	// Row 1: Header — A1 = "KPI", B1 = "Polarisasi"
-	// -------------------------------------------------------------------------
-	headers := []string{"KPI", "Polarisasi"}
-	for colIdx, header := range headers {
-		cellName, _ := excelize.CoordinatesToCellName(colIdx+1, 1)
-		if err := f.SetCellValue(kpiSheetName, cellName, header); err != nil {
-			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set header %s sheet KPI: %v", cellName, err)}
-		}
-		if err := f.SetCellStyle(kpiSheetName, cellName, cellName, styleHeader); err != nil {
-			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set style header %s sheet KPI: %v", cellName, err)}
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// Row 2 dst: Isi data KPI dan Polarisasi
-	// -------------------------------------------------------------------------
-	for i, row := range kpiRows {
-		rowNum := i + 2 // data mulai row 2 (setelah header row 1)
-
-		cellKpi, _ := excelize.CoordinatesToCellName(1, rowNum)
-		cellPolarisasi, _ := excelize.CoordinatesToCellName(2, rowNum)
-
-		if err := f.SetCellValue(kpiSheetName, cellKpi, row.Kpi); err != nil {
-			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set nilai KPI baris %d sheet KPI: %v", rowNum, err)}
-		}
-		if err := f.SetCellValue(kpiSheetName, cellPolarisasi, row.Polarisasi); err != nil {
-			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set nilai Polarisasi baris %d sheet KPI: %v", rowNum, err)}
-		}
-		if err := f.SetCellStyle(kpiSheetName, cellKpi, cellPolarisasi, styleData); err != nil {
-			return &errors.InternalServerError{Message: fmt.Sprintf("gagal set style data baris %d sheet KPI: %v", rowNum, err)}
-		}
-	}
-
-	// -------------------------------------------------------------------------
-	// Set lebar kolom sheet KPI
-	// -------------------------------------------------------------------------
-	if err := f.SetColWidth(kpiSheetName, "A", "A", 40); err != nil {
-		return &errors.InternalServerError{Message: fmt.Sprintf("gagal set lebar kolom A sheet KPI: %v", err)}
-	}
-	if err := f.SetColWidth(kpiSheetName, "B", "B", 20); err != nil {
-		return &errors.InternalServerError{Message: fmt.Sprintf("gagal set lebar kolom B sheet KPI: %v", err)}
-	}
-
-	// Set tinggi row header sheet KPI
-	if err := f.SetRowHeight(kpiSheetName, 1, 30); err != nil {
-		return &errors.InternalServerError{Message: fmt.Sprintf("gagal set tinggi header sheet KPI: %v", err)}
-	}
-
-	return nil
-}
-
-// =============================================================================
-// Helper
-// =============================================================================
-
-// strPtr mengembalikan pointer ke string — pengganti excelize.Ptr yang tidak tersedia di v2.10.1.
-func strPtr(s string) *string {
-	return &s
-}
-
-// borderStyle mengembalikan konfigurasi border tipis untuk semua sisi cell.
-func borderStyle() []excelize.Border {
-	return []excelize.Border{
-		{Type: "left", Color: "000000", Style: 1},
-		{Type: "right", Color: "000000", Style: 1},
-		{Type: "top", Color: "000000", Style: 1},
-		{Type: "bottom", Color: "000000", Style: 1},
-	}
-}
-
-// parseFloatOrString mencoba parse string sebagai float64.
-// Jika berhasil, mengembalikan float64 agar Excel menyimpan sebagai angka.
-// Jika gagal (atau string kosong), mengembalikan string aslinya.
-func appendPercent(s string) string {
-	if s == "" {
-		return ""
-	}
-	return s + "%"
-}
-
-func parseFloatOrString(s string) interface{} {
-	if s == "" {
-		return ""
-	}
-	v, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return s
-	}
-	return v
-}
