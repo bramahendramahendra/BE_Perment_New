@@ -182,7 +182,7 @@ func initConfig(releaseMode string) {
 		MaxOpenConns:    viper.GetInt("Database.MaxOpenConns"),
 		MaxIdleConns:    viper.GetInt("Database.MaxIdleConns"),
 		ConnMaxLifeTime: viper.GetInt("Database.MaxLifeTime"),
-		ConnMaxIdleTime: viper.GetInt("Database.MaxIdleTme"),
+		ConnMaxIdleTime: viper.GetInt("Database.MaxIdleTime"),
 	}
 
 	EsbConf = &ESBConfig{

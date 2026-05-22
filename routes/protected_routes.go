@@ -51,6 +51,11 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.MasterPerspektifRoutes(r)
 
 	// =============================================
+	// DOMAIN: MASTER LINK FORMAT
+	// =============================================
+	segment.MasterLinkFormatRoutes(r)
+
+	// =============================================
 	// DOMAIN: MASTER TAHUN
 	// =============================================
 	segment.MasterTahunRoutes(r)

@@ -18,7 +18,6 @@ import (
 //	POST /validasi-kpi/input                      → InputValidasi                   (application/json) — validate + create + revision
 //	POST /validasi-kpi/approve                    → ApproveValidasi                 (application/json)
 //	POST /validasi-kpi/reject                     → RejectValidasi                  (application/json)
-//	POST /validasi-kpi/batal                      → ValidasiBatal                   (application/json)
 //	POST /validasi-kpi/get-all-validasi           → GetAllValidasi                  (application/json)
 //	POST /validasi-kpi/get-all-approval           → GetAllApprovalValidasi          (application/json)
 //	POST /validasi-kpi/get-all-tolakan            → GetAllTolakanValidasi           (application/json)
