@@ -76,7 +76,7 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 	}
 
 	dataStyle, err := f.NewStyle(&excelize.Style{
-		Fill: excelize.Fill{Type: "pattern", Color: []string{"E2F0D9"}, Pattern: 1},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"FFFFFF"}, Pattern: 1},
 		Font: &excelize.Font{Size: 9},
 		Border: []excelize.Border{
 			{Type: "left", Color: "B4B4B4", Style: 1},
@@ -91,7 +91,7 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 	}
 
 	dataLeftStyle, err := f.NewStyle(&excelize.Style{
-		Fill: excelize.Fill{Type: "pattern", Color: []string{"E2F0D9"}, Pattern: 1},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"FFFFFF"}, Pattern: 1},
 		Font: &excelize.Font{Size: 9},
 		Border: []excelize.Border{
 			{Type: "left", Color: "B4B4B4", Style: 1},
@@ -106,8 +106,8 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 	}
 
 	indicatorGreenStyle, err := f.NewStyle(&excelize.Style{
-		Fill: excelize.Fill{Type: "pattern", Color: []string{"72AD4A"}, Pattern: 1},
-		Font: &excelize.Font{Bold: true, Size: 9, Color: "FFFFFF"},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"FFFFFF"}, Pattern: 1},
+		Font: &excelize.Font{Bold: true, Size: 9, Color: "72AD4A"},
 		Border: []excelize.Border{
 			{Type: "left", Color: "B4B4B4", Style: 1},
 			{Type: "right", Color: "B4B4B4", Style: 1},
@@ -121,8 +121,8 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 	}
 
 	indicatorYellowStyle, err := f.NewStyle(&excelize.Style{
-		Fill: excelize.Fill{Type: "pattern", Color: []string{"F9C301"}, Pattern: 1},
-		Font: &excelize.Font{Bold: true, Size: 9, Color: "FFFFFF"},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"FFFFFF"}, Pattern: 1},
+		Font: &excelize.Font{Bold: true, Size: 9, Color: "F9C301"},
 		Border: []excelize.Border{
 			{Type: "left", Color: "B4B4B4", Style: 1},
 			{Type: "right", Color: "B4B4B4", Style: 1},
@@ -136,8 +136,8 @@ func GenerateValidasiKpiExcel(exportData *dto.ValidasiKpiExportData) ([]byte, st
 	}
 
 	indicatorRedStyle, err := f.NewStyle(&excelize.Style{
-		Fill: excelize.Fill{Type: "pattern", Color: []string{"C30002"}, Pattern: 1},
-		Font: &excelize.Font{Bold: true, Size: 9, Color: "FFFFFF"},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"FFFFFF"}, Pattern: 1},
+		Font: &excelize.Font{Bold: true, Size: 9, Color: "C30002"},
 		Border: []excelize.Border{
 			{Type: "left", Color: "B4B4B4", Style: 1},
 			{Type: "right", Color: "B4B4B4", Style: 1},
